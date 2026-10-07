@@ -54,6 +54,8 @@ def make_settings(**overrides: object) -> Settings:
     # environments keep it on: config validation forbids disabling it there.
     if base["environment"] in NON_DEPLOYED:
         base.setdefault("rate_limit_enabled", False)
+    # Metrics write to the database on every request; tests that need them turn them on.
+    base.setdefault("api_metrics_enabled", False)
     return Settings(**base)  # type: ignore[arg-type]
 
 

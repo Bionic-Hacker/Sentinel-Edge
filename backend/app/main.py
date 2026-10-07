@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.router import api_v1
+from app.core.api_metrics import ApiMetrics, ApiMetricsMiddleware
 from app.core.api_policy import build_route_templates
 from app.core.client_ip import ClientIpMiddleware
 from app.core.config import Settings, get_settings
@@ -57,11 +58,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.rate_limiter = RateLimiter(
         app.state.session_factory, enabled=settings.rate_limit_enabled
     )
+    app.state.api_metrics = ApiMetrics(
+        app.state.session_factory, enabled=settings.api_metrics_enabled
+    )
 
     # Order matters: the last added middleware runs first. SecurityMiddleware is outermost so
     # that every response — including Host rejections and errors — gets headers and a
     # correlation ID.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+    app.add_middleware(ApiMetricsMiddleware, metrics=app.state.api_metrics)
     app.add_middleware(SecurityMiddleware)
     # Outermost: resolve the real client IP first, so logs, audit and limits all agree on it.
     app.add_middleware(ClientIpMiddleware, trusted_proxy_cidrs=settings.trusted_proxy_cidrs)

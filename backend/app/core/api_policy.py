@@ -112,6 +112,8 @@ class EndpointPolicy:
     rate_limit: RateLimitPolicy
     owasp: tuple[OwaspApi, ...]  # the categories this endpoint is most exposed to
     data: str  # the most sensitive data the endpoint handles
+    # Object-level rule enforced in the service layer, beyond the route's role guard.
+    object_rule: str | None = None
 
 
 A = OwaspApi
@@ -191,6 +193,7 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         READ,
         (A.API1, A.API3),
         "PII (email)",
+        object_rule="Own record only, unless ADMIN; others' IDs return 404",
     ),
     ("PATCH", "/api/v1/users/{user_id}"): EndpointPolicy(
         "Change a user's role or status",
@@ -198,9 +201,15 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         ADMIN_WRITE,
         (A.API1, A.API3, A.API5),
         "Role grants",
+        object_rule="Cannot demote or deactivate yourself or the last active admin",
     ),
     ("POST", "/api/v1/users/{user_id}/mfa/reset"): EndpointPolicy(
-        "Reset a user's MFA", Risk.CRITICAL, ADMIN_WRITE, (A.API1, A.API5), "MFA state"
+        "Reset a user's MFA",
+        Risk.CRITICAL,
+        ADMIN_WRITE,
+        (A.API1, A.API5),
+        "MFA state",
+        object_rule="Cannot reset your own MFA (use a recovery code)",
     ),
     ("DELETE", "/api/v1/users/{user_id}"): EndpointPolicy(
         "Permanently delete a user",
@@ -208,9 +217,20 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         ADMIN_WRITE,
         (A.API1, A.API5),
         "Account and credentials",
+        object_rule="Cannot delete yourself or the last active admin",
     ),
     ("GET", "/api/v1/audit-logs"): EndpointPolicy(
         "Query the audit log", Risk.MEDIUM, READ, (A.API3, A.API5), "Security evidence, PII"
+    ),
+    ("GET", "/api/v1/api-security/inventory"): EndpointPolicy(
+        "API inventory with controls and 24-hour metrics",
+        Risk.MEDIUM,
+        READ,
+        (A.API5, A.API9),
+        "Attack-surface map",
+    ),
+    ("GET", "/api/v1/api-security/owasp"): EndpointPolicy(
+        "OWASP API Top 10 coverage", Risk.LOW, READ, (A.API5, A.API9), "Control evidence"
     ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",

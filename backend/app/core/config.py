@@ -123,6 +123,8 @@ class Settings(BaseSettings):
     # Application rate limiting (ADR-0004, ADR-0017). May be disabled only outside deployed
     # environments (the test suite enables it per test).
     rate_limit_enabled: bool = True
+    # Per-endpoint request counters for the API Security Center.
+    api_metrics_enabled: bool = True
 
     @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
     @classmethod

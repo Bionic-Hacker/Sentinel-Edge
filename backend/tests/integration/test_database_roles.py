@@ -30,6 +30,7 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "outbox_messages": {"SELECT", "INSERT"},
     "audit_log": {"SELECT", "INSERT"},  # append-only (ADR-0005)
     "rate_limit_buckets": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # idle buckets pruned
+    "api_endpoint_stats": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # pruned after 30 days
 }
 
 
