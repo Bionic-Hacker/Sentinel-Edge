@@ -2,11 +2,14 @@
 #
 # Topology mirrors the AWS design (docs/architecture.md):
 #   browser -> web (edge stand-in, :8080) -> api -> db
+#                                    migrate -> db   (one-shot, runs before api starts)
 # - Only `web` and (for Vite dev) `api` are published, and only on 127.0.0.1.
 # - `db` sits on an internal-only network: no published port, no outbound internet —
 #   the local analogue of RDS in isolated subnets (ADR-0001).
 # - Every container: non-root, read-only root filesystem, all Linux capabilities dropped,
 #   no-new-privileges.
+# - Secrets are scoped per container (ADR-0015): no service gets the whole .env file.
+#   The API receives only the app role's password; only `migrate` receives the migrator's.
 
 name: sentineledge
 
@@ -16,6 +19,12 @@ x-hardening: &hardening
   security_opt: ["no-new-privileges:true"]
   restart: unless-stopped
 
+x-app-config: &app-config
+  SENTINEL_ENVIRONMENT: ${SENTINEL_ENVIRONMENT:-local}
+  SENTINEL_LOG_LEVEL: ${SENTINEL_LOG_LEVEL:-INFO}
+  SENTINEL_DB_HOST: db
+  SENTINEL_DB_NAME: ${POSTGRES_DB:?set in .env}
+
 services:
   db:
     image: postgres:17-alpine
@@ -24,6 +33,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?set in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run `make env` to generate .env}
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      # Consumed once, by db/bootstrap-roles.sh during first initialisation.
+      SENTINEL_DB_MIGRATOR_PASSWORD: ${SENTINEL_DB_MIGRATOR_PASSWORD:?.env predates Phase 2; see docs/local-development.md}
+      SENTINEL_DB_APP_PASSWORD: ${SENTINEL_DB_APP_PASSWORD:?.env predates Phase 2; see docs/local-development.md}
     # Postgres needs a few capabilities during init to chown its data dir; it then drops
     # to the unprivileged `postgres` user.
     read_only: true
@@ -34,21 +46,44 @@ services:
     tmpfs: [/tmp, /var/run/postgresql]
     volumes:
       - db-data:/var/lib/postgresql/data
+      - ./db/bootstrap-roles.sh:/docker-entrypoint-initdb.d/10-bootstrap-roles.sh:ro
     networks: [data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      # TCP, not the Unix socket: during first-run initialisation Postgres listens only on the
+      # socket, so a TCP check reports healthy only after the role bootstrap has finished.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
 
-  api:
+  migrate:
     <<: *hardening
     build: ./backend
-    env_file: .env
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      <<: *app-config
+      SENTINEL_DB_MIGRATOR_PASSWORD: ${SENTINEL_DB_MIGRATOR_PASSWORD:?.env predates Phase 2; see docs/local-development.md}
     tmpfs: [/tmp]
     depends_on:
       db:
         condition: service_healthy
+    networks: [data]
+
+  api:
+    <<: *hardening
+    build: ./backend
+    environment:
+      <<: *app-config
+      SENTINEL_ENABLE_API_DOCS: ${SENTINEL_ENABLE_API_DOCS:-false}
+      SENTINEL_TRUSTED_HOSTS: ${SENTINEL_TRUSTED_HOSTS:-localhost,127.0.0.1,api}
+      SENTINEL_AI_PROVIDER: ${SENTINEL_AI_PROVIDER:-disabled}
+      SENTINEL_AWS_REGION: ${SENTINEL_AWS_REGION:-us-east-1}
+      SENTINEL_DB_PASSWORD: ${SENTINEL_DB_APP_PASSWORD:?.env predates Phase 2; see docs/local-development.md}
+    tmpfs: [/tmp]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     networks: [edge, data]
     ports:
       - "127.0.0.1:8000:8000"

@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core.config import get_settings
+from app.core.deps import app_settings
 
 
 def _access_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
@@ -39,7 +39,7 @@ def test_failing_health_probe_logged_at_info(
         raise RuntimeError("dependency down")
 
     # Make the health endpoint's dependency fail, so the probe returns 500.
-    app.dependency_overrides[get_settings] = _unhealthy
+    app.dependency_overrides[app_settings] = _unhealthy
 
     caplog.set_level(logging.DEBUG, logger="sentineledge.access")
     TestClient(app, raise_server_exceptions=False).get("/api/v1/health")

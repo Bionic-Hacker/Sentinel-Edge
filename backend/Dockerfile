@@ -23,6 +23,8 @@ RUN groupadd --system --gid 10001 sentinel \
 COPY --from=builder /opt/venv /opt/venv
 WORKDIR /srv
 COPY --chown=root:root app ./app
+COPY --chown=root:root alembic.ini ./
+COPY --chown=root:root alembic ./alembic
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

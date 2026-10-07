@@ -3,19 +3,29 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
-.PHONY: help env dev down logs clean install test test-backend test-frontend lint typecheck \
-        security secrets-scan lock-backend precommit check verify-hardening
+.PHONY: help env env-check dev down logs clean install test test-backend test-frontend lint \
+        typecheck security secrets-scan lock-backend precommit check verify-hardening
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
 
-env: ## Create .env from .env.example with a generated local DB password (never overwrites)
+env: ## Create .env from .env.example, each CHANGE_ME replaced by its own random secret
 	@test ! -f .env || { echo ".env already exists; leaving it untouched"; exit 0; }; \
-	pw=$$(openssl rand -base64 32 | tr -dc 'A-Za-z0-9' | head -c 32); \
-	sed "s/CHANGE_ME_local_only_password/$$pw/" .env.example > .env; chmod 600 .env; \
-	echo "Created .env (mode 600) with a random local database password"
+	umask 077; cp .env.example .env; \
+	while grep -q 'CHANGE_ME_[A-Za-z0-9_]*' .env; do \
+	  sed -i "0,/CHANGE_ME_[A-Za-z0-9_]*/s//$$(openssl rand -hex 24)/" .env; \
+	done; \
+	echo "Created .env (mode 600) with random local secrets"
 
-dev: env ## Build and start the local stack (web :8080, api :8000)
+env-check: # Refuse to start with a .env from an older phase (missing required secrets)
+	@for key in $$(grep -o '^[A-Z_]*=CHANGE_ME' .env.example | cut -d= -f1); do \
+	  grep -q "^$$key=" .env || { \
+	    echo "Your .env is missing $$key (it predates the current phase)."; \
+	    echo "Regenerate it:  make clean && mv .env .env.bak && make env && make dev"; \
+	    exit 1; }; \
+	done
+
+dev: env env-check ## Build and start the local stack (web :8080, api :8000)
 	docker compose up --build -d
 	@echo "SentinelEdge:  http://localhost:8080   API health: http://localhost:8000/api/v1/health"
 
@@ -26,7 +36,7 @@ verify-hardening: ## Check container, network and HTTP hardening of the running 
 	./scripts/verify-hardening.sh
 
 logs: ## Follow structured logs
-	docker compose logs -f api web
+	docker compose logs -f migrate api web
 
 clean: ## Stop the stack and delete local volumes (destroys local DB data)
 	docker compose down -v
@@ -37,8 +47,8 @@ install: ## Install backend and frontend dependencies for local tooling
 
 test: test-backend test-frontend ## Run all tests
 
-test-backend: ## Backend unit, API and security tests with coverage gate
-	cd backend && python -m pytest
+test-backend: ## Backend tests against a throwaway PostgreSQL (needs Docker), with coverage gate
+	cd backend && ../scripts/with-test-db.sh python -m pytest
 
 test-frontend: ## Frontend unit and component tests
 	cd frontend && npm test
