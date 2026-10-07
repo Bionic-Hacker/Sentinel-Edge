@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
-.PHONY: help env env-check dev down logs clean install test test-backend test-frontend lint \
+.PHONY: prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
         create-admin outbox verify-audit migrate smoke
 
@@ -48,6 +48,9 @@ outbox: ## Show the local email outbox (password-reset links)
 
 verify-audit: ## Verify the audit log hash chain
 	docker compose exec api python -m app.cli verify-audit
+
+prune-rate-limits: ## Delete rate-limit buckets idle for over a day
+	docker compose exec api python -m app.cli prune-rate-limits
 
 smoke: ## End-to-end auth/authz/audit smoke test against the running stack
 	backend/.venv/bin/python scripts/smoke-auth.py 2>/dev/null || python scripts/smoke-auth.py

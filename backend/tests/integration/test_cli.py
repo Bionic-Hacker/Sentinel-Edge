@@ -93,3 +93,18 @@ def test_verify_audit_reports_intact_and_broken(
     code, output = _run("verify-audit")
     assert code == 1
     assert "BROKEN at record seq=2" in output
+
+
+def test_prune_rate_limits(db_app: FastAPI, migrator_engine: Engine) -> None:
+    with migrator_engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO sentinel.rate_limit_buckets "
+                "(bucket_key, tokens, updated_at, last_allowed) VALUES "
+                "('login|ip:192.0.2.9', 3, now() - interval '3 days', true), "
+                "('login|ip:192.0.2.10', 3, now(), true)"
+            )
+        )
+    code, output = _run("prune-rate-limits")
+    assert code == 0
+    assert output.strip() == "Removed 1 idle rate-limit buckets."

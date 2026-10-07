@@ -51,6 +51,7 @@ class AuditAction(StrEnum):
     USER_DELETED = "user.deleted"
     AUDIT_VERIFIED = "audit.verified"
     ACCESS_DENIED = "authz.denied"
+    RATE_LIMITED = "ratelimit.exceeded"
 
 
 @dataclass(frozen=True)

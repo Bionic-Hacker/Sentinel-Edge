@@ -29,6 +29,7 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "password_reset_tokens": {"SELECT", "INSERT", "UPDATE", "DELETE"},
     "outbox_messages": {"SELECT", "INSERT"},
     "audit_log": {"SELECT", "INSERT"},  # append-only (ADR-0005)
+    "rate_limit_buckets": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # idle buckets pruned
 }
 
 

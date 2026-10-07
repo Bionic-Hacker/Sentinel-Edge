@@ -24,6 +24,7 @@ from app.models.audit import AuditResult
 from app.models.outbox import OutboxMessage
 from app.models.user import Role, User
 from app.security.passwords import PasswordHasher
+from app.security.rate_limit import RateLimiter
 from app.services import audit
 from app.services.audit import SYSTEM_CONTEXT, AuditAction, verify_chain
 
@@ -110,6 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     box = commands.add_parser("outbox", help="show recent local outbox messages")
     box.add_argument("--limit", type=int, default=5)
     commands.add_parser("verify-audit", help="verify the audit log hash chain")
+    commands.add_parser("prune-rate-limits", help="delete rate-limit buckets idle for a day")
     return parser
 
 
@@ -127,6 +129,10 @@ def main(
                 return create_admin(db, settings, args.email, args.name, out)
             if args.command == "outbox":
                 return show_outbox(db, max(1, min(args.limit, 50)), out)
+            if args.command == "prune-rate-limits":
+                removed = RateLimiter(build_session_factory(engine)).prune()
+                print(f"Removed {removed} idle rate-limit buckets.", file=out)
+                return 0
             return verify_audit(db, out)
     finally:
         engine.dispose()

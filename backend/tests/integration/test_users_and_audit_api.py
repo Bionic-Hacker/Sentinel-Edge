@@ -410,3 +410,12 @@ def test_there_is_no_way_to_modify_audit_entries_over_http(
     for method in ("POST", "PUT", "PATCH", "DELETE"):
         response = db_client.request(method, "/api/v1/audit-logs", headers=bearer(token), json={})
         assert response.status_code == 405
+
+
+def test_denials_record_the_full_endpoint_template(db_app: FastAPI, db_client: TestClient) -> None:
+    """FastAPI reports router-relative paths at request time ("/{user_id}"); audit records
+    must name the endpoint unambiguously."""
+    bob, token = _member(db_app, "bob@example.com")
+    db_client.patch(f"/api/v1/users/{bob.id}", headers=bearer(token), json={"role": "ADMIN"})
+    (denied,) = audit_entries(db_app, AuditAction.ACCESS_DENIED)
+    assert denied.resource_id == "PATCH /api/v1/users/{user_id}"

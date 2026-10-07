@@ -17,12 +17,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
-from fastapi import Depends, Request
+from fastapi import Depends, Request, Response
 from sqlalchemy.orm import Session
 
+from app.core.api_policy import route_template
 from app.core.clock import utcnow
 from app.core.deps import token_service
 from app.core.errors import ApiError
+from app.core.rate_limiting import enforce_user_limit
 from app.core.request_context import request_context
 from app.db.session import get_db
 from app.models.audit import AuditResult
@@ -68,6 +70,7 @@ def public_endpoint() -> None:
 
 def authenticated_setup(
     request: Request,
+    response: Response,
     db: Session = Depends(get_db),  # noqa: B008
     tokens: TokenService = Depends(token_service),  # noqa: B008
 ) -> Principal:
@@ -93,6 +96,8 @@ def authenticated_setup(
     if not user.is_active or (user.mfa_enabled and not session.mfa_verified):
         raise unauthorized()
 
+    # Per-account rate limit (ADR-0017): after authentication, so it follows the user.
+    enforce_user_limit(request, response, user)
     return Principal(user=user, session=session, pending=pending_steps(user))
 
 
@@ -111,7 +116,6 @@ def require_roles(*roles: Role) -> Callable[..., Principal]:
             steps = ", ".join(sorted(step.value for step in principal.pending))
             raise ApiError(403, "setup_required", f"Complete account setup first: {steps}")
         if principal.user.role not in allowed:
-            route = request.scope.get("route")
             audit.record(
                 db,
                 action=audit.AuditAction.ACCESS_DENIED,
@@ -119,7 +123,8 @@ def require_roles(*roles: Role) -> Callable[..., Principal]:
                 actor=principal.user,
                 ctx=request_context(request),
                 resource_type="endpoint",
-                resource_id=f"{request.method} {getattr(route, 'path', request.url.path)}",
+                # Full template ("/api/v1/users/{user_id}"), not the router-relative path.
+                resource_id=f"{request.method} {route_template(request) or request.url.path}",
                 details={"role": principal.user.role, "required": sorted(allowed)},
             )
             db.commit()

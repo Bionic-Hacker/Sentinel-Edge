@@ -83,6 +83,9 @@ services:
       SENTINEL_JWT_SIGNING_KEY: ${SENTINEL_JWT_SIGNING_KEY:?.env predates Phase 2; see docs/local-development.md}
       SENTINEL_MFA_ENCRYPTION_KEY: ${SENTINEL_MFA_ENCRYPTION_KEY:?.env predates Phase 2; see docs/local-development.md}
       SENTINEL_PUBLIC_ORIGINS: ${SENTINEL_PUBLIC_ORIGINS:-http://localhost:8080}
+      # Trust X-Forwarded-For only from the edge network, where the web (nginx) container is
+      # the only other member (T-ORG-02). nginx overwrites the header with the real client.
+      SENTINEL_TRUSTED_PROXY_CIDRS: 172.30.86.0/24
     tmpfs: [/tmp]
     depends_on:
       migrate:
@@ -101,7 +104,11 @@ services:
       - "127.0.0.1:8080:8080"
 
 networks:
-  edge: {}
+  edge:
+    # Pinned so the API can trust exactly this proxy network for client IPs (no wildcard).
+    ipam:
+      config:
+        - subnet: 172.30.86.0/24
   data:
     internal: true
 

@@ -7,6 +7,7 @@ explicitly enabled, and some options are forcibly disabled outside local/test.
 
 from __future__ import annotations
 
+import ipaddress
 import re
 from enum import StrEnum
 from functools import lru_cache
@@ -114,7 +115,16 @@ class Settings(BaseSettings):
         default_factory=lambda: ["http://localhost:8080"]
     )
 
-    @field_validator("trusted_hosts", "public_origins", mode="before")
+    # Client IP (T-ORG-02). X-Forwarded-For is honoured ONLY when the direct peer is inside one
+    # of these networks: locally the nginx container's pinned subnet, in AWS the ALB subnets.
+    # Empty means trust no proxy: the TCP peer is the client.
+    trusted_proxy_cidrs: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    # Application rate limiting (ADR-0004, ADR-0017). May be disabled only outside deployed
+    # environments (the test suite enables it per test).
+    rate_limit_enabled: bool = True
+
+    @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:
         if isinstance(value, str):
@@ -138,6 +148,19 @@ class Settings(BaseSettings):
         for origin in value:
             if not re.fullmatch(r"https?://[a-z0-9.\-]+(:[0-9]{1,5})?", origin):
                 raise ValueError(f"invalid origin {origin!r}: expected scheme://host[:port]")
+        return value
+
+    @field_validator("trusted_proxy_cidrs")
+    @classmethod
+    def _valid_proxy_networks(cls, value: list[str]) -> list[str]:
+        for cidr in value:
+            try:
+                network = ipaddress.ip_network(cidr, strict=True)
+            except ValueError as exc:
+                raise ValueError(f"invalid trusted proxy network {cidr!r}") from exc
+            # Trusting everyone would let any client choose its own IP address.
+            if network.prefixlen == 0:
+                raise ValueError("trusting every address as a proxy is not permitted")
         return value
 
     @field_validator("jwt_signing_key")
@@ -172,6 +195,8 @@ class Settings(BaseSettings):
                 )
             if any(not o.startswith("https://") for o in self.public_origins):
                 raise ValueError("deployed environments must use https public_origins")
+            if not self.rate_limit_enabled:
+                raise ValueError("rate limiting cannot be disabled in deployed environments")
             # OWASP password storage minimum for Argon2id: 19 MiB, t=2.
             if self.password_hash_memory_kib < 19456 or self.password_hash_time_cost < 2:
                 raise ValueError("password hashing cost is below the deployed minimum")
