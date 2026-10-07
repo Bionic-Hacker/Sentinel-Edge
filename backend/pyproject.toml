@@ -1,6 +1,6 @@
 [project]
 name = "sentineledge-api"
-version = "0.1.0"
+version = "0.2.0"
 description = "SentinelEdge API — Application, API & Edge Security platform (portfolio project)"
 requires-python = ">=3.12"
 

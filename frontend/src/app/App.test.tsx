@@ -52,9 +52,10 @@ describe("dashboard", () => {
     expect(within(table).getByText("Real AWS")).toBeInTheDocument();
   });
 
-  it("marks the current build phase", async () => {
+  it("shows completed phases and marks the next one", async () => {
     await renderAt("/");
-    expect(screen.getByText(/Phase 1, in progress/).closest("li")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/Phase 2, complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Phase 6, next/).closest("li")).toHaveAttribute("aria-current", "step");
   });
 });
 

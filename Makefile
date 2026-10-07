@@ -5,7 +5,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
 .PHONY: help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate
+        create-admin outbox verify-audit migrate smoke
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -49,6 +49,9 @@ outbox: ## Show the local email outbox (password-reset links)
 verify-audit: ## Verify the audit log hash chain
 	docker compose exec api python -m app.cli verify-audit
 
+smoke: ## End-to-end auth/authz/audit smoke test against the running stack
+	backend/.venv/bin/python scripts/smoke-auth.py 2>/dev/null || python scripts/smoke-auth.py
+
 migrate: ## Apply new database migrations to the running stack
 	docker compose run --rm migrate
 
@@ -71,7 +74,7 @@ test-frontend: ## Frontend unit and component tests
 	cd frontend && npm test
 
 lint: ## Lint backend and frontend
-	cd backend && ruff check . && ruff format --check .
+	cd backend && ruff check . ../scripts && ruff format --check . ../scripts
 	cd frontend && npm run lint
 
 typecheck: ## Static type checks

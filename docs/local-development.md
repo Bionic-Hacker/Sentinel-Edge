@@ -18,9 +18,22 @@ Everything in this guide is **LOCAL** — it creates no AWS resources and costs 
 ```bash
 make env        # creates .env from .env.example; every secret is random and distinct (mode 600)
 make dev        # builds and starts db, migrate (one-shot), api, web
-open http://localhost:8080
+make create-admin EMAIL=you@example.com   # prints a one-time password, shown once
+open http://localhost:8080                # sign in, set your password, enroll MFA
 make precommit  # install git hooks (Gitleaks, Ruff, Bandit, ESLint)
 ```
+
+There are no default credentials. The first sign-in forces a new password and, for the admin
+role, two-factor enrollment with an authenticator app. Other users are invited from
+Settings → Users; their invitation (and any password-reset email) lands in the local outbox:
+
+```bash
+make outbox         # show recent "emails" with their one-time links
+make verify-audit   # check the audit log hash chain
+make smoke          # 26-check end-to-end test of auth, authorization and auditing
+```
+
+`make smoke` creates its own uniquely named synthetic users and locks one of them on purpose.
 
 `make env` never overwrites an existing `.env`. `make dev` refuses to start with a `.env` that is
 missing a secret the current phase needs, and tells you how to regenerate it.
@@ -30,15 +43,16 @@ Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentine
 
 ## Upgrading from Phase 1
 
-Phase 2 introduced separate database roles (ADR-0015). Roles are created only when the database is
-first initialised, so the local database and `.env` must be recreated once. Local data is
-synthetic, so nothing of value is lost.
+Phase 2 introduced separate database roles (ADR-0015) and authentication keys. Roles are created
+only when the database is first initialised, so the local database and `.env` must be recreated
+once. Local data is synthetic, so nothing of value is lost.
 
 ```bash
 make clean                 # stop the stack and delete the old local database volume
 mv .env .env.phase1.bak    # keep the old file until the new stack is up, then delete it
 make env
 make dev
+make create-admin EMAIL=you@example.com
 ```
 
 ## Day-to-day
@@ -71,6 +85,9 @@ make dev
 | `Your .env is missing ...` | `.env` predates the current phase | See "Upgrading from Phase 1" |
 | `api` never starts; `migrate` exited non-zero | Migration failed | `docker compose logs migrate` |
 | Database tests skipped | Tests run without a test database | Use `make test-backend`, not bare `pytest` |
+| Can't sign in after `make clean` | The database (and your account) was deleted | `make create-admin EMAIL=...` again |
+| Sign-in loops back to the login page | Refresh cookie blocked | Use `http://localhost:8080` (not an IP) so the `__Host-` cookie is accepted |
+| Lost your authenticator and recovery codes | — | Another admin uses Settings → Users → Reset 2FA; if you're the only admin, `make clean` and start over (local data is synthetic) |
 | UI shows "The API could not be reached" | API container down | `docker compose ps`, then `make logs` |
 | API returns 400 for every request | Host not in `SENTINEL_TRUSTED_HOSTS` | Add the host to `.env` and restart |
 | Error shows a reference ID | Expected: errors are generic | Search API logs for that `correlation_id` |

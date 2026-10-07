@@ -53,15 +53,38 @@ or read.
 | C-GOV-02 | Security-sensitive paths require code-owner review | `.github/CODEOWNERS`, PR template | Branch protection (configured on GitHub) |
 | C-GOV-04 | Security exceptions are recorded, justified, compensated and time-limited | `docs/governance/exceptions.md`; exception IDs in implementing config | EXC-0001, EXC-0002 |
 
+## 2a. Controls implemented in Phase 2
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-ID-01 | Argon2id password hashing; deployed minimum cost enforced; rehash on login | `app/security/passwords.py`, config validator | `test_security_primitives.py`, `test_config.py` |
+| C-ID-02 | 15-minute JWT, algorithm pinned, all claims required; session checked per request | `app/security/tokens.py`, `app/core/authz.py` | `test_forged_or_invalid_tokens_rejected` (alg none, substitution, wrong key/aud/iss/type, expired) |
+| C-ID-03 | Rotating refresh tokens, `__Host-` HttpOnly Secure SameSite=Strict cookie, reuse revokes session | `app/services/auth.py`, `app/api/v1/auth.py` | `test_auth_sessions.py`, `make smoke` |
+| C-ID-04 | TOTP MFA (encrypted secrets, no replay, ±1 step), hashed single-use recovery codes; mandatory for ADMIN and SECURITY_ENGINEER | `app/security/mfa.py` | `test_auth_mfa.py` |
+| C-ID-05 | Lockout after repeated failures (password and MFA share the counter), uniform errors, constant-work dummy hash | `AuthService.login` | `test_auth_login.py` |
+| C-ID-06 | CSRF: Origin allow-list plus custom header on cookie-bearing endpoints | `require_same_origin` | `test_cross_site_requests_rejected` |
+| C-ID-07 | Password reset: single-use hashed token in URL fragment, 30-minute expiry, rate-limited, revokes sessions | `request_password_reset`, `reset_password`; SPA strips the fragment | `test_auth_password_reset.py`, `auth-flows.test.tsx` |
+| C-ID-08 | No default credentials; forced password change and MFA enrollment gate all other access | `app/cli.py`, `pending_steps` | `test_cli.py`, `test_users_mid_setup_are_held_at_setup` |
+| C-ID-09 | Browser session: token in memory only, cross-tab refresh lock | `frontend/src/lib/auth/session.ts` | `session.test.ts`; Chromium check: empty web storage, cookie invisible to JS |
+| C-API-01 | Object-level authorization on user records (404, audited) | `UserService.get_user` | `test_users_can_read_only_their_own_record` |
+| C-API-02 | Function-level authorization declared on every route and enforced | `require_roles`, `public_endpoint`, `authenticated_setup` | `tests/security/test_authz_matrix.py` (incl. mutation check); [authorization.md](authorization.md) |
+| C-DB-01 | Separate migrator and runtime roles; explicit per-table grants; query timeouts | `db/bootstrap-roles.sh`, migrations, ADR-0015 | `test_database_roles.py` (privilege matrix) |
+| C-DB-03 | Verified TLS to the database required when deployed | Config validator | `test_deployed_environments_require_verified_database_tls` |
+| C-AUD-01 | Hash-chained audit log, concurrency-safe, verifiable | `app/services/audit.py` | `test_audit_log.py` (tamper detection, 8 concurrent writers) |
+| C-AUD-02 | Append-only: grants (SELECT/INSERT) and triggers that block even the owner | Migration 0002 | `test_app_role_cannot_alter_audit_history`, `test_trigger_blocks_even_the_table_owner` |
+| C-SEC-03 | Secrets scoped per container (API never receives migrator/admin passwords) | `docker-compose.yml` | `docker compose config` review |
+| C-CICD-05 | Schema drift gate (`alembic check`) in CI and `make test-backend` | `ci.yml`, `Makefile` | CI job output |
+| C-GOV-04 | Security exceptions recorded with justification, compensating control and expiry | `docs/governance/exceptions.md` | EXC-0001, EXC-0002 |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
 |---|---|---|---|---|---|
-| SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries | `waf` module; Pydantic schemas; SQLAlchemy repositories | WAF logs; `test_sqli.py` | P2, P5 |
+| SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries | `waf` module; Pydantic schemas; SQLAlchemy ORM only | Query-param validation tests; WAF logs (P5) | **P2 (app)**, P5 |
 | XSS | T-ID-02, T-EDGE-06 | React escaping + strict CSP + lint bans + WAF XSS rules | `security-headers.conf`; `eslint.config.js`; WAF | Lint in CI; header tests; ZAP (P8) | P1, P5, P8 |
-| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA | WAF module; auth service | Lockout tests; WAF match counts | P2, P5 |
-| Broken object authorization | T-API-01 | Ownership checks in services | `services/`, authz dependencies | Cross-user access tests per endpoint | P2, P6 |
-| Broken function authorization | T-API-02 | Role dependency on every route | `core/authz.py` | Route-table test: every route declares roles | P2, P6 |
+| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA | WAF module; auth service | `test_account_locks_after_repeated_failures`; WAF match counts (P5) | **P2**, P5 |
+| Broken object authorization | T-API-01 | Ownership checks in services | `UserService.get_user` | `test_users_can_read_only_their_own_record` | **P2**, P6 |
+| Broken function authorization | T-API-02 | Role dependency on every route | `core/authz.py` | `test_authz_matrix.py` | **P2** |
 | Mass assignment | T-API-03 | `extra="forbid"` | Request schemas | `test_mass_assignment_style_extra_field_rejected` | **P1** |
 | Excessive data exposure | T-API-05 | Explicit response models | ADR-0012 | Response-shape tests | **P1 pattern** |
 | Information leakage in errors | T-API-09 | Generic envelope, internal logging | `errors.py` | `test_error_handling.py` | **P1** |
@@ -69,7 +92,7 @@ or read.
 | Public database | T-DB-01 | Isolated subnets, SG, `publicly_accessible=false` | `rds`, `vpc` modules | Checkov; plan review | P3–4 |
 | Secret leakage | T-SEC-01 | Gitleaks + Secrets Manager | `.gitleaks.toml`; `secrets-manager` module | Gitleaks report | **P1**, P4 |
 | Supply chain | T-SC-01 | Pinned deps + SCA + SBOM + image scan | Lock files; Syft; Trivy | CI artifacts | **P1**, P8 |
-| Audit tampering | T-AUD-01 | Hash chain + grants + Object Lock | ADR-0005 | Chain verification tool | P2, P4 |
+| Audit tampering | T-AUD-01 | Hash chain + grants + triggers + Object Lock | ADR-0005 | `test_audit_log.py`, `make verify-audit` | **P2**, P4 |
 | Prompt injection | T-AI-01, T-AI-02 | Delimiting, scoring, schema-bound output | `app/ai/guardrails` | Injection corpus tests | P9 |
 | Excessive AI agency | T-AI-05 | Proposals + human approval | `ai_action_proposals` | Approval workflow tests; audit | P9 |
 | WAF weakened via app | T-WAF-02 | Read-only WAF IAM; Terraform-only changes | ADR-0008; IAM module | IAM policy; Access Analyzer | P5 |

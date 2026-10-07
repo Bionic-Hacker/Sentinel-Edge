@@ -1,6 +1,6 @@
 # SentinelEdge architecture
 
-Status: Phase 1. This document describes the target architecture and marks clearly which parts
+Status: Phase 2 complete. This document describes the target architecture and marks clearly which parts
 exist today. Anything not marked **Implemented (local)** is a design, not a running system.
 
 ## 1. Purpose and scope
@@ -57,10 +57,11 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
 
 | Component | Technology | Status |
 |---|---|---|
-| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): shell, navigation, platform status, capability register |
-| API | FastAPI, Pydantic v2 | Implemented (local): health, capability register, security middleware, error handling |
+| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, password reset, user admin, audit log viewer, platform status |
+| API | FastAPI, Pydantic v2 | Implemented (local): health/readiness, authentication, MFA, RBAC, user admin, audit log API, security middleware |
 | Worker | same image, separate entrypoint | Planned (Phase 7) |
-| Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Container runs locally; schema in Phase 2 |
+| Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Implemented (local): `sentinel` schema, migrator/app roles (ADR-0015), migrations 0001–0002 |
+| Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `outbox`, `verify-audit` |
 | AI engine | Amazon Bedrock (ADR-0006) | Selected and validated in config; integration in Phase 9 |
 
 ## 5. Backend structure (ADR-0012)
@@ -104,8 +105,8 @@ not enumerable. Timestamps are UTC.
 
 | Domain | Entities | Phase |
 |---|---|---|
-| Identity | users, refresh_tokens (hashed, family_id), mfa_secrets (encrypted), password_reset_tokens | 2 |
-| Audit | audit_log (hash-chained, INSERT-only) | 2 |
+| Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed), password_reset_tokens (hashed), outbox_messages | **2 ✓** |
+| Audit | audit_log (hash-chained, append-only by grant and trigger) | **2 ✓** |
 | Inventory | applications, api_endpoints (with OWASP API mappings) | 6 |
 | Edge / WAF | waf_rules (mirror), waf_exceptions, ip_lists | 5–7 |
 | Telemetry | security_events | 7 |
@@ -117,7 +118,26 @@ not enumerable. Timestamps are UTC.
 | Governance | threat_models, threats, controls, control_mappings, risk_exceptions, change_requests | 10 |
 | Posture | posture_snapshots (each score linked to its evidence) | 10 |
 
+## 7a. Authentication flow (Phase 2, ADR-0003)
+
+```
+POST /auth/login ──► password ok? ──no──► 401 (uniform) + failure count → lockout at 5
+        │ yes
+        ├── MFA enrolled ──► 200 {mfa_required, challenge (5 min)} ──► POST /auth/mfa/verify
+        │                                                                  │ TOTP or recovery code
+        └───────────────────────────────────────────────────────────────► session created
+                                                                             │
+     access JWT (15 min, memory) + __Host- refresh cookie (rotating, HttpOnly, Strict)
+                                                                             │
+ every request: JWT valid → session not revoked/expired → user active → role from DB → pending setup?
+```
+
+Setup gate: `must_change_password`, or ADMIN/SECURITY_ENGINEER without MFA, restricts the session to
+`/auth/me`, `/auth/logout`, `/auth/password/change` and `/auth/mfa/enroll*` until done.
+
 ## 8. Roles (RBAC, Phase 2)
+
+Full endpoint matrix: [authorization.md](authorization.md).
 
 | Role | Scope |
 |---|---|
@@ -138,8 +158,9 @@ environments with separate Terraform roots and state (ADR-0014). Configuration v
 
 ## 10. Cost posture
 
-Phase 1 creates **no AWS resources** and costs nothing. AWS cost estimates and the
-deploy–demo–destroy workflow are documented with Phase 3–4. Expected always-on dev cost is
+Phases 1–2 create **no AWS resources** and cost nothing. Following ADR-0016, the remaining local
+phases (6, 7, 8, 10, 9) are built before any AWS phase, so cloud resources exist for one focused
+deployment window. Cost estimates and the deploy–demo–destroy workflow come with Phases 3–4. Expected always-on dev cost is
 roughly $110–125/month; a demo session is a few dollars.
 
 ## 11. Decisions

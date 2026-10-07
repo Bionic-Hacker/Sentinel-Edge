@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.1 (Phase 1 baseline)
+- **Version:** 0.2 (Phase 2: identity, authorization, audit)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Full PASTA
   treatment and in-app modelling arrive in Phase 10.
@@ -76,31 +76,43 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | OWASP | L×I | Control(s) | Status |
 |---|---|---|---|---|---|---|
-| T-ID-01 | S | Credential stuffing / brute force | API2, A07 | 3×3 | WAF rate rule, app limiter, lockout, MFA | Planned (P2, P5) |
-| T-ID-02 | S | Access-token theft via XSS | A03 | 2×3 | Memory-only token, strict CSP, React escaping, ESLint bans | CSP + lint **mitigated (P1)**; token handling P2 |
-| T-ID-03 | S | Refresh-token replay | API2 | 2×3 | Rotation with family revocation (ADR-0003) | Planned (P2) |
-| T-ID-04 | T | CSRF on cookie-authenticated refresh | A01 | 2×2 | SameSite=Strict, Origin check, custom header | Planned (P2) |
-| T-ID-05 | I | Account enumeration | API2 | 3×1 | Generic auth errors, uniform timing | Planned (P2) |
-| T-API-01 | E | BOLA (object-level authorization) | API1 | 3×3 | Service-level ownership checks, UUID IDs | Planned (P2, P6) |
-| T-API-02 | E | BFLA (function-level authorization) | API5 | 2×3 | Role dependencies on every route; route-table test | Planned (P2, P6) |
-| T-API-03 | T | Mass assignment | API3 | 2×3 | `extra="forbid"` request models | Pattern **mitigated (P1, tested)**; applied per endpoint P2+ |
+| T-ID-01 | S | Credential stuffing / brute force | API2, A07 | 3×3 | WAF rate rule, app limiter, lockout, MFA | **Mitigated (P2)**: lockout, MFA, uniform errors; WAF rate rule P5, per-IP limits P6 |
+| T-ID-02 | S | Access-token theft via XSS | A03 | 2×3 | Memory-only token, strict CSP, React escaping, ESLint bans | **Mitigated (P2)**: token in memory only, refresh cookie HttpOnly (verified in Chromium) |
+| T-ID-03 | S | Refresh-token replay | API2 | 2×3 | Rotation with family revocation (ADR-0003) | **Mitigated (P2)**: reuse revokes the session and is audited |
+| T-ID-04 | T | CSRF on cookie-authenticated refresh | A01 | 2×2 | SameSite=Strict, Origin check, custom header | **Mitigated (P2)** |
+| T-ID-05 | I | Account enumeration | API2 | 3×1 | Generic auth errors, uniform timing | **Mitigated (P2)**: identical responses, dummy hash for unknown accounts, generic reset response |
+| T-API-01 | E | BOLA (object-level authorization) | API1 | 3×3 | Service-level ownership checks, UUID IDs | **Mitigated for user records (P2)**; new resources P6+ |
+| T-API-02 | E | BFLA (function-level authorization) | API5 | 2×3 | Role dependencies on every route; route-table test | **Mitigated (P2)**: declared matrix + enforcement sweep |
+| T-API-03 | T | Mass assignment | API3 | 2×3 | `extra="forbid"` request models | **Mitigated (P2)**: all request models; tested on login and user admin |
 | T-API-04 | D | Unrestricted resource consumption | API4 | 3×2 | WAF rate rules, app limits, body size limit, pagination caps | Body limit (nginx 1 MB) P1; rest P5–6 |
-| T-API-05 | I | Excessive data exposure | API3 | 2×3 | Explicit response models (ADR-0012) | Pattern **mitigated (P1)** |
-| T-API-06 | I | **Unauthenticated capability endpoint** discloses roadmap | API9 | 1×1 | Only public README content; moves behind auth in P2 | **Accepted (interim)**, expires end of P2 |
-| T-API-07 | T | Injection (SQL, command) | API8, A03 | 2×3 | ORM parameterisation, validation, WAF SQLi rules | Planned (P2, P5) |
+| T-API-05 | I | Excessive data exposure | API3 | 2×3 | Explicit response models (ADR-0012) | **Mitigated (P2)**: user responses checked against an exact field allow-list |
+| T-API-06 | I | Unauthenticated capability endpoint discloses roadmap | API9 | 1×1 | Moved behind authentication | **Closed (P2)** |
+| T-API-07 | T | Injection (SQL, command) | API8, A03 | 2×3 | ORM parameterisation, validation, WAF SQLi rules | **Mitigated in app (P2)**: ORM only, validated query params; WAF P5 |
 | T-API-08 | I | SSRF via user-supplied URLs | API7 | 1×3 | No server-side fetch of user URLs; allow-list if ever needed | Planned (P6) |
 | T-API-09 | I | Error messages leak stack traces, SQL, paths, secrets | API8 | 2×2 | Generic envelope, no input echo, internal logging | **Mitigated (P1, tested)** |
 | T-API-10 | R | Requests untraceable during investigation | — | 2×2 | Correlation IDs, structured logs | **Mitigated (P1)** |
 | T-API-11 | T | Log injection / forging | — | 2×2 | JSON logging, control-char neutralisation, ID allow-list | **Mitigated (P1, tested)** |
 | T-API-12 | I | Improper inventory: undocumented or debug endpoints | API9 | 2×2 | Docs disabled in deployed envs; inventory from route table | Docs **mitigated (P1)**; inventory P6 |
 
+### Identity threats added in Phase 2
+
+| ID | STRIDE | Threat | L×I | Control(s) | Status |
+|---|---|---|---|---|---|
+| T-ID-06 | D | Two browser tabs refresh at once, tripping reuse detection (self-inflicted logout) | 2×1 | Web Locks serialize refresh across tabs | **Mitigated (P2)** |
+| T-ID-07 | S | TOTP code replayed within its validity window | 2×3 | Last accepted step stored; strictly increasing | **Mitigated (P2)** |
+| T-ID-08 | I | Database dump yields working second factors | 1×3 | TOTP secrets Fernet-encrypted with a key outside the DB; recovery codes hashed | **Mitigated (P2)** |
+| T-ID-09 | E | Default or shared bootstrap credentials | 2×3 | No defaults: `create-admin` one-time password; admins invite, never set passwords | **Mitigated (P2)** |
+| T-ID-10 | D | Attacker locks out a known account by failing logins | 2×1 | Lockout is temporary; WAF/IP limits will throttle the attacker | **Accepted (interim)** until P5/P6 |
+| T-INP-01 | D | Non-ASCII digits pass `\d` validation and crash a comparison (500) | 2×1 | ASCII-only `[0-9]`; regression test | **Mitigated (P2)** — found by the test suite |
+| T-AZ-01 | E | Role compared by identity (`is`) against a string from the DB, silently failing open or closed | 2×3 | Enum-typed column; `==` comparisons; authorization sweep | **Mitigated (P2)** — found by the test suite |
+
 ### TB4 — API → Database
 
 | ID | STRIDE | Threat | L×I | Control(s) | Status |
 |---|---|---|---|---|---|
 | T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | Local analogue **mitigated (P1)**; AWS P3–4 |
-| T-DB-02 | I | Credential theft | 2×3 | Secrets Manager with rotation; never in env files in AWS | Planned (P4) |
-| T-DB-03 | E | Over-privileged app DB role | 2×3 | Separate migration and runtime roles | Planned (P2) |
+| T-DB-02 | I | Credential theft | 2×3 | Per-container secrets; Secrets Manager with rotation in AWS | Local scoping **mitigated (P2)**; Secrets Manager P4 |
+| T-DB-03 | E | Over-privileged app DB role | 2×3 | Separate migration and runtime roles (ADR-0015) | **Mitigated (P2)**: privilege-matrix test |
 | T-DB-04 | I | Unencrypted data at rest or in transit | 1×3 | KMS, `rds.force_ssl` | Planned (P4) |
 
 ### TB5 — API → AI provider (and attacker data into the AI)
@@ -126,7 +138,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | Planned (P3) |
 | T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes, PR approval | Planned (P5) |
 | T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | App holds read-only WAF permissions (ADR-0008) | Planned (P5) |
-| T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, Object Lock (ADR-0005) | Planned (P2, P4) |
+| T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | **Mitigated (P2)** except tail deletion by a table owner (Object Lock anchor, P4) |
 | T-CNT-01 | E | Container breakout / privilege escalation | 1×3 | Non-root, read-only FS, `cap_drop: ALL`, no-new-privileges | **Mitigated (P1, local)** |
 
 ## 4. Attack paths (top three)
@@ -140,9 +152,13 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
    output is schema-bound and advisory, proposals need approval, and real WAF changes need a
    Terraform PR with review.
 
-## 5. Residual risk (Phase 1)
+## 5. Residual risk (after Phase 2)
 
-- Single-maintainer project: separation of duties is simulated by role checks, not by
-  different people. Documented as accepted for a portfolio.
-- No edge protection exists yet; the local stack is bound to 127.0.0.1 and must not be exposed.
-- T-API-06 accepted until the end of Phase 2.
+- Single-maintainer project: separation of duties is enforced by role checks, not by different
+  people. Accepted for a portfolio.
+- No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not
+  be exposed. Closed in Phase 5.
+- Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash
+  is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.
+- One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).
+- Deliberate lockout of a known account (T-ID-10) until rate limiting at the edge and per IP.
