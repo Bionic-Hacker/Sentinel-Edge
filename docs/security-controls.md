@@ -44,13 +44,14 @@ or read.
 | C-SEC-01 | Secret scanning (pre-commit + CI, full history) | `.gitleaks.toml`, `.pre-commit-config.yaml`, `ci.yml` | Gitleaks run: no leaks |
 | C-SEC-02 | No secrets in repo; generated local credentials | `.env.example` placeholders, `make env` (random, mode 600) | `.gitignore`; Gitleaks |
 | C-CICD-01 | SAST: Bandit + Ruff `S` rules | `pyproject.toml`, CI | CI job "backend" |
-| C-CICD-02 | SCA: pip-audit (hash-pinned), npm audit | `requirements.lock`, `package-lock.json`, CI | No known vulnerabilities at commit time |
+| C-CICD-02 | SCA: pip-audit (hash-pinned), npm audit | `requirements.txt`, `package-lock.json`, CI | No known vulnerabilities at commit time |
 | C-CICD-03 | Least-privilege CI token; SHA-pinned actions; no persisted credentials | `.github/workflows/ci.yml` | Workflow file |
 | C-CICD-04 | Coverage floor (90%) on backend | `pytest --cov-fail-under=90` | CI output |
-| C-CNT-01 | Hardened containers: non-root, read-only FS, `cap_drop: ALL`, no-new-privileges, multi-stage, health checks | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` | Files; Trivy in P8 |
-| C-NET-00 | Local DB on internal-only network; services bound to 127.0.0.1 | `docker-compose.yml` | Compose file |
+| C-CNT-01 | Hardened containers: non-root, read-only FS, `cap_drop: ALL`, no-new-privileges, multi-stage, health checks | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` | `make verify-hardening` against the running stack; Trivy in P8 |
+| C-NET-00 | Local DB on internal-only network; services bound to 127.0.0.1 | `docker-compose.yml` | `make verify-hardening` |
 | C-GOV-01 | Provenance register with enforcement tests | `app/core/capabilities.py` | `tests/unit/test_capabilities.py` |
 | C-GOV-02 | Security-sensitive paths require code-owner review | `.github/CODEOWNERS`, PR template | Branch protection (configured on GitHub) |
+| C-GOV-04 | Security exceptions are recorded, justified, compensated and time-limited | `docs/governance/exceptions.md`; exception IDs in implementing config | EXC-0001, EXC-0002 |
 
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 

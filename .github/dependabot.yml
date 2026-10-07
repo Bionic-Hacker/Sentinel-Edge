@@ -1,16 +1,31 @@
+# Automated dependency updates. Every update PR runs the full CI security gate set.
+# Ignore rules below are security exceptions and must match an entry in
+# docs/governance/exceptions.md (ID, justification, compensating control, expiry).
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /backend
     schedule: { interval: weekly }
+
   - package-ecosystem: npm
     directory: /frontend
     schedule: { interval: weekly }
     groups:
       dev-tooling: { dependency-type: development }
+    ignore:
+      # EXC-0001: eslint-plugin-jsx-a11y@6.10.2 supports eslint <=9 only.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      # EXC-0002: typescript-eslint@8.71.1 supports typescript <6.1.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
+
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule: { interval: weekly }

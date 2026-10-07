@@ -1,4 +1,4 @@
 **
 !app/**
-!requirements.lock
+!requirements.txt
 **/__pycache__

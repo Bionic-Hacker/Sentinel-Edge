@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "SentinelEdge API — Application, API & Edge Security platform (portfolio project)"
 requires-python = ">=3.12"
 
-# Dependencies are hash-pinned in requirements.lock / requirements-dev.lock.
+# Dependencies are hash-pinned in requirements.txt / requirements-dev.txt.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

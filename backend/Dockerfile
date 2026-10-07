@@ -10,9 +10,9 @@ ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 FROM ${PYTHON_IMAGE} AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /build
-COPY requirements.lock .
+COPY requirements.txt .
 RUN python -m venv /opt/venv \
- && /opt/venv/bin/pip install --require-hashes --no-deps -r requirements.lock
+ && /opt/venv/bin/pip install --require-hashes --no-deps -r requirements.txt
 
 FROM ${PYTHON_IMAGE} AS runtime
 ENV PATH="/opt/venv/bin:${PATH}" \

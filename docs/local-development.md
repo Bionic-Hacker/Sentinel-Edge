@@ -30,6 +30,7 @@ make precommit  # install git hooks (Gitleaks, Ruff, Bandit, ESLint)
 | Task | Command |
 |---|---|
 | All checks CI runs | `make check` |
+| Verify container and network hardening (stack running) | `make verify-hardening` |
 | Backend tests | `make test-backend` |
 | Frontend tests | `make test-frontend` |
 | Hot-reload frontend against the API container | `cd frontend && npm run dev` (http://127.0.0.1:5173) |

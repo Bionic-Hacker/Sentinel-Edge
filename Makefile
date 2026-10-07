@@ -4,7 +4,7 @@ SHELL := /bin/bash
 GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
 .PHONY: help env dev down logs clean install test test-backend test-frontend lint typecheck \
-        security secrets-scan lock-backend precommit check
+        security secrets-scan lock-backend precommit check verify-hardening
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -22,6 +22,9 @@ dev: env ## Build and start the local stack (web :8080, api :8000)
 down: ## Stop the local stack
 	docker compose down
 
+verify-hardening: ## Check container, network and HTTP hardening of the running stack
+	./scripts/verify-hardening.sh
+
 logs: ## Follow structured logs
 	docker compose logs -f api web
 
@@ -29,7 +32,7 @@ clean: ## Stop the stack and delete local volumes (destroys local DB data)
 	docker compose down -v
 
 install: ## Install backend and frontend dependencies for local tooling
-	cd backend && python -m pip install --require-hashes -r requirements.lock -r requirements-dev.lock
+	cd backend && python -m pip install --require-hashes -r requirements.txt -r requirements-dev.txt
 	cd frontend && npm ci --ignore-scripts
 
 test: test-backend test-frontend ## Run all tests
@@ -50,15 +53,15 @@ typecheck: ## Static type checks
 
 security: secrets-scan ## Local security checks (SAST + SCA + secrets)
 	cd backend && bandit -q -c pyproject.toml -r app
-	cd backend && pip-audit -r requirements.lock --require-hashes
+	cd backend && pip-audit -r requirements.txt --require-hashes
 	cd frontend && npm audit --audit-level=high
 
 secrets-scan: ## Scan the working tree and git history for secrets
 	docker run --rm -v "$$PWD:/repo:ro" $(GITLEAKS_IMAGE) git /repo --config /repo/.gitleaks.toml --redact --verbose
 
 lock-backend: ## Re-resolve hash-pinned backend lock files
-	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements.lock requirements.in
-	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements-dev.lock requirements-dev.in
+	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements.txt requirements.in
+	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements-dev.txt requirements-dev.in
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install
