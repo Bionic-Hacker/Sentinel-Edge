@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
-.PHONY: prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
+.PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
         create-admin outbox verify-audit migrate smoke
 
@@ -95,6 +95,10 @@ secrets-scan: ## Scan the working tree and git history for secrets
 lock-backend: ## Re-resolve hash-pinned backend lock files
 	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements.txt requirements.in
 	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements-dev.txt requirements-dev.in
+
+book: ## Rebuild the engineering book PDF (docs/book/SentinelEdge-Engineering-Blueprint.pdf)
+	python -m pip install -q --require-hashes -r docs/book/requirements.txt
+	python docs/book/build.py
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install

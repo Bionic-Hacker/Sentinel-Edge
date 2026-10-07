@@ -1,0 +1,15 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.3, ranksep=0.22, bgcolor="transparent", pad=0.1];
+  node  [fontname="Inter", fontsize=9.5, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#9aa7b8", width=4.6, margin="0.12,0.05"];
+  edge  [color="#5b6b80", arrowsize=0.6];
+  a [label="1  ClientIpMiddleware — resolve real client from trusted proxies only", fillcolor="#e6f4f5", color="#0e7c86"];
+  b [label="2  SecurityMiddleware — correlation ID, security headers, access log", fillcolor="#e6f4f5", color="#0e7c86"];
+  c [label="3  ApiMetricsMiddleware — hourly counters per route template", fillcolor="#e6f4f5", color="#0e7c86"];
+  d [label="4  TrustedHostMiddleware — Host allow-list", fillcolor="#e6f4f5", color="#0e7c86"];
+  e [label="5  enforce_ip_limits — global 600/min + per-IP endpoint policy (before auth)", fillcolor="#fff6e5", color="#d9a441"];
+  f [label="6  Route guard — public_endpoint | authenticated_setup | require_roles(...)", fillcolor="#e8edf6", color="#1f3a68"];
+  g [label="7  enforce_user_limit — per-account policy (after auth)", fillcolor="#fff6e5", color="#d9a441"];
+  h [label="8  Pydantic request model (extra=\"forbid\") → service → repository", fillcolor="#e8edf6", color="#1f3a68"];
+  i [label="9  Object-level check in service → response model allow-list", fillcolor="#e8edf6", color="#1f3a68"];
+  a->b->c->d->e->f->g->h->i;
+}

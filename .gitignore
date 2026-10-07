@@ -37,3 +37,6 @@ reports/
 .DS_Store
 .idea/
 .vscode/
+
+# Book build output (the PDF itself is committed)
+docs/book/build/

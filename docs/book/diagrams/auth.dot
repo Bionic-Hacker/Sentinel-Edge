@@ -1,0 +1,20 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.3, ranksep=0.32, bgcolor="transparent", pad=0.08];
+  node  [fontname="Inter", fontsize=12.5, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#9aa7b8", margin="0.13,0.06"];
+  edge  [fontname="Inter", fontsize=11, color="#5b6b80", arrowsize=0.7, fontcolor="#3d4b5c"];
+  login [label="POST /auth/login\nOrigin + CSRF header · Argon2id"];
+  fail [label="401, uniform\nlock at 5 failures", fillcolor="#fdecec", color="#c24a4a"];
+  mfa [label="mfa_required (5-min challenge)\nPOST /auth/mfa/verify"];
+  sess [label="Session created\naccess JWT 15 min (memory)\n__Host- refresh cookie", fillcolor="#e6f4f5", color="#0e7c86"];
+  req [label="Every request: JWT → live session\n→ active user → role from DB\n→ setup gate", fillcolor="#e8edf6", color="#1f3a68"];
+  ref [label="POST /auth/refresh\nrotate token in family", fillcolor="#e8edf6", color="#1f3a68"];
+  reuse [label="Rotated token replayed\n→ revoke session, audit", fillcolor="#fdecec", color="#c24a4a"];
+  login -> fail [label=" bad"];
+  login -> mfa [label=" MFA on"];
+  login -> sess [label=" no MFA"];
+  mfa -> sess [label=" TOTP / recovery code"];
+  {rank=same; fail; mfa}
+  sess -> req; sess -> ref [label=" reload / expiry"];
+  {rank=same; req; ref}
+  ref -> reuse [label=" reuse"];
+}

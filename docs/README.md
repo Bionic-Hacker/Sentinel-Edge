@@ -5,6 +5,7 @@ system that doesn't exist yet as if it did.
 
 | Document | Covers | Status |
 |---|---|---|
+| [book/](book/) | **The engineering book (PDF):** build plan, blueprint, phases as built, reproduction guide | Rebuilt every release |
 | [architecture.md](architecture.md) | Target and local architecture, components, data model, roles | Phase 1 |
 | [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk | Phase 1 baseline; full in Phase 10 |
 | [security-controls.md](security-controls.md) | Defense-in-depth layers, control catalogue, control matrix | Phase 1; updated every phase |
