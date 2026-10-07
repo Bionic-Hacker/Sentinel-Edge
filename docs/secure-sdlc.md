@@ -19,6 +19,8 @@ when every item below that applies to it is true.
 
 ## Security focus by phase
 
+Listed by phase number; the build order is local-first (ADR-0016): 1, 2, 6, 7, 8, 10, 9, 3, 4, 5, 11, 12.
+
 | Phase | Security deliverables beyond features |
 |---|---|
 | 1 | Threat model baseline, control matrix, headers, secure errors, logging, provenance register, CI gates |

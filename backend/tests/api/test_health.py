@@ -13,9 +13,8 @@ def test_health_does_not_fingerprint_deployment(client: TestClient) -> None:
         assert leak not in body
 
 
-def test_capabilities_endpoint_lists_register(client: TestClient) -> None:
+def test_capabilities_require_authentication(client: TestClient) -> None:
+    """Phase 1 interim exposure T-API-06, closed in Phase 2."""
     response = client.get("/api/v1/platform/capabilities")
-    assert response.status_code == 200
-    items = response.json()["items"]
-    assert len(items) > 0
-    assert {"key", "provenance", "status", "phase"} <= items[0].keys()
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"

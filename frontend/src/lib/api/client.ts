@@ -1,16 +1,17 @@
 /**
  * Secure API client.
  *
- * - Same-origin only: accepts relative `/api/` paths and rejects absolute or protocol-relative
- *   URLs, so a bug can never send credentials or data to another origin.
- * - Every request has a timeout.
+ * - Same-origin only: accepts relative `/api/v<n>/` paths and rejects absolute or
+ *   protocol-relative URLs, so a bug can never send credentials or data to another origin.
+ *   Query strings are built from structured values, never concatenated by callers.
+ * - Every request has a timeout and refuses redirects.
  * - Responses are validated at runtime before the UI trusts them; TypeScript types alone are
  *   not a security boundary.
  * - Server error envelopes are surfaced with their correlation ID so analysts can trace a
  *   failure to the exact log line, without the UI ever displaying raw server internals.
- *
- * Authentication (Phase 2) will attach to this client: access token held in memory only,
- * refresh via an HttpOnly cookie. Tokens are never written to web storage.
+ * - Authentication (ADR-0003): the access token lives in memory only (see lib/auth/session.ts)
+ *   and is attached as a bearer header. On a 401 the client refreshes once, then retries once.
+ *   Every request carries the CSRF header the server requires on cookie-bearing endpoints.
  */
 
 export class ApiError extends Error {
@@ -29,6 +30,30 @@ export class ApiError extends Error {
 
 export type Validator<T> = (value: unknown) => value is T;
 
+/** Supplied by the auth session module; the client itself never stores tokens. */
+export interface AuthHooks {
+  getAccessToken: () => string | null;
+  refresh: () => Promise<boolean>;
+}
+
+let authHooks: AuthHooks | null = null;
+export function configureAuth(hooks: AuthHooks | null): void {
+  authHooks = hooks;
+}
+
+export type QueryValue = string | number | boolean | null | undefined;
+
+export interface RequestOptions {
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  body?: unknown;
+  query?: Record<string, QueryValue>;
+  signal?: AbortSignal;
+  timeoutMs?: number;
+  /** Attach the bearer token and refresh on 401 (default true). */
+  authenticated?: boolean;
+}
+
+export const CSRF_HEADER = "X-SentinelEdge-CSRF";
 const DEFAULT_TIMEOUT_MS = 8000;
 const SAFE_PATH = /^\/api\/v\d+\/[A-Za-z0-9/_\-.]*$/;
 
@@ -36,6 +61,16 @@ export function assertSafePath(path: string): void {
   if (!SAFE_PATH.test(path) || path.includes("..") || path.includes("//")) {
     throw new ApiError(0, "unsafe_path", "Refused to call a non-API or cross-origin path", null);
   }
+}
+
+function buildUrl(path: string, query?: Record<string, QueryValue>): string {
+  assertSafePath(path);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `${path}?${qs}` : path;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -57,20 +92,17 @@ async function toApiError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, "http_error", `Request failed (${response.status})`, headerId);
 }
 
-export async function apiGet<T>(
-  path: string,
-  validate: Validator<T>,
-  options: { timeoutMs?: number; signal?: AbortSignal } = {},
-): Promise<T> {
-  assertSafePath(path);
+async function send(url: string, options: RequestOptions, token: string | null): Promise<Response> {
   const timeout = AbortSignal.timeout(options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   const signal = options.signal ? AbortSignal.any([options.signal, timeout]) : timeout;
-
-  let response: Response;
+  const headers: Record<string, string> = { Accept: "application/json", [CSRF_HEADER]: "1" };
+  if (options.body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers.Authorization = `Bearer ${token}`;
   try {
-    response = await fetch(path, {
-      method: "GET",
-      headers: { Accept: "application/json" },
+    return await fetch(url, {
+      method: options.method ?? "GET",
+      headers,
+      body: options.body === undefined ? null : JSON.stringify(options.body),
       credentials: "same-origin",
       redirect: "error", // an API redirect is unexpected; never follow it silently
       signal,
@@ -84,8 +116,27 @@ export async function apiGet<T>(
       null,
     );
   }
+}
+
+/** Make a request. Pass `validate` to type-check a JSON body, or `null` for empty responses. */
+export async function apiRequest<T>(
+  path: string,
+  validate: Validator<T> | null,
+  options: RequestOptions = {},
+): Promise<T> {
+  const url = buildUrl(path, options.query);
+  const hooks = (options.authenticated ?? true) ? authHooks : null;
+  let response = await send(url, options, hooks ? hooks.getAccessToken() : null);
+
+  if (response.status === 401 && hooks?.getAccessToken()) {
+    // Access token expired or revoked: refresh once, then retry once.
+    if (await hooks.refresh()) {
+      response = await send(url, options, hooks.getAccessToken());
+    }
+  }
 
   if (!response.ok) throw await toApiError(response);
+  if (validate === null) return undefined as T;
 
   const body: unknown = await response.json();
   if (!validate(body)) {
@@ -97,6 +148,14 @@ export async function apiGet<T>(
     );
   }
   return body;
+}
+
+export function apiGet<T>(
+  path: string,
+  validate: Validator<T>,
+  options: Omit<RequestOptions, "method" | "body"> = {},
+): Promise<T> {
+  return apiRequest(path, validate, { ...options, method: "GET" });
 }
 
 export { isRecord };

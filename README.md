@@ -5,10 +5,12 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phase 1 of 12 — architecture and secure foundation.**
-> The application runs locally. **No AWS resources exist yet.** Every capability is labelled
-> REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs, and tests enforce those
-> labels. See [docs/feature-classification.md](docs/feature-classification.md).
+> **Current status: Phases 1–2 complete (v0.2.0) — secure application foundation.**
+> Authentication with MFA, role-based access control, user administration and a tamper-evident
+> audit log run locally. **No AWS resources exist yet**: AWS phases are deliberately grouped late
+> to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
+> capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
+> and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
 
 ## Contents
 
@@ -76,7 +78,21 @@ Seventeen defense-in-depth layers, from DNS to AI security, each with a stated r
 requirement → threat → control → implementation → evidence in
 [docs/security-controls.md](docs/security-controls.md).
 
-**In place in Phase 1 (LOCAL):**
+**In place after Phase 2 (LOCAL):**
+
+- **Authentication:** Argon2id, 15-minute JWTs checked against a live session on every request,
+  rotating refresh tokens in a `__Host-` HttpOnly cookie with theft detection, TOTP MFA with
+  recovery codes (mandatory for privileged roles), lockout, and enumeration-resistant errors.
+- **No default credentials:** the first admin gets a one-time password from the CLI; everyone
+  else is invited by one-time link. Admins never see or set anyone's password.
+- **Authorization:** five roles; every route declares its access and a test sweeps every route as
+  every role ([docs/authorization.md](docs/authorization.md)). Object-level checks on user records.
+- **Audit log:** hash-chained and append-only by grant *and* trigger; tampering is detected at the
+  exact record. Viewable and verifiable in the UI by admins and security engineers.
+- **Database least privilege:** the API connects as a role that cannot change schema or rewrite
+  history; a privilege-matrix test guards every grant ([ADR-0015](docs/adr/0015-database-roles-and-migrations.md)).
+
+**In place since Phase 1:**
 
 - Security headers on every API response, including errors and rejected hosts. Strict SPA CSP with
   no inline script or style.
@@ -98,9 +114,11 @@ requirement → threat → control → implementation → evidence in
 Requirements: Docker with Compose v2, Python 3.12+, Node 22+, Make, OpenSSL.
 
 ```bash
-make env     # .env with a randomly generated local DB password (mode 600)
-make dev     # web on http://localhost:8080, API on http://localhost:8000
-make check   # lint, type checks, tests, SAST, SCA — the same gates CI runs
+make env                                  # .env with random local secrets (mode 600)
+make dev                                  # web on http://localhost:8080
+make create-admin EMAIL=you@example.com   # one-time password; you'll set your own + MFA
+make check                                # lint, types, tests, SAST, SCA — the CI gates
+make smoke                                # end-to-end auth/authz/audit test (26 checks)
 ```
 
 More in [docs/local-development.md](docs/local-development.md).
@@ -115,28 +133,42 @@ More in [docs/local-development.md](docs/local-development.md).
 | `backend/tests/security/test_trusted_host.py` | Unexpected Host headers are rejected |
 | `backend/tests/unit/test_config.py` | Insecure configuration is refused or overridden |
 | `backend/tests/unit/test_capabilities.py` | Simulated features cannot be labelled real |
+| `backend/tests/security/test_authz_matrix.py` | Every route's access is declared and enforced, for every role |
+| `backend/tests/integration/test_auth_login.py` | Uniform failures, lockout, forged JWTs (alg none, substitution, wrong key), CSRF |
+| `backend/tests/integration/test_auth_sessions.py` | Refresh rotation; a replayed token kills the session |
+| `backend/tests/integration/test_auth_mfa.py` | TOTP replay, brute force, encrypted secrets, single-use recovery codes |
+| `backend/tests/integration/test_audit_log.py` | Grants and triggers block edits; tampering detected at the exact record |
+| `backend/tests/integration/test_database_roles.py` | The app role has exactly its intended privileges |
+| `frontend/src/lib/auth/session.test.ts` | Token stays in memory; one refresh and one retry; concurrent refreshes share one call |
 | `frontend/src/lib/api/client.test.ts` | Client refuses cross-origin paths and redirects, and validates responses |
+| `scripts/smoke-auth.py` (`make smoke`) | The whole journey against the running stack |
+
+The test suites found and fixed two real bugs during Phase 2: Unicode digits slipping past MFA
+code validation, and a role comparison that could never match. Both have regression tests.
 
 Attack simulations (Phase 7) target only SentinelEdge itself, never external systems.
 
 ## Roadmap
 
+Listed in build order. Phase numbers keep their original meaning; the order defers every AWS
+resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phase-order.md)).
+
 | Phase | Scope | Status |
 |---|---|---|
-| 1 | Architecture, repository, ADRs, local environment, CI baseline | **Complete** |
-| 2 | Secure application foundation: auth, MFA, RBAC, audit logging | Next |
+| 1 | Architecture, repository, ADRs, local environment, CI baseline | **Complete** (v0.1.0) |
+| 2 | Secure application foundation: auth, MFA, RBAC, audit logging | **Complete** (v0.2.0) |
+| 6 | API security: inventory, OWASP API mapping, rate limiting | Next |
+| 7 | Security operations: events, dashboard, incidents, simulator | Planned |
+| 8 | Application security scanning and SBOM | Planned |
+| 10 | Threat modeling and governance | Planned |
+| 9 | AI security engine on Amazon Bedrock | Planned |
 | 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Planned |
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Planned |
 | 5 | CloudFront, AWS WAF, ACM/TLS, Route 53, edge headers | Planned |
-| 6 | API security: inventory, OWASP API mapping, rate limiting | Planned |
-| 7 | Security operations: events, dashboard, incidents, simulator | Planned |
-| 8 | Application security scanning and SBOM | Planned |
-| 9 | AI security engine on Amazon Bedrock | Planned |
-| 10 | Threat modeling and governance | Planned |
 | 11 | Automation and full DevSecOps pipeline | Planned |
 | 12 | Hardening, final assessment, interview demo | Planned |
 
-AWS cost is zero in Phase 1. Later phases default to a deploy–demo–destroy workflow.
+AWS cost so far: $0. The AWS phases run as one deployment window, then deploy–demo–destroy.
 
 ## Documentation
 

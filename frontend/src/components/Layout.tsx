@@ -1,6 +1,27 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAuth, useCurrentUser } from "../app/auth-context";
 import { MODULES } from "../app/modules";
 import { ApiStatus } from "./ApiStatus";
+
+function UserMenu() {
+  const user = useCurrentUser();
+  const { logout } = useAuth();
+  return (
+    <div className="flex items-center gap-3 text-sm">
+      <span className="text-right leading-tight">
+        <span className="block text-ink">{user.display_name}</span>
+        <span className="block text-xs text-ink-muted">{user.role.replace("_", " ").toLowerCase()}</span>
+      </span>
+      <button
+        type="button"
+        onClick={() => void logout()}
+        className="rounded border border-line px-2.5 py-1.5 text-ink-muted hover:bg-raised hover:text-ink"
+      >
+        Sign out
+      </button>
+    </div>
+  );
+}
 
 export function Layout() {
   return (
@@ -45,7 +66,10 @@ export function Layout() {
           <p className="text-sm text-ink-muted">
             Local development environment. No AWS resources are connected.
           </p>
-          <ApiStatus />
+          <div className="flex items-center gap-5">
+            <ApiStatus />
+            <UserMenu />
+          </div>
         </header>
         <main id="main" className="flex-1 px-6 py-6" tabIndex={-1}>
           <Outlet />

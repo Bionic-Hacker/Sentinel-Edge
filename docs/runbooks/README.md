@@ -5,7 +5,7 @@ written in the phase that introduces its failure mode, then exercised in a demo 
 
 | Runbook | Phase |
 |---|---|
-| Compromised credential | 2 |
+| [Compromised credential](compromised-credential.md) | 2 ✓ |
 | Application outage | 4 |
 | Origin connectivity issue | 5 |
 | TLS failure | 5 |

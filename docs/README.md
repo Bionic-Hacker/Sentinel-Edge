@@ -12,8 +12,10 @@ system that doesn't exist yet as if it did.
 | [security-headers.md](security-headers.md) | Every header and why it is set | Phase 1 |
 | [secure-sdlc.md](secure-sdlc.md) | Security definition of done for each phase | Phase 1 |
 | [local-development.md](local-development.md) | Running and testing locally | Phase 1 |
-| [adr/](adr/) | Architecture decision records 0001–0014 | Phase 1 |
-| [runbooks/](runbooks/) | Operational runbooks (template now; 12 runbooks by Phase 12) | Phase 1 template |
+| [authorization.md](authorization.md) | Roles and the endpoint permission matrix | Phase 2 |
+| [governance/exceptions.md](governance/exceptions.md) | Security exceptions register (requester, justification, compensating control, expiry) | Phase 2 |
+| [adr/](adr/) | Architecture decision records 0001–0016 | Phase 1–2 |
+| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); 12 by Phase 12 | Phase 2 |
 | aws-security.md | IAM roles, network, KMS, CloudTrail | Phase 3–4 |
 | terraform-security.md | Module design, state, Checkov policy | Phase 3 |
 | cost.md | Resource inventory, estimates, destroy procedure | Phase 3–4 |

@@ -1,5 +1,13 @@
-# Runtime dependencies — compiled to requirements.lock with hashes (make lock-backend).
+# Runtime dependencies — compiled to requirements.txt with hashes (make lock-backend).
 fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
+sqlalchemy
+psycopg[binary]
+alembic
+argon2-cffi
+pyjwt
+pyotp
+cryptography
+email-validator

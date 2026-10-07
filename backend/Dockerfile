@@ -10,9 +10,9 @@ ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 FROM ${PYTHON_IMAGE} AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /build
-COPY requirements.lock .
+COPY requirements.txt .
 RUN python -m venv /opt/venv \
- && /opt/venv/bin/pip install --require-hashes --no-deps -r requirements.lock
+ && /opt/venv/bin/pip install --require-hashes --no-deps -r requirements.txt
 
 FROM ${PYTHON_IMAGE} AS runtime
 ENV PATH="/opt/venv/bin:${PATH}" \
@@ -23,6 +23,8 @@ RUN groupadd --system --gid 10001 sentinel \
 COPY --from=builder /opt/venv /opt/venv
 WORKDIR /srv
 COPY --chown=root:root app ./app
+COPY --chown=root:root alembic.ini ./
+COPY --chown=root:root alembic ./alembic
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

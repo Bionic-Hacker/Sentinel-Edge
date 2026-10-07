@@ -23,6 +23,7 @@ from app.core.errors import internal_error_response
 from app.core.security_headers import API_SECURITY_HEADERS
 
 access_log = logging.getLogger("sentineledge.access")
+HEALTH_PATH = "/api/v1/health"
 
 
 class SecurityMiddleware:
@@ -63,12 +64,17 @@ class SecurityMiddleware:
             await internal_error_response(exc)(scope, receive, send_wrapper)
         finally:
             client = scope.get("client")
+            path = scope.get("path")
+            # Successful health probes (every ~15 s from Docker/ALB) are DEBUG so they don't drown
+            # real traffic. A failing probe stays at INFO: that is a signal worth seeing.
+            level = logging.DEBUG if path == HEALTH_PATH and status_code == 200 else logging.INFO
             # Path only: query strings may carry secrets or attack payloads.
-            access_log.info(
+            access_log.log(
+                level,
                 "request",
                 extra={
                     "http_method": scope.get("method"),
-                    "http_path": scope.get("path"),
+                    "http_path": path,
                     "http_status": status_code,
                     "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                     "client_ip": client[0] if client else None,

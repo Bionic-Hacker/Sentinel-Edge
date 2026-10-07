@@ -19,15 +19,48 @@ from app.core.correlation import get_correlation_id
 logger = logging.getLogger("sentineledge.errors")
 
 
+class ApiError(Exception):
+    """An error whose code and message are safe to show the client.
+
+    Raise this from services and dependencies instead of HTTPException: the message is chosen
+    deliberately by the code that raises it, never derived from internal state.
+    """
+
+    def __init__(
+        self,
+        status_code: int,
+        code: str,
+        message: str,
+        headers: dict[str, str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.code = code
+        self.message = message
+        self.headers = headers or {}
+
+
 def error_response(
-    status_code: int, code: str, message: str, details: list[dict[str, str]] | None = None
+    status_code: int,
+    code: str,
+    message: str,
+    details: list[dict[str, str]] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
-    body: dict[str, object] = {
-        "error": {"code": code, "message": message, "correlation_id": get_correlation_id()}
+    error: dict[str, object] = {
+        "code": code,
+        "message": message,
+        "correlation_id": get_correlation_id(),
     }
     if details:
-        body["error"]["details"] = details  # type: ignore[index]
-    return JSONResponse(status_code=status_code, content=body)
+        error["details"] = details
+    return JSONResponse(status_code=status_code, content={"error": error}, headers=headers)
+
+
+async def api_error_handler(_: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, ApiError):
+        raise exc
+    return error_response(exc.status_code, exc.code, exc.message, headers=exc.headers)
 
 
 async def http_exception_handler(_: Request, exc: Exception) -> JSONResponse:
@@ -64,6 +97,7 @@ def internal_error_response(exc: BaseException) -> JSONResponse:
 
 
 def register_error_handlers(app: FastAPI) -> None:
+    app.add_exception_handler(ApiError, api_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
     # Unhandled exceptions are caught in SecurityMiddleware (see internal_error_response),

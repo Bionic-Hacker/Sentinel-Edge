@@ -1,7 +1,7 @@
--c requirements.lock
+-c requirements.txt
 pytest
 pytest-cov
-httpx
+httpx2
 ruff
 mypy
 bandit[toml]

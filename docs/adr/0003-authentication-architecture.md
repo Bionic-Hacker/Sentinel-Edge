@@ -1,6 +1,6 @@
 # ADR-0003: Authentication and session architecture
 
-- **Status:** Accepted (implementation in Phase 2)
+- **Status:** Accepted — implemented in Phase 2 (see addendum)
 - **Date:** 2026-10-06
 - **Phase:** 2
 
@@ -35,3 +35,32 @@ Controls C-ID-01..07.
 
 ## Consequences
 Page reload requires a silent refresh call. Server-side refresh-token storage is required.
+
+## Addendum: as implemented (Phase 2)
+
+Implemented as decided, with these refinements:
+
+- **Refresh cookie path is `/`, not `/api/v1/auth`.** The cookie uses the `__Host-` prefix, which
+  browsers only accept with `Path=/`, `Secure` and no `Domain`. The prefix guarantees the cookie
+  can't be set or overwritten by a subdomain, which is worth more than narrowing its path. The API
+  reads it on the refresh endpoint only.
+- **Session revocation is immediate.** Every access token carries its session ID; each request
+  loads the session, so logout, password change, role change and deactivation take effect at once,
+  not when the 15-minute token expires. The role is read from the database on every request.
+- **Forced setup.** A new or reset account must change its password, and ADMIN or
+  SECURITY_ENGINEER must enroll MFA, before any endpoint other than the setup flows responds.
+- **TOTP replay protection.** The last accepted time-step is stored; a code is accepted once.
+- **Admins never handle passwords.** New users are invited with a one-time link (72-hour expiry);
+  the first admin comes from `make create-admin`, which prints a one-time password.
+- **Browser session (frontend).** The access token is held in memory. Refresh is single-flight in
+  a tab and serialized across tabs with the Web Locks API; without that, two tabs refreshing at
+  once would present the same refresh token twice and trip reuse detection.
+
+### Known limits (accepted for now)
+- **One HS256 signing key, no `kid`.** Rotating it signs everyone out. Acceptable for a single
+  service; asymmetric keys with rotation are a Phase 12 hardening candidate.
+- **An MFA challenge token can be retried until it expires (5 minutes)**, so users can correct a
+  typo. Guessing is bounded by the account lockout counter, which MFA failures share.
+- **Lockout can be triggered by anyone who knows an email address** (a deliberate lockout is a
+  nuisance attack). Mitigations arrive with the WAF rate-based rules (Phase 5) and per-IP limits
+  (Phase 6).

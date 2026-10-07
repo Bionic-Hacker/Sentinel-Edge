@@ -1,7 +1,7 @@
 {
   "name": "sentineledge-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -17,6 +17,7 @@
   "dependencies": {
     "@fontsource/ibm-plex-mono": "5.3.0",
     "@fontsource/ibm-plex-sans": "5.3.0",
+    "qrcode-generator": "2.0.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "7.18.4"

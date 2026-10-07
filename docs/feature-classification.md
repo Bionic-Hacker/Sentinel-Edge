@@ -25,18 +25,18 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 6. When a real integration is not yet possible, the UI says "Simulation / planned API
    integration" rather than implying the action happened.
 
-## Current register (Phase 1)
+## Current register (Phase 2)
 
 | Area | Implemented now (LOCAL) | Planned LOCAL | Planned REAL_AWS | Planned SIMULATED / DEMO |
 |---|---|---|---|---|
 | Platform | Health, secure errors, structured logging, Host allow-list | — | ECS, ALB, RDS (P4) | — |
 | Edge / WAF / TLS | API + local edge security headers | — | CloudFront, WAF, ACM, WAF logs (P5–7) | WAF toggle simulator (P7) |
-| Identity | — | Auth, MFA, RBAC (P2) | — | — |
+| Identity | Auth, MFA, RBAC, user admin (P2) | — | — | — |
 | API security | Host allow-list, mass-assignment pattern | Inventory, rate limiting (P6) | — | — |
 | Security operations | — | Incidents (P7) | WAF log ingestion (P7) | Attack simulator (P7) |
 | AppSec / DevSecOps | Pre-commit + CI baseline gates | Scanning, SBOM (P8), automation tools (P11) | GitHub OIDC to AWS (P11) | — |
 | AI security | — | Bedrock analysis + approval (P9) | — | — |
-| Governance | Provenance register | Threat modelling, controls, exceptions (P10) | — | — |
+| Governance | Provenance register, tamper-evident audit log (P2) | Threat modelling, controls, in-app exceptions (P10) | Audit archive to S3 Object Lock (P4) | — |
 | Demo | — | — | — | Demo mode, five scenarios (P12) |
 
-Phase 1 contains **zero** REAL_AWS capabilities and creates no AWS resources.
+After Phase 2 there are still **zero** REAL_AWS capabilities; no AWS resources exist (ADR-0016).

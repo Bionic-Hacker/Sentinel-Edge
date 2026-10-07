@@ -3,7 +3,7 @@
 from app.core.capabilities import CAPABILITIES
 from app.core.provenance import Provenance, Status
 
-CURRENT_PHASE = 1
+CURRENT_PHASE = 2
 
 
 def test_keys_are_unique() -> None:

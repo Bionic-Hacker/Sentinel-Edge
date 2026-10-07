@@ -6,3 +6,7 @@ afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
 });
+
+// The session module is a singleton: start every test signed out.
+import { endSession } from "../lib/auth/session";
+afterEach(() => endSession());

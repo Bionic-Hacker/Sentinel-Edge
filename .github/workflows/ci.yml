@@ -38,6 +38,25 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      # Ephemeral PostgreSQL for integration and security tests, bound to the runner only.
+      # The admin password is unique per run and the database is destroyed with the job.
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: sentineledge_test
+          POSTGRES_USER: sentinel_admin
+          POSTGRES_PASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        ports: ["127.0.0.1:5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U sentinel_admin -d sentineledge_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      SENTINEL_DB_HOST: 127.0.0.1
+      SENTINEL_DB_PORT: "5432"
+      SENTINEL_DB_NAME: sentineledge_test
+      # Database tests must run in CI: a missing database fails the job instead of skipping.
+      SENTINEL_REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -46,17 +65,34 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install hash-pinned dependencies
-        run: python -m pip install --require-hashes -r requirements.lock -r requirements-dev.lock
-      - name: Ruff lint and format check
-        run: ruff check . && ruff format --check .
+        run: python -m pip install --require-hashes -r requirements.txt -r requirements-dev.txt
+      - name: Ruff lint and format check (backend and scripts)
+        run: ruff check . ../scripts && ruff format --check . ../scripts
       - name: mypy (strict)
         run: mypy app
       - name: Bandit (SAST)
         run: bandit -c pyproject.toml -r app
       - name: pip-audit (SCA)
-        run: pip-audit -r requirements.lock --require-hashes --strict
-      - name: Tests (unit, API, security) with coverage gate
+        run: pip-audit -r requirements.txt --require-hashes --strict
+      - name: Bootstrap database roles (same script as local and AWS)
+        env:
+          PGHOST: 127.0.0.1
+          PGUSER: sentinel_admin
+          PGPASSWORD: ci-${{ github.run_id }}-${{ github.run_attempt }}
+          PGDATABASE: sentineledge_test
+        run: |
+          command -v psql >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client; }
+          migrator="$(openssl rand -hex 24)"; app="$(openssl rand -hex 24)"
+          echo "::add-mask::$migrator"; echo "::add-mask::$app"
+          SENTINEL_DB_MIGRATOR_PASSWORD="$migrator" SENTINEL_DB_APP_PASSWORD="$app" ../db/bootstrap-roles.sh
+          {
+            echo "SENTINEL_DB_MIGRATOR_PASSWORD=$migrator"
+            echo "SENTINEL_DB_PASSWORD=$app"
+          } >> "$GITHUB_ENV"
+      - name: Tests (unit, API, security, database) with coverage gate
         run: python -m pytest
+      - name: Schema drift check (ORM models must match migrations)
+        run: alembic upgrade head && alembic check
 
   frontend:
     name: Frontend (lint, types, tests, build, SCA)
