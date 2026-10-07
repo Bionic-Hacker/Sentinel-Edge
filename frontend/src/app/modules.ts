@@ -28,7 +28,7 @@ export const MODULES: readonly ModuleDef[] = [
     path: "/applications",
     label: "Applications",
     purpose: "Inventory of protected applications with owners, criticality, and security score.",
-    phase: 6,
+    phase: 7,
     capabilityKeys: ["apps.inventory"],
   },
   {
@@ -36,7 +36,14 @@ export const MODULES: readonly ModuleDef[] = [
     label: "APIs",
     purpose: "Endpoint inventory with authentication, authorization, rate limits, and OWASP API Top 10 risk.",
     phase: 6,
-    capabilityKeys: ["api.inventory", "api.rate_limit", "platform.trusted_hosts"],
+    capabilityKeys: [
+      "api.inventory",
+      "api.rate_limit",
+      "api.metrics",
+      "api.ssrf_guard",
+      "platform.trusted_hosts",
+      "platform.client_ip",
+    ],
   },
   {
     path: "/waf",
@@ -50,7 +57,7 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Edge Security",
     purpose: "CloudFront distribution, origin protection, TLS policy, and security headers.",
     phase: 5,
-    capabilityKeys: ["aws.edge", "platform.security_headers"],
+    capabilityKeys: ["aws.edge", "platform.security_headers", "platform.client_ip"],
   },
   {
     path: "/threats",

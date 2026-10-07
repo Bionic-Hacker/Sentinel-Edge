@@ -120,7 +120,7 @@ def test_inventory_lists_every_endpoint_with_the_spec_fields(
     assert login["authentication"] == "None (public)"
     assert login["authorization"] == "Same-origin request with CSRF header"
     assert login["risk"] == "critical"
-    assert login["rate_limit"] == "20 per 2 minutes per ip"
+    assert login["rate_limit"] == "20 / 2 min per IP"
     assert "API2" in login["owasp"]
     user = _item(body, "GET", "/api/v1/users/{user_id}")
     assert user["object_rule"]

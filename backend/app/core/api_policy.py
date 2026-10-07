@@ -68,10 +68,13 @@ class RateLimitPolicy:
 
     @property
     def description(self) -> str:
-        per = {60: "minute", 120: "2 minutes", 300: "5 minutes", 900: "15 minutes"}.get(
-            self.period_s, f"{self.period_s}s"
-        )
-        return f"{self.capacity} per {per} per {self.scope.value}"
+        """Compact form for tables and audit records, e.g. "20 / 2 min per IP"."""
+        scope = "IP" if self.scope is LimitScope.IP else "user"
+        minutes, seconds = divmod(self.period_s, 60)
+        if seconds:
+            return f"{self.capacity} / {self.period_s} s per {scope}"
+        window = "min" if minutes == 1 else f"{minutes} min"
+        return f"{self.capacity} / {window} per {scope}"
 
 
 # --- Policies ------------------------------------------------------------------------------

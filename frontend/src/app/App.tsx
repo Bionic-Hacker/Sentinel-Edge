@@ -2,6 +2,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { AuditLogsPage } from "../features/admin/AuditLogsPage";
 import { SettingsPage } from "../features/admin/SettingsPage";
+import { ApiSecurityPage } from "../features/api-security/ApiSecurityPage";
 import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
@@ -18,6 +19,7 @@ import { PublicOnly, RequireAuth } from "./RequireAuth";
 const PAGES: Record<string, () => React.JSX.Element> = {
   "/settings": SettingsPage,
   "/audit-logs": AuditLogsPage,
+  "/apis": ApiSecurityPage,
 };
 
 export function AppRoutes() {

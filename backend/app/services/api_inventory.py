@@ -68,14 +68,19 @@ def describe_access(route: APIRoute) -> Access:
         )
     if guards:
         roles = tuple(sorted(r.value for r in guards[0].allowed_roles))
-        mfa = sorted(r.value for r in ROLES_REQUIRING_MFA if r.value in roles)
-        authn = "Session" + (f"; MFA required for {', '.join(mfa)}" if mfa else "")
+        mfa = {r.value for r in ROLES_REQUIRING_MFA} & set(roles)
+        if not mfa:
+            authn = "Session"
+        elif mfa == set(roles):
+            authn = "Session + MFA"
+        else:
+            authn = "Session (+ MFA for privileged roles)"
         authz = (
             "Any role" if set(roles) == {r.value for r in Role} else "Roles: " + ", ".join(roles)
         )
         return Access(authn, authz, roles, csrf)
     if authenticated_setup in calls:
-        return Access("Session (account setup may be pending)", "Own account only", (), csrf)
+        return Access("Session (setup may be pending)", "Own account only", (), csrf)
     return Access("UNDECLARED", "UNDECLARED", (), csrf)  # the authz matrix test forbids this
 
 
