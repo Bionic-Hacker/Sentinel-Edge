@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import { CAPS, jsonResponse, mockApi } from "../test/fixtures";
+import { authenticated, CAPS, jsonResponse, mockApi } from "../test/fixtures";
 import { AppRoutes } from "./App";
 import { MODULES } from "./modules";
 
@@ -14,6 +14,7 @@ const SPEC_NAV = [
 async function renderAt(path: string) {
   vi.spyOn(globalThis, "fetch").mockImplementation(
     mockApi({
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()),
       "/api/v1/health": () => jsonResponse({ status: "ok", version: "0.1.0" }),
       "/api/v1/platform/capabilities": () => jsonResponse({ items: CAPS }),
     }),
@@ -69,7 +70,17 @@ describe("module pages", () => {
   });
 
   it("renders an actionable error when the API is down", async () => {
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"));
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      mockApi({
+        "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()),
+        "/api/v1/health": () => {
+          throw new TypeError("Failed to fetch");
+        },
+        "/api/v1/platform/capabilities": () => {
+          throw new TypeError("Failed to fetch");
+        },
+      }),
+    );
     render(
       <MemoryRouter initialEntries={["/apis"]}>
         <AppRoutes />

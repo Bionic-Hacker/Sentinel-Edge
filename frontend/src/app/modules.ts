@@ -17,7 +17,12 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Dashboard",
     purpose: "Overall security posture, traffic, and active threats across protected applications.",
     phase: 7,
-    capabilityKeys: ["platform.health", "platform.security_headers", "platform.error_handling"],
+    capabilityKeys: [
+      "platform.health",
+      "platform.security_headers",
+      "platform.error_handling",
+      "platform.db_least_privilege",
+    ],
   },
   {
     path: "/applications",
@@ -122,6 +127,6 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Settings",
     purpose: "Users, roles, multi-factor authentication, and session policy.",
     phase: 2,
-    capabilityKeys: ["identity.auth", "identity.rbac"],
+    capabilityKeys: ["identity.auth", "identity.rbac", "identity.user_admin", "platform.local_outbox"],
   },
 ];
