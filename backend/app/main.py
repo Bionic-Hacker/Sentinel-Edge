@@ -17,6 +17,9 @@ from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import SecurityMiddleware
 from app.db.session import build_engine, build_session_factory
+from app.security.mfa import MfaService
+from app.security.passwords import PasswordHasher
+from app.security.tokens import TokenService
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -43,6 +46,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = build_session_factory(engine)
+    # Security services hold key material; constructing them fails closed if keys are missing.
+    app.state.tokens = TokenService(settings)
+    app.state.hasher = PasswordHasher(settings)
+    app.state.mfa = MfaService(settings)
 
     # Order matters: the last added middleware runs first. SecurityMiddleware is outermost so
     # that every response — including Host rejections and errors — gets headers and a

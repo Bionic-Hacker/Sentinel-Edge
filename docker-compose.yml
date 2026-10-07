@@ -80,6 +80,9 @@ services:
       SENTINEL_AI_PROVIDER: ${SENTINEL_AI_PROVIDER:-disabled}
       SENTINEL_AWS_REGION: ${SENTINEL_AWS_REGION:-us-east-1}
       SENTINEL_DB_PASSWORD: ${SENTINEL_DB_APP_PASSWORD:?.env predates Phase 2; see docs/local-development.md}
+      SENTINEL_JWT_SIGNING_KEY: ${SENTINEL_JWT_SIGNING_KEY:?.env predates Phase 2; see docs/local-development.md}
+      SENTINEL_MFA_ENCRYPTION_KEY: ${SENTINEL_MFA_ENCRYPTION_KEY:?.env predates Phase 2; see docs/local-development.md}
+      SENTINEL_PUBLIC_ORIGINS: ${SENTINEL_PUBLIC_ORIGINS:-http://localhost:8080}
     tmpfs: [/tmp]
     depends_on:
       migrate:

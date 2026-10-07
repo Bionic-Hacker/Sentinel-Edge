@@ -4,7 +4,8 @@ SHELL := /bin/bash
 GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
 .PHONY: help env env-check dev down logs clean install test test-backend test-frontend lint \
-        typecheck security secrets-scan lock-backend precommit check verify-hardening
+        typecheck security secrets-scan lock-backend precommit check verify-hardening \
+        create-admin outbox verify-audit migrate
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -12,6 +13,9 @@ help: ## Show available targets
 env: ## Create .env from .env.example, each CHANGE_ME replaced by its own random secret
 	@test ! -f .env || { echo ".env already exists; leaving it untouched"; exit 0; }; \
 	umask 077; cp .env.example .env; \
+	while grep -q 'CHANGE_ME_FERNET_[A-Za-z0-9_]*' .env; do \
+	  sed -i "0,/CHANGE_ME_FERNET_[A-Za-z0-9_]*/s//$$(openssl rand -base64 32 | tr '+/' '-_')/" .env; \
+	done; \
 	while grep -q 'CHANGE_ME_[A-Za-z0-9_]*' .env; do \
 	  sed -i "0,/CHANGE_ME_[A-Za-z0-9_]*/s//$$(openssl rand -hex 24)/" .env; \
 	done; \
@@ -34,6 +38,19 @@ down: ## Stop the local stack
 
 verify-hardening: ## Check container, network and HTTP hardening of the running stack
 	./scripts/verify-hardening.sh
+
+create-admin: ## Create an ADMIN with a one-time password: make create-admin EMAIL=you@example.com
+	@test -n "$(EMAIL)" || { echo "Usage: make create-admin EMAIL=you@example.com"; exit 2; }
+	docker compose exec api python -m app.cli create-admin --email "$(EMAIL)"
+
+outbox: ## Show the local email outbox (password-reset links)
+	docker compose exec api python -m app.cli outbox
+
+verify-audit: ## Verify the audit log hash chain
+	docker compose exec api python -m app.cli verify-audit
+
+migrate: ## Apply new database migrations to the running stack
+	docker compose run --rm migrate
 
 logs: ## Follow structured logs
 	docker compose logs -f migrate api web

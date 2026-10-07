@@ -6,3 +6,8 @@ pydantic-settings
 sqlalchemy
 psycopg[binary]
 alembic
+argon2-cffi
+pyjwt
+pyotp
+cryptography
+email-validator

@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import os
+import secrets
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
+from cryptography.fernet import Fernet
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
 from app.core.config import DbRole, Environment, Settings
+from app.db import models  # noqa: F401  (register all tables on Base.metadata)
 from app.db.base import Base
 from app.db.session import build_engine
 from app.main import create_app
@@ -26,11 +29,24 @@ HAS_TEST_DB = bool(os.environ.get("SENTINEL_DB_PASSWORD"))
 REQUIRE_DB = os.environ.get("SENTINEL_REQUIRE_DB") == "1"
 
 
+# Per-run test keys: random, never written anywhere, and different on every run.
+TEST_JWT_KEY = secrets.token_urlsafe(48)
+TEST_MFA_KEY = Fernet.generate_key().decode()
+TEST_ORIGIN = "https://testserver"
+
+
 def make_settings(**overrides: object) -> Settings:
     base: dict[str, object] = {
         "environment": Environment.TEST,
         "trusted_hosts": ["testserver"],
         "app_version": "0.1.0",
+        "jwt_signing_key": TEST_JWT_KEY,
+        "mfa_encryption_key": TEST_MFA_KEY,
+        "public_origins": [TEST_ORIGIN],
+        # Cheap Argon2 for speed. Config validation forbids these values when deployed.
+        "password_hash_memory_kib": 1024,
+        "password_hash_time_cost": 1,
+        "password_hash_parallelism": 1,
     }
     base.update(overrides)
     return Settings(**base)  # type: ignore[arg-type]
@@ -88,10 +104,14 @@ def migrator_engine() -> Iterator[Engine]:
 
 
 def _truncate_all(engine: Engine) -> None:
+    """Reset between tests. The audit log's append-only trigger also blocks the table owner, so
+    the owner must disable it explicitly — the same deliberate, visible step an attacker with
+    owner rights would need (and which the hash chain would still expose)."""
     tables = ", ".join(f"{t.schema}.{t.name}" for t in Base.metadata.sorted_tables)
-    if tables:
-        with engine.begin() as conn:
-            conn.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE sentinel.audit_log DISABLE TRIGGER audit_log_no_truncate"))
+        conn.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
+        conn.execute(text("ALTER TABLE sentinel.audit_log ENABLE TRIGGER audit_log_no_truncate"))
 
 
 @pytest.fixture
@@ -105,5 +125,12 @@ def db_app(migrator_engine: Engine) -> Iterator[FastAPI]:
 
 @pytest.fixture
 def db_client(db_app: FastAPI) -> Iterator[TestClient]:
-    with TestClient(db_app, raise_server_exceptions=False) as c:
+    # HTTPS base URL so the Secure refresh cookie round-trips like it does in a browser, and the
+    # same-origin headers the SPA sends on every auth call.
+    with TestClient(
+        db_app,
+        base_url=TEST_ORIGIN,
+        raise_server_exceptions=False,
+        headers={"Origin": TEST_ORIGIN, "X-SentinelEdge-CSRF": "1"},
+    ) as c:
         yield c
