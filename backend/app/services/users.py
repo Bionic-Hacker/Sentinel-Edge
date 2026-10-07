@@ -4,6 +4,9 @@ Safety rules enforced here, not just in the UI:
 - An administrator cannot demote or deactivate themselves (no accidental self-lockout).
 - The last active ADMIN cannot be demoted or deactivated (the platform always has an owner).
 - Changing someone's role or deactivating them ends all their sessions immediately.
+- Deleting a user removes the account and its credentials (sessions, refresh tokens, recovery
+  codes, reset links). The audit log keeps their history: it records the actor's ID and email
+  as plain values, not a link to the account, so deletion never breaks the hash chain.
 - Admins never see or set another user's password: new users get a one-time setup link.
 """
 
@@ -22,7 +25,12 @@ from app.core.config import Settings
 from app.core.errors import ApiError
 from app.models.audit import AuditResult
 from app.models.outbox import OutboxMessage
-from app.models.session import AuthSession, MfaRecoveryCode, PasswordResetToken
+from app.models.session import (
+    AuthSession,
+    MfaRecoveryCode,
+    PasswordResetToken,
+    RefreshToken,
+)
 from app.models.user import Role, User
 from app.schemas.users import UserCreate, UserOut, UserUpdate
 from app.security.passwords import PasswordHasher
@@ -209,3 +217,28 @@ class UserService:
         self._audit(AuditAction.USER_MFA_RESET, principal.user, user)
         self.db.commit()
         return to_out(user)
+
+    def delete_user(self, principal: Principal, user_id: uuid.UUID) -> None:
+        """Permanently remove an account and every credential tied to it.
+
+        Deactivation is the reversible option; deletion is for accounts that should not exist
+        (a mistaken invite, a departed user after review). The audit trail is kept.
+        """
+        if user_id == principal.user.id:
+            raise ApiError(409, "self_delete", "You can't delete your own account.")
+        user = self.db.get(User, user_id, with_for_update=True)
+        if user is None:
+            raise not_found()
+        if user.role == Role.ADMIN and user.is_active and self._active_admin_count() <= 1:
+            raise ApiError(409, "last_admin", "At least one active administrator must remain.")
+
+        snapshot = {"email": user.email, "display_name": user.display_name, "role": user.role}
+        sessions = select(AuthSession.id).where(AuthSession.user_id == user.id)
+        # Children first: these tables reference the user (or their sessions) by foreign key.
+        self.db.execute(delete(RefreshToken).where(RefreshToken.session_id.in_(sessions)))
+        self.db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+        self.db.execute(delete(MfaRecoveryCode).where(MfaRecoveryCode.user_id == user.id))
+        self.db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
+        self.db.delete(user)
+        self._audit(AuditAction.USER_DELETED, principal.user, user_id, **snapshot)
+        self.db.commit()

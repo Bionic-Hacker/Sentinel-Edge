@@ -73,3 +73,12 @@ def reset_user_mfa(
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserOut:
     return service.reset_mfa(principal, user_id)
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(
+    user_id: uuid.UUID,
+    principal: Principal = Depends(admin_only),  # noqa: B008
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> None:
+    service.delete_user(principal, user_id)

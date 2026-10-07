@@ -30,6 +30,8 @@ but the frontend serializes refresh across tabs, so treat it as theft unless the
 1. **End every session for the account.** Settings → Users → **Deactivate**. This revokes all
    sessions immediately (access tokens stop working on the next request).
 2. If the account must stay usable, reactivate it after step 4 instead of leaving it active now.
+   Do **not** delete the account during an incident: deletion removes its sessions and state,
+   which are evidence. Delete only after the investigation is closed, if at all.
 3. If the second factor may also be compromised: **Reset 2FA** (forces re-enrollment).
 4. If the account is the attacker's way in to *other* accounts (it invited users or changed roles),
    review each `user.created` / `user.updated` record it produced and reverse them.

@@ -21,6 +21,7 @@ const KNOWN_ACTIONS = [
   "user.created",
   "user.updated",
   "user.mfa_reset",
+  "user.deleted",
   "audit.verified",
 ] as const;
 

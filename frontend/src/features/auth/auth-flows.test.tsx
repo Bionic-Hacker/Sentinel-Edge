@@ -170,6 +170,71 @@ describe("role-aware pages", () => {
     expect(within(table).getByLabelText(`Role for ${admin.email}`)).toBeDisabled();
   });
 
+  it("asks for confirmation before permanently deleting a user", async () => {
+    const user = userEvent.setup();
+    const admin = profile({ role: "ADMIN", mfa_enabled: true, display_name: "Ada Admin", email: "ada@example.com" });
+    const managed = (id: string, email: string, role: string) => ({
+      id,
+      email,
+      display_name: email.split("@")[0],
+      role,
+      is_active: true,
+      mfa_enabled: role === "ADMIN",
+      must_change_password: false,
+      locked: false,
+      last_login_at: null,
+      created_at: "2026-10-07T00:00:00Z",
+    });
+    const analystId = "00000000-0000-4000-8000-0000000000bb";
+    let deleted = false;
+    const fetchMock = renderAt("/settings", {
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(admin)),
+      "/api/v1/users": () =>
+        jsonResponse({
+          items: [
+            managed(admin.id, admin.email, "ADMIN"),
+            ...(deleted ? [] : [managed(analystId, "analyst@example.com", "ANALYST")]),
+          ],
+        }),
+      [`DELETE /api/v1/users/${analystId}`]: () => {
+        deleted = true;
+        return new Response(null, { status: 204 });
+      },
+    });
+    const deleteCalls = () =>
+      fetchMock.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "DELETE");
+
+    const table = await screen.findByRole("table", { name: "Users and their roles" });
+    // No trash can on your own row: an admin cannot delete themselves.
+    expect(within(table).queryByRole("button", { name: `Delete ${admin.email}` })).not.toBeInTheDocument();
+    const trash = within(table).getByRole("button", { name: "Delete analyst@example.com" });
+
+    // Opening the warning deletes nothing, and focus starts on Cancel.
+    await user.click(trash);
+    const dialog = screen.getByRole("alertdialog", { name: "Delete user account?" });
+    expect(dialog).toHaveTextContent("Are you sure you want to permanently delete the user account analyst@example.com?");
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    expect(deleteCalls()).toHaveLength(0);
+
+    // Enter on the focused Cancel, and Escape, both back out without deleting.
+    await user.keyboard("{Enter}");
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await user.click(trash);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(deleteCalls()).toHaveLength(0);
+
+    // Only the explicit "Delete permanently" button deletes.
+    await user.click(trash);
+    await user.click(screen.getByRole("button", { name: "Delete permanently" }));
+    expect(await screen.findByText(/analyst@example.com was permanently deleted/)).toHaveAttribute("role", "status");
+    expect(deleteCalls()).toHaveLength(1);
+    expect(String(deleteCalls()[0]?.[0])).toContain(`/api/v1/users/${analystId}`);
+    await waitFor(() =>
+      expect(within(table).queryByRole("button", { name: "Delete analyst@example.com" })).not.toBeInTheDocument(),
+    );
+  });
+
   it("tells non-auditors they have no access to audit logs", async () => {
     renderAt("/audit-logs", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
     expect(await screen.findByText(/available to administrators and security engineers/)).toBeInTheDocument();

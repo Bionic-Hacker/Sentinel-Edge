@@ -16,6 +16,9 @@ export const updateUser = (
 export const resetUserMfa = (id: string) =>
   apiRequest(`/api/v1/users/${encodeURIComponent(id)}/mfa/reset`, isManagedUser, { method: "POST" });
 
+export const deleteUser = (id: string) =>
+  apiRequest(`/api/v1/users/${encodeURIComponent(id)}`, null, { method: "DELETE" });
+
 export interface AuditFilters {
   action?: string;
   actor?: string;

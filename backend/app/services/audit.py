@@ -48,6 +48,7 @@ class AuditAction(StrEnum):
     USER_CREATED = "user.created"
     USER_UPDATED = "user.updated"
     USER_MFA_RESET = "user.mfa_reset"
+    USER_DELETED = "user.deleted"
     AUDIT_VERIFIED = "audit.verified"
     ACCESS_DENIED = "authz.denied"
 

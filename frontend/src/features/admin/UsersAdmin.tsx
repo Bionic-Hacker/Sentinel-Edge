@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { ConfirmDialog, TrashIcon } from "../../components/ConfirmDialog";
 import { Button, Field, FormError, Notice } from "../../components/forms";
-import { inviteUser, listUsers, resetUserMfa, updateUser } from "../../lib/api/admin";
+import { deleteUser, inviteUser, listUsers, resetUserMfa, updateUser } from "../../lib/api/admin";
 import type { ApiError } from "../../lib/api/client";
 import { ROLES, type ManagedUser, type Role } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
@@ -18,6 +19,8 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
   const [error, setError] = useState<ApiError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [pendingDelete, setPendingDelete] = useState<ManagedUser | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const reload = () => setVersion((v) => v + 1);
 
   useEffect(() => {
@@ -42,8 +45,34 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
     }
   }
 
+  async function confirmDelete(user: ManagedUser) {
+    setDeleting(true);
+    await act(() => deleteUser(user.id), `${user.email} was permanently deleted. Their audit history is kept.`);
+    setDeleting(false);
+    setPendingDelete(null);
+  }
+
   return (
     <div className="space-y-5">
+      {pendingDelete && (
+        <ConfirmDialog
+          title="Delete user account?"
+          confirmLabel="Delete permanently"
+          busy={deleting}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete(pendingDelete)}
+        >
+          <p>
+            Are you sure you want to permanently delete the user account{" "}
+            <strong className="break-words text-ink">{pendingDelete.email}</strong>?
+          </p>
+          <p>
+            They are signed out everywhere and their password, two-factor setup and pending links are removed. This
+            cannot be undone. Their audit history is kept.
+          </p>
+          <p>To block access but keep the account, cancel and use Deactivate instead.</p>
+        </ConfirmDialog>
+      )}
       <InviteForm
         onInvited={(email) => {
           setNotice(`Invitation sent to ${email}. Running locally? Use make outbox to see it.`);
@@ -107,6 +136,17 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
                           onClick={() => void act(() => updateUser(u.id, { is_active: !u.is_active }), u.is_active ? `${u.email} deactivated and signed out.` : `${u.email} reactivated.`)}
                         >
                           {u.is_active ? "Deactivate" : "Reactivate"}
+                        </Button>
+                      )}
+                      {!self && (
+                        <Button
+                          variant="danger"
+                          aria-label={`Delete ${u.email}`}
+                          title="Delete user permanently"
+                          className="px-2.5 align-middle"
+                          onClick={() => setPendingDelete(u)}
+                        >
+                          <TrashIcon />
                         </Button>
                       )}
                     </td>

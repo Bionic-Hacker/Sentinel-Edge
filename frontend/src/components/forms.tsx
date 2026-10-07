@@ -1,4 +1,4 @@
-import { useId, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, type ComponentProps, type InputHTMLAttributes, type ReactNode } from "react";
 import type { ApiError } from "../lib/api/client";
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -43,7 +43,7 @@ export function Button({
   className = "",
   disabled,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; busy?: boolean }) {
+}: ComponentProps<"button"> & { variant?: Variant; busy?: boolean }) {
   return (
     <button
       className={`inline-flex items-center justify-center rounded px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 ${VARIANTS[variant]} ${className}`}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import uuid
 
 import pytest
 from fastapi import FastAPI
@@ -10,7 +11,15 @@ from fastapi.testclient import TestClient
 
 from app.models.user import Role, User
 from app.services.audit import AuditAction
-from tests.helpers import audit_entries, bearer, create_user, login, outbox, session_token
+from tests.helpers import (
+    audit_entries,
+    bearer,
+    create_user,
+    get_user,
+    login,
+    outbox,
+    session_token,
+)
 
 pytestmark = [pytest.mark.security, pytest.mark.db]
 
@@ -216,6 +225,129 @@ def test_admin_mfa_reset(db_app: FastAPI, db_client: TestClient) -> None:
 
     own = db_client.post(f"/api/v1/users/{admin.id}/mfa/reset", headers=bearer(token))
     assert own.status_code == 409
+
+
+# --- Deleting users ---------------------------------------------------------------------------
+
+
+def test_admin_deletes_user_and_every_credential(db_app: FastAPI, db_client: TestClient) -> None:
+    from sqlalchemy import func, select
+
+    from app.models.session import AuthSession, PasswordResetToken, RefreshToken
+
+    _, token = _admin(db_app)
+    db_client.post(
+        "/api/v1/users",
+        headers=bearer(token),
+        json={"email": "leaver@example.com", "display_name": "Leaver", "role": "ANALYST"},
+    )
+    leaver = create_user(db_app, "signed-in@example.com")
+    login(db_client, "signed-in@example.com")  # creates a session and a refresh token
+    leaver_token = session_token(db_app, leaver, mfa_verified=False)
+    invited_id = next(
+        u["id"]
+        for u in db_client.get("/api/v1/users", headers=bearer(token)).json()["items"]
+        if u["email"] == "leaver@example.com"
+    )
+
+    for user_id in (invited_id, str(leaver.id)):
+        response = db_client.delete(f"/api/v1/users/{user_id}", headers=bearer(token))
+        assert response.status_code == 204
+        assert response.content == b""
+
+    emails = {
+        u["email"] for u in db_client.get("/api/v1/users", headers=bearer(token)).json()["items"]
+    }
+    assert emails == {"admin@example.com"}
+    # A deleted user's live session stops working at once.
+    assert db_client.get("/api/v1/auth/me", headers=bearer(leaver_token)).status_code == 401
+    assert login(db_client, "signed-in@example.com").status_code == 401
+    gone = [uuid.UUID(invited_id), leaver.id]
+    with db_app.state.session_factory() as db:
+        # Refresh tokens hang off sessions, so no session means no refresh token (FK enforced).
+        for model in (AuthSession, PasswordResetToken):
+            left = db.scalar(select(func.count()).select_from(model).where(model.user_id.in_(gone)))
+            assert left == 0, model.__name__
+        orphaned = (
+            select(func.count())
+            .select_from(RefreshToken)
+            .where(RefreshToken.session_id.not_in(select(AuthSession.id)))
+        )
+        assert db.scalar(orphaned) == 0
+
+    deleted = audit_entries(db_app, AuditAction.USER_DELETED)
+    assert {e.details["email"] for e in deleted} == {"leaver@example.com", "signed-in@example.com"}
+    assert {e.resource_id for e in deleted} == {invited_id, str(leaver.id)}
+    # History survives deletion, and the hash chain is still intact.
+    status = db_client.get("/api/v1/audit-logs/verify", headers=bearer(token)).json()
+    assert status["intact"] is True
+    history = db_client.get(
+        "/api/v1/audit-logs", headers=bearer(token), params={"actor": "signed-in@example.com"}
+    ).json()["items"]
+    assert any(i["action"] == "auth.login" for i in history)
+
+
+def test_deleted_email_can_be_invited_again(db_app: FastAPI, db_client: TestClient) -> None:
+    _, token = _admin(db_app)
+    bob, _ = _member(db_app, "bob@example.com")
+    db_client.delete(f"/api/v1/users/{bob.id}", headers=bearer(token))
+    response = db_client.post(
+        "/api/v1/users",
+        headers=bearer(token),
+        json={"email": "bob@example.com", "display_name": "Bob again", "role": "VIEWER"},
+    )
+    assert response.status_code == 201
+    assert response.json()["id"] != str(bob.id)
+
+
+def test_admin_cannot_delete_themselves(db_app: FastAPI, db_client: TestClient) -> None:
+    admin, token = _admin(db_app)
+    _admin(db_app, "second-admin@example.com")
+    response = db_client.delete(f"/api/v1/users/{admin.id}", headers=bearer(token))
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "self_delete"
+
+
+def test_delete_unknown_user_is_not_found(db_app: FastAPI, db_client: TestClient) -> None:
+    _, token = _admin(db_app)
+    response = db_client.delete(
+        "/api/v1/users/00000000-0000-4000-8000-000000000000", headers=bearer(token)
+    )
+    assert response.status_code == 404
+    assert audit_entries(db_app, AuditAction.USER_DELETED) == []
+
+
+@pytest.mark.parametrize("role", [r for r in Role if r is not Role.ADMIN])
+def test_only_admins_can_delete_users(db_app: FastAPI, db_client: TestClient, role: Role) -> None:
+    """OWASP API5 (BFLA): the endpoint is admin-only for every other role."""
+    victim, _ = _member(db_app, "victim@example.com")
+    attacker = create_user(
+        db_app, "attacker@example.com", role=role, mfa_enabled=True, mfa_secret=b"x"
+    )
+    token = session_token(db_app, attacker)
+    response = db_client.delete(f"/api/v1/users/{victim.id}", headers=bearer(token))
+    assert response.status_code == 403
+    assert get_user(db_app, "victim@example.com").id == victim.id
+
+
+def test_last_active_admin_cannot_be_deleted(db_app: FastAPI) -> None:
+    """Service-layer invariant, as for demotion: unreachable over HTTP today because an admin
+    cannot delete themselves, but it must hold for any future caller."""
+    from app.core.authz import Principal
+    from app.core.errors import ApiError
+    from app.services.audit import SYSTEM_CONTEXT
+    from app.services.users import UserService
+
+    sole_admin, _ = _admin(db_app)
+    operator = create_user(db_app, "automation@example.com", role=Role.SECURITY_ENGINEER)
+    with db_app.state.session_factory() as db:
+        service = UserService(
+            db=db, settings=db_app.state.settings, hasher=db_app.state.hasher, ctx=SYSTEM_CONTEXT
+        )
+        principal = Principal(user=operator, session=None, pending=frozenset())  # type: ignore[arg-type]
+        with pytest.raises(ApiError) as excinfo:
+            service.delete_user(principal, sole_admin.id)
+        assert excinfo.value.code == "last_admin"
 
 
 # --- Audit log API ----------------------------------------------------------------------------

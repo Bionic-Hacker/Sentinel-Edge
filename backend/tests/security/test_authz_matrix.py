@@ -48,6 +48,7 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/users/{user_id}"): ALL,  # plus an object-level check (own record only)
     ("PATCH", "/api/v1/users/{user_id}"): ADMIN,
     ("POST", "/api/v1/users/{user_id}/mfa/reset"): ADMIN,
+    ("DELETE", "/api/v1/users/{user_id}"): ADMIN,
     ("GET", "/api/v1/audit-logs"): AUDITORS,
     ("GET", "/api/v1/audit-logs/verify"): AUDITORS,
 }

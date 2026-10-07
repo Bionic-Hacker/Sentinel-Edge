@@ -21,11 +21,12 @@ pytestmark = [pytest.mark.security, pytest.mark.db]
 # The complete, intended privilege set of the app role, written independently of the migrations
 # that implement it. Any table or privilege not listed here is a test failure (over-granting).
 EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
-    "users": {"SELECT", "INSERT", "UPDATE"},  # accounts are deactivated, never deleted
-    "auth_sessions": {"SELECT", "INSERT", "UPDATE"},
-    "refresh_tokens": {"SELECT", "INSERT", "UPDATE"},
+    # DELETE on accounts and their credentials: admin-only, audited user deletion (0003).
+    "users": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    "auth_sessions": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    "refresh_tokens": {"SELECT", "INSERT", "UPDATE", "DELETE"},
     "mfa_recovery_codes": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # regenerated as a set
-    "password_reset_tokens": {"SELECT", "INSERT", "UPDATE"},
+    "password_reset_tokens": {"SELECT", "INSERT", "UPDATE", "DELETE"},
     "outbox_messages": {"SELECT", "INSERT"},
     "audit_log": {"SELECT", "INSERT"},  # append-only (ADR-0005)
 }
