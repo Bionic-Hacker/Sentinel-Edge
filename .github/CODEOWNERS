@@ -1,0 +1,6 @@
+# Security-sensitive paths require review (enforced via branch protection).
+/backend/app/core/        @Bionic-Hacker
+/terraform/               @Bionic-Hacker
+/.github/                 @Bionic-Hacker
+/.gitleaks.toml           @Bionic-Hacker
+/docs/adr/                @Bionic-Hacker

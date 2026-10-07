@@ -1,0 +1,20 @@
+# Gitleaks configuration: default ruleset plus project-specific rules.
+title = "SentinelEdge gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "sentineledge-env-assignment"
+description = "Non-placeholder secret assigned in an env-style file"
+regex = '''(?i)(PASSWORD|SECRET|TOKEN|API_KEY)\s*=\s*(?P<secret>[^\s#]{12,})'''
+secretGroup = 2
+path = '''(\.env[^/]*|.*\.tfvars)$'''
+
+[[rules.allowlists]]
+description = "Documented placeholders are not secrets"
+regexes = ['''CHANGE_ME''']
+
+[[allowlists]]
+description = "Synthetic values used by security tests to prove they never leak"
+paths = ['''backend/tests/security/test_error_handling\.py''', '''backend/tests/unit/test_logging\.py''']

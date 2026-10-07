@@ -1,0 +1,71 @@
+# SentinelEdge local development environment (LOCAL provenance — no AWS resources).
+#
+# Topology mirrors the AWS design (docs/architecture.md):
+#   browser -> web (edge stand-in, :8080) -> api -> db
+# - Only `web` and (for Vite dev) `api` are published, and only on 127.0.0.1.
+# - `db` sits on an internal-only network: no published port, no outbound internet —
+#   the local analogue of RDS in isolated subnets (ADR-0001).
+# - Every container: non-root, read-only root filesystem, all Linux capabilities dropped,
+#   no-new-privileges.
+
+name: sentineledge
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run `make env` to generate .env}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    # Postgres needs a few capabilities during init to chown its data dir; it then drops
+    # to the unprivileged `postgres` user.
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    tmpfs: [/tmp, /var/run/postgresql]
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    <<: *hardening
+    build: ./backend
+    env_file: .env
+    tmpfs: [/tmp]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [edge, data]
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    <<: *hardening
+    build: ./frontend
+    tmpfs: [/tmp]
+    depends_on: [api]
+    networks: [edge]
+    ports:
+      - "127.0.0.1:8080:8080"
+
+networks:
+  edge: {}
+  data:
+    internal: true
+
+volumes:
+  db-data: {}

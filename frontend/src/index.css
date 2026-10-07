@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/*
+ * SentinelEdge design tokens.
+ * Deep navy-slate operations surfaces, one steel-cyan interactive accent, and a reserved
+ * four-colour vocabulary for provenance (REAL_AWS / LOCAL / SIMULATED / DEMO). Provenance
+ * colours are never reused for decoration, so a colour always means the same thing.
+ * All text/background pairs meet WCAG 2.2 AA contrast.
+ */
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-canvas: #0e1621;
+  --color-surface: #152131;
+  --color-raised: #1c2b3e;
+  --color-line: #263850;
+  --color-ink: #e4eaf2;
+  --color-ink-muted: #9aa8bc;
+  --color-accent: #4fb3d9;
+
+  --color-prov-real: #4cc38a;
+  --color-prov-local: #79aef2;
+  --color-prov-sim: #e3b341;
+  --color-prov-demo: #b99cf2;
+
+  --color-ok: #4cc38a;
+  --color-fail: #f07178;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-canvas text-ink font-sans antialiased;
+  font-feature-settings: "tnum" 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

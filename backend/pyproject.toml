@@ -1,0 +1,33 @@
+[project]
+name = "sentineledge-api"
+version = "0.1.0"
+description = "SentinelEdge API — Application, API & Edge Security platform (portfolio project)"
+requires-python = ">=3.12"
+
+# Dependencies are hash-pinned in requirements.lock / requirements-dev.lock.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --cov=app --cov-report=term-missing --cov-fail-under=90"
+markers = [
+  "security: security-control regression tests (OWASP-mapped)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# S = flake8-bandit, B = bugbear, UP = pyupgrade, SIM = simplify, PT = pytest style
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "PT", "N", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]  # asserts and synthetic credential fixtures
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]

@@ -1,0 +1,88 @@
+# Phase 1 CI skeleton: secrets scanning, lint, type checks, tests, SAST (Bandit), SCA.
+# The full pipeline from spec §31 (Semgrep, Checkov, Trivy, SBOM, ZAP, Terraform, deploy)
+# is built in Phases 8 and 11. Nothing here touches AWS; no cloud credentials exist.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege for the GITHUB_TOKEN: read-only. Jobs request more only if they need it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets-scan:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # scan full history, not just the tip
+          persist-credentials: false
+      - name: Gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            git /repo --config /repo/.gitleaks.toml --redact --verbose --exit-code 1
+
+  backend:
+    name: Backend (lint, types, SAST, SCA, tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install hash-pinned dependencies
+        run: python -m pip install --require-hashes -r requirements.lock -r requirements-dev.lock
+      - name: Ruff lint and format check
+        run: ruff check . && ruff format --check .
+      - name: mypy (strict)
+        run: mypy app
+      - name: Bandit (SAST)
+        run: bandit -c pyproject.toml -r app
+      - name: pip-audit (SCA)
+        run: pip-audit -r requirements.lock --require-hashes --strict
+      - name: Tests (unit, API, security) with coverage gate
+        run: python -m pytest
+
+  frontend:
+    name: Frontend (lint, types, tests, build, SCA)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install (lockfile only, no install scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: ESLint (security + accessibility rules)
+        run: npm run lint
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: npm audit (SCA)
+        run: npm audit --audit-level=high

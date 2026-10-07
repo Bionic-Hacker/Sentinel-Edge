@@ -1,0 +1,90 @@
+# Security controls
+
+This is the control catalogue and the requirement → threat → control → implementation → evidence
+matrix (spec §37). It is updated every phase. "Evidence" points to something a reviewer can run
+or read.
+
+## 1. Defense-in-depth layers (spec §8)
+
+| # | Layer | Why it exists | Control IDs | Status |
+|---|---|---|---|---|
+| 1 | DNS | Authoritative records managed as code; CAA limits who can issue certificates | C-DNS-01 | P5 |
+| 2 | CDN / edge | Terminates TLS close to users, hides origin, absorbs volume | C-EDGE-01..03 | P5 |
+| 3 | WAF | Blocks known attack patterns before they cost origin resources | C-WAF-01..04 | P5 |
+| 4 | Load balancer | Private origin, HTTPS, desync protection | C-EDGE-02, C-LB-01 | P4 |
+| 5 | Security groups | Each tier reachable only from the tier above it | C-NET-02 | P3 |
+| 6 | Private networking | App and DB never directly routable from the internet | C-NET-01 | P3 (local analogue P1) |
+| 7 | Authentication | Proves identity, resists stuffing and theft | C-ID-01..07 | P2 |
+| 8 | API authorization | Stops BOLA/BFLA regardless of UI | C-API-01..02 | P2, P6 |
+| 9 | Application validation | Rejects malformed and over-posted input; limits output | C-API-04, C-API-06 | P1 pattern, P2+ |
+| 10 | Database security | Least-privilege roles, encryption, parameterisation | C-DB-01..04 | P2–4 |
+| 11 | IAM | Least privilege per function, no static keys | C-IAM-01..03 | P3, P11 |
+| 12 | Secrets management | Secrets never in code, images, Terraform, or CI config | C-SEC-01..02 | P1 (scan), P4 |
+| 13 | Logging | Traceability and forensics | C-LOG-01..03, C-AUD-01..03 | P1 (app), P2 (audit) |
+| 14 | Monitoring | Detects abuse and failures | C-MON-01 | P4, P7 |
+| 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01 | P8 |
+| 16 | CI/CD security | Prevents vulnerable or secret-bearing code from shipping | C-CICD-01..04 | P1 (baseline), P8, P11 |
+| 17 | AI security | Contains prompt injection and AI agency | C-AI-01..06 | P9 |
+
+## 2. Controls implemented in Phase 1
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-WEB-01 | API security headers on every response | `backend/app/core/security_headers.py`, `middleware.py` | `tests/security/test_security_headers.py` (200, 404, 400, 500) |
+| C-WEB-02 | SPA security headers, strict CSP (no `unsafe-inline`/`unsafe-eval`) | `frontend/security-headers.conf`, `nginx.conf` | Build output has no inline scripts or styles; `docs/security-headers.md` |
+| C-WEB-03 | XSS-prone patterns banned at lint time | `frontend/eslint.config.js` (`dangerouslySetInnerHTML`, `innerHTML`, `eval`, web storage) | `npm run lint` in CI |
+| C-API-04 | Unknown fields rejected (mass assignment) | Pydantic `extra="forbid"` pattern | `test_mass_assignment_style_extra_field_rejected` |
+| C-API-05 | Same-origin API client; refuses absolute URLs, redirects; validates responses | `frontend/src/lib/api/client.ts` | `client.test.ts` |
+| C-API-06 | Secure error handling, no input echo | `backend/app/core/errors.py` | `tests/security/test_error_handling.py` |
+| C-API-07 | Host header allow-list, wildcards rejected | `TrustedHostMiddleware`, config validator | `test_trusted_host.py`, `test_config.py` |
+| C-API-08 | Interactive API docs disabled when deployed | `Settings._enforce_secure_defaults` | `test_api_docs_forced_off_when_deployed` |
+| C-LOG-01 | Structured JSON logs with correlation IDs | `backend/app/core/logging.py`, `correlation.py` | `test_logging.py`, `test_correlation_id.py` |
+| C-LOG-02 | Secret redaction and log-injection neutralisation | `redact()` | `test_logging.py` |
+| C-LOG-03 | Query strings excluded from access logs | `SecurityMiddleware` | Code review; access log fields |
+| C-SEC-01 | Secret scanning (pre-commit + CI, full history) | `.gitleaks.toml`, `.pre-commit-config.yaml`, `ci.yml` | Gitleaks run: no leaks |
+| C-SEC-02 | No secrets in repo; generated local credentials | `.env.example` placeholders, `make env` (random, mode 600) | `.gitignore`; Gitleaks |
+| C-CICD-01 | SAST: Bandit + Ruff `S` rules | `pyproject.toml`, CI | CI job "backend" |
+| C-CICD-02 | SCA: pip-audit (hash-pinned), npm audit | `requirements.lock`, `package-lock.json`, CI | No known vulnerabilities at commit time |
+| C-CICD-03 | Least-privilege CI token; SHA-pinned actions; no persisted credentials | `.github/workflows/ci.yml` | Workflow file |
+| C-CICD-04 | Coverage floor (90%) on backend | `pytest --cov-fail-under=90` | CI output |
+| C-CNT-01 | Hardened containers: non-root, read-only FS, `cap_drop: ALL`, no-new-privileges, multi-stage, health checks | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` | Files; Trivy in P8 |
+| C-NET-00 | Local DB on internal-only network; services bound to 127.0.0.1 | `docker-compose.yml` | Compose file |
+| C-GOV-01 | Provenance register with enforcement tests | `app/core/capabilities.py` | `tests/unit/test_capabilities.py` |
+| C-GOV-02 | Security-sensitive paths require code-owner review | `.github/CODEOWNERS`, PR template | Branch protection (configured on GitHub) |
+
+## 3. Matrix: requirement → threat → control → implementation → evidence
+
+| Requirement | Threat | Control | Implementation | Evidence | Phase |
+|---|---|---|---|---|---|
+| SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries | `waf` module; Pydantic schemas; SQLAlchemy repositories | WAF logs; `test_sqli.py` | P2, P5 |
+| XSS | T-ID-02, T-EDGE-06 | React escaping + strict CSP + lint bans + WAF XSS rules | `security-headers.conf`; `eslint.config.js`; WAF | Lint in CI; header tests; ZAP (P8) | P1, P5, P8 |
+| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA | WAF module; auth service | Lockout tests; WAF match counts | P2, P5 |
+| Broken object authorization | T-API-01 | Ownership checks in services | `services/`, authz dependencies | Cross-user access tests per endpoint | P2, P6 |
+| Broken function authorization | T-API-02 | Role dependency on every route | `core/authz.py` | Route-table test: every route declares roles | P2, P6 |
+| Mass assignment | T-API-03 | `extra="forbid"` | Request schemas | `test_mass_assignment_style_extra_field_rejected` | **P1** |
+| Excessive data exposure | T-API-05 | Explicit response models | ADR-0012 | Response-shape tests | **P1 pattern** |
+| Information leakage in errors | T-API-09 | Generic envelope, internal logging | `errors.py` | `test_error_handling.py` | **P1** |
+| Origin bypass | T-EDGE-03 | Internal ALB + VPC origin | `alb`, `cloudfront` modules | External connection test fails; Checkov | P4–5 |
+| Public database | T-DB-01 | Isolated subnets, SG, `publicly_accessible=false` | `rds`, `vpc` modules | Checkov; plan review | P3–4 |
+| Secret leakage | T-SEC-01 | Gitleaks + Secrets Manager | `.gitleaks.toml`; `secrets-manager` module | Gitleaks report | **P1**, P4 |
+| Supply chain | T-SC-01 | Pinned deps + SCA + SBOM + image scan | Lock files; Syft; Trivy | CI artifacts | **P1**, P8 |
+| Audit tampering | T-AUD-01 | Hash chain + grants + Object Lock | ADR-0005 | Chain verification tool | P2, P4 |
+| Prompt injection | T-AI-01, T-AI-02 | Delimiting, scoring, schema-bound output | `app/ai/guardrails` | Injection corpus tests | P9 |
+| Excessive AI agency | T-AI-05 | Proposals + human approval | `ai_action_proposals` | Approval workflow tests; audit | P9 |
+| WAF weakened via app | T-WAF-02 | Read-only WAF IAM; Terraform-only changes | ADR-0008; IAM module | IAM policy; Access Analyzer | P5 |
+| Certificate expiry | T-EDGE-02 | ACM managed renewal + expiry alerting | ACM module; worker poller | CloudWatch alarm; dashboard | P5 |
+| Cross-environment change | T-IAC-01 | Per-env roots, account guards | ADR-0014 | Plan fails on wrong account | P3 |
+
+## 4. Control ID index (planned)
+
+C-DNS-01 CAA + Route 53 as code · C-EDGE-01 TLS policy · C-EDGE-02 private origin · C-EDGE-03
+CloudFront headers policy · C-WAF-01 managed rule groups · C-WAF-02 custom rules · C-WAF-03
+rate-based rules · C-WAF-04 Terraform-only WAF changes · C-LB-01 ALB desync/invalid-header
+protection · C-NET-01 private subnets · C-NET-02 tiered SGs · C-ID-01 Argon2id · C-ID-02
+short-lived JWT · C-ID-03 rotating refresh tokens · C-ID-04 MFA · C-ID-05 lockout · C-ID-06 CSRF
+defenses · C-ID-07 secure reset · C-API-01 object authz · C-API-02 function authz · C-API-03 app
+rate limiting · C-DB-01 least-privilege roles · C-DB-02 encryption · C-DB-03 TLS required ·
+C-DB-04 backups · C-IAM-01 per-function roles · C-IAM-02 no static keys · C-IAM-03 permission
+documentation · C-AUD-01 hash chain · C-AUD-02 INSERT-only grants · C-AUD-03 Object Lock archive ·
+C-MON-01 alarms · C-VM-01 findings lifecycle · C-AI-01..06 per ADR-0007 · C-GOV-03 change
+management.
