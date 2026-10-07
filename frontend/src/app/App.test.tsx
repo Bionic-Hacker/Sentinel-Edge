@@ -1,7 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { authenticated, CAPS, jsonResponse, mockApi } from "../test/fixtures";
+import { renderSettled } from "../test/render";
 import { AppRoutes } from "./App";
 import { MODULES } from "./modules";
 
@@ -19,7 +20,7 @@ async function renderAt(path: string) {
       "/api/v1/platform/capabilities": () => jsonResponse({ items: CAPS }),
     }),
   );
-  const view = render(
+  const view = await renderSettled(
     <MemoryRouter initialEntries={[path]}>
       <AppRoutes />
     </MemoryRouter>,
@@ -55,7 +56,8 @@ describe("dashboard", () => {
   it("shows completed phases and marks the next one", async () => {
     await renderAt("/");
     expect(screen.getByText(/Phase 2, complete/)).toBeInTheDocument();
-    expect(screen.getByText(/Phase 6, next/).closest("li")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/Phase 6, complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Phase 7, next/).closest("li")).toHaveAttribute("aria-current", "step");
   });
 });
 
@@ -82,7 +84,7 @@ describe("module pages", () => {
         },
       }),
     );
-    render(
+    await renderSettled(
       <MemoryRouter initialEntries={["/apis"]}>
         <AppRoutes />
       </MemoryRouter>,

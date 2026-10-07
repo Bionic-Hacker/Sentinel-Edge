@@ -15,8 +15,8 @@ _UNPRINTABLE = re.compile(r"[^\x20-\x7e]")
 def request_context(request: Request) -> RequestContext:
     user_agent = request.headers.get("user-agent")
     return RequestContext(
-        # No proxy-header trust yet: this is the direct peer. Phase 4 trusts X-Forwarded-For
-        # from the ALB's address range only (ADR-0001, T-ORG-02).
+        # Already resolved by ClientIpMiddleware: the real client behind trusted proxies only
+        # (T-ORG-02). Never read X-Forwarded-For here.
         source_ip=request.client.host if request.client else None,
         user_agent=_UNPRINTABLE.sub("?", user_agent)[:256] if user_agent else None,
         correlation_id=get_correlation_id(),

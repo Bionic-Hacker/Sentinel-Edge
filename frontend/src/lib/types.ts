@@ -95,3 +95,77 @@ export interface ChainStatus {
   first_break_seq: number | null;
   problem: string | null;
 }
+
+// --- API Security Center (Phase 6) ------------------------------------------------------------
+export const RISKS = ["critical", "high", "medium", "low"] as const;
+export type Risk = (typeof RISKS)[number];
+export const ENDPOINT_STATUSES = ["protected", "elevated", "review"] as const;
+export type EndpointStatus = (typeof ENDPOINT_STATUSES)[number];
+export const COVERAGE_STATUSES = ["mitigated", "partial", "not_exposed"] as const;
+export type CoverageStatus = (typeof COVERAGE_STATUSES)[number];
+
+export interface EndpointMetrics {
+  requests: number;
+  error_rate: number;
+  client_errors: number;
+  server_errors: number;
+  unauthenticated: number;
+  forbidden: number;
+  throttled: number;
+  security_rejections: number;
+}
+
+export interface InventoryItem {
+  method: string;
+  path: string;
+  summary: string;
+  authentication: string;
+  authorization: string;
+  roles: string[];
+  object_rule: string | null;
+  csrf_protected: boolean;
+  risk: Risk;
+  rate_limit: string;
+  owasp: string[];
+  data: string;
+  metrics: EndpointMetrics;
+  last_scan: string | null;
+  scan_note: string;
+  status: EndpointStatus;
+  status_reasons: string[];
+}
+
+export interface InventorySummary {
+  endpoints: number;
+  public: number;
+  critical: number;
+  high: number;
+  requests: number;
+  security_rejections: number;
+  throttled: number;
+  unmatched_requests: number;
+  needs_attention: number;
+}
+
+export interface Inventory {
+  generated_at: string;
+  window_hours: number;
+  metrics_enabled: boolean;
+  summary: InventorySummary;
+  items: InventoryItem[];
+}
+
+export interface OwaspCategory {
+  code: string;
+  name: string;
+  status: CoverageStatus;
+  controls: string[];
+  evidence: string[];
+  planned: string | null;
+  exposed_endpoints: number;
+}
+
+export interface OwaspCoverage {
+  edition: string;
+  items: OwaspCategory[];
+}

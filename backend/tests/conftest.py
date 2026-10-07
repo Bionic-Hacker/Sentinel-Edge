@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
-from app.core.config import DbRole, Environment, Settings
+from app.core.config import NON_DEPLOYED, DbRole, Environment, Settings
 from app.db import models  # noqa: F401  (register all tables on Base.metadata)
 from app.db.base import Base
 from app.db.session import build_engine
@@ -49,6 +49,13 @@ def make_settings(**overrides: object) -> Settings:
         "password_hash_parallelism": 1,
     }
     base.update(overrides)
+    # Rate limiting is off for the general suite (the authz sweep alone makes hundreds of calls
+    # from one client); tests/integration/test_rate_limiting.py turns it on. Deployed
+    # environments keep it on: config validation forbids disabling it there.
+    if base["environment"] in NON_DEPLOYED:
+        base.setdefault("rate_limit_enabled", False)
+    # Metrics write to the database on every request; tests that need them turn them on.
+    base.setdefault("api_metrics_enabled", False)
     return Settings(**base)  # type: ignore[arg-type]
 
 

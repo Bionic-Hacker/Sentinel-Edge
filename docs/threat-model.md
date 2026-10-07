@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.2 (Phase 2: identity, authorization, audit)
+- **Version:** 0.3 (Phase 6: API security)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Full PASTA
   treatment and in-app modelling arrive in Phase 10.
@@ -69,14 +69,14 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | ID | STRIDE | Threat | L×I | Control(s) | Status |
 |---|---|---|---|---|---|
 | T-ORG-01 | I | Plaintext CloudFront→origin traffic | 1×2 | HTTPS listener on ALB | Planned (P4) |
-| T-ORG-02 | S | Spoofed `X-Forwarded-For` to evade IP controls | 2×2 | Proxy-header trust only from ALB subnets | Planned (P4); disabled in P1 |
+| T-ORG-02 | S | Spoofed `X-Forwarded-For` to evade IP controls | 2×2 | Proxy-header trust only from configured proxy networks, chain walked right to left | **Mitigated locally (P6, tested)**: trusted local proxy network, nginx overwrites the header; ALB subnets in P4 |
 | T-ORG-03 | T | HTTP request smuggling / desync | 1×3 | ALB desync mitigation "strictest", drop invalid headers | Planned (P4) |
 
 ### TB3 — Browser session → API
 
 | ID | STRIDE | Threat | OWASP | L×I | Control(s) | Status |
 |---|---|---|---|---|---|---|
-| T-ID-01 | S | Credential stuffing / brute force | API2, A07 | 3×3 | WAF rate rule, app limiter, lockout, MFA | **Mitigated (P2)**: lockout, MFA, uniform errors; WAF rate rule P5, per-IP limits P6 |
+| T-ID-01 | S | Credential stuffing / brute force | API2, A07 | 3×3 | WAF rate rule, app limiter, lockout, MFA | **Mitigated (P2, P6)**: lockout, MFA, uniform errors, per-IP sign-in limits; WAF rate rule P5 |
 | T-ID-02 | S | Access-token theft via XSS | A03 | 2×3 | Memory-only token, strict CSP, React escaping, ESLint bans | **Mitigated (P2)**: token in memory only, refresh cookie HttpOnly (verified in Chromium) |
 | T-ID-03 | S | Refresh-token replay | API2 | 2×3 | Rotation with family revocation (ADR-0003) | **Mitigated (P2)**: reuse revokes the session and is audited |
 | T-ID-04 | T | CSRF on cookie-authenticated refresh | A01 | 2×2 | SameSite=Strict, Origin check, custom header | **Mitigated (P2)** |
@@ -84,15 +84,16 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-API-01 | E | BOLA (object-level authorization) | API1 | 3×3 | Service-level ownership checks, UUID IDs | **Mitigated for user records (P2)**; new resources P6+ |
 | T-API-02 | E | BFLA (function-level authorization) | API5 | 2×3 | Role dependencies on every route; route-table test | **Mitigated (P2)**: declared matrix + enforcement sweep |
 | T-API-03 | T | Mass assignment | API3 | 2×3 | `extra="forbid"` request models | **Mitigated (P2)**: all request models; tested on login and user admin |
-| T-API-04 | D | Unrestricted resource consumption | API4 | 3×2 | WAF rate rules, app limits, body size limit, pagination caps | Body limit (nginx 1 MB) P1; rest P5–6 |
+| T-API-04 | D | Unrestricted resource consumption | API4 | 3×2 | WAF rate rules, app limits, body size limit, pagination caps | **Mitigated in app (P6)**: token buckets per IP and account, page caps, body limit, statement timeout; WAF rate rules P5 |
 | T-API-05 | I | Excessive data exposure | API3 | 2×3 | Explicit response models (ADR-0012) | **Mitigated (P2)**: user responses checked against an exact field allow-list |
 | T-API-06 | I | Unauthenticated capability endpoint discloses roadmap | API9 | 1×1 | Moved behind authentication | **Closed (P2)** |
 | T-API-07 | T | Injection (SQL, command) | API8, A03 | 2×3 | ORM parameterisation, validation, WAF SQLi rules | **Mitigated in app (P2)**: ORM only, validated query params; WAF P5 |
-| T-API-08 | I | SSRF via user-supplied URLs | API7 | 1×3 | No server-side fetch of user URLs; allow-list if ever needed | Planned (P6) |
+| T-API-08 | I | SSRF via user-supplied URLs | API7 | 1×3 | No server-side fetch of user URLs; egress guard (HTTPS, allow-list, public addresses only) | **Not exposed; guard ready and tested (P6)** |
 | T-API-09 | I | Error messages leak stack traces, SQL, paths, secrets | API8 | 2×2 | Generic envelope, no input echo, internal logging | **Mitigated (P1, tested)** |
 | T-API-10 | R | Requests untraceable during investigation | — | 2×2 | Correlation IDs, structured logs | **Mitigated (P1)** |
 | T-API-11 | T | Log injection / forging | — | 2×2 | JSON logging, control-char neutralisation, ID allow-list | **Mitigated (P1, tested)** |
-| T-API-12 | I | Improper inventory: undocumented or debug endpoints | API9 | 2×2 | Docs disabled in deployed envs; inventory from route table | Docs **mitigated (P1)**; inventory P6 |
+| T-API-13 | D | Flood of throttled requests fills the audit log | API4 | 2×2 | Only the first denial in a run is audited; later ones are counted | **Mitigated (P6, tested)** |
+| T-API-12 | I | Improper inventory: undocumented or debug endpoints | API9 | 2×2 | Docs disabled in deployed envs; inventory from route table | **Mitigated (P1, P6)**: registry must equal the route table; unknown-path probes counted |
 
 ### Identity threats added in Phase 2
 
@@ -152,7 +153,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
    output is schema-bound and advisory, proposals need approval, and real WAF changes need a
    Terraform PR with review.
 
-## 5. Residual risk (after Phase 2)
+## 5. Residual risk (after Phase 6)
 
 - Single-maintainer project: separation of duties is enforced by role checks, not by different
   people. Accepted for a portfolio.
@@ -161,4 +162,8 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 - Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash
   is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.
 - One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).
-- Deliberate lockout of a known account (T-ID-10) until rate limiting at the edge and per IP.
+- Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per
+  2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot
+  controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.
+- Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.
+- Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).

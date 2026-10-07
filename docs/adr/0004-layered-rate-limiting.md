@@ -23,3 +23,8 @@ In-memory per-task limiter (inconsistent across tasks); ElastiCache Redis (cost)
 
 ## Consequences
 Database writes on auth paths; acceptable at portfolio scale and revisited in Phase 12.
+
+## Addendum (Phase 6, 2026-10-07)
+Implemented as decided. Details (policy registry, atomic bucket statement, per-IP and
+per-account checkpoints, audit-once behaviour, trusted client IPs) are in
+[ADR-0017](0017-rate-limiting-and-client-ip.md). Per-API-key limits wait until API keys exist.

@@ -18,6 +18,7 @@ const KNOWN_ACTIONS = [
   "auth.password_reset_requested",
   "auth.password_reset",
   "authz.denied",
+  "ratelimit.exceeded",
   "user.created",
   "user.updated",
   "user.mfa_reset",

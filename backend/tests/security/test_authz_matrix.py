@@ -28,6 +28,7 @@ SETUP = "setup"  # any signed-in user, even with setup pending (finish-setup flo
 ALL = frozenset(Role)
 ADMIN = frozenset({Role.ADMIN})
 AUDITORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
+API_SECURITY = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -51,6 +52,8 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("DELETE", "/api/v1/users/{user_id}"): ADMIN,
     ("GET", "/api/v1/audit-logs"): AUDITORS,
     ("GET", "/api/v1/audit-logs/verify"): AUDITORS,
+    ("GET", "/api/v1/api-security/inventory"): API_SECURITY,
+    ("GET", "/api/v1/api-security/owasp"): API_SECURITY,
 }
 
 

@@ -76,17 +76,29 @@ or read.
 | C-CICD-05 | Schema drift gate (`alembic check`) in CI and `make test-backend` | `ci.yml`, `Makefile` | CI job output |
 | C-GOV-04 | Security exceptions recorded with justification, compensating control and expiry | `docs/governance/exceptions.md` | EXC-0001, EXC-0002 |
 
+## 2b. Controls implemented in Phase 6
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-API-03 | Token-bucket rate limiting per IP (before authentication) and per account (after); 429 with Retry-After; first denial audited; cannot be disabled when deployed | `app/security/rate_limit.py`, `app/core/rate_limiting.py`, ADR-0017 | `test_rate_limiting.py` (incl. 40-thread concurrency), `make smoke` |
+| C-API-09 | Endpoint policy registry: risk, rate limit, OWASP exposure for every route; must equal the route table | `app/core/api_policy.py` | `test_registry_matches_the_route_table` |
+| C-API-10 | API inventory with live per-endpoint metrics (templates only, no personal data) and computed status | `app/services/api_inventory.py`, `app/core/api_metrics.py` | `test_api_inventory.py` |
+| C-API-11 | Route-table sweeps: request bodies forbid unknown fields; JSON routes declare response models; sensitive-looking response fields need approval | — | `test_api_protections.py` |
+| C-API-12 | Outbound request (SSRF) guard: HTTPS, allow-list, every resolved address public | `app/security/egress.py` | `test_egress.py` |
+| C-NET-03 | Client IP from `X-Forwarded-For` only via trusted proxy networks, chain walked right to left | `app/core/client_ip.py`, pinned edge subnet, nginx overwrite | `test_client_ip.py`, `make smoke` |
+| C-GOV-05 | OWASP API Top 10 coverage with cited test evidence that must exist | `app/core/owasp_coverage.py` | `test_owasp_coverage.py` |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
 |---|---|---|---|---|---|
 | SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries | `waf` module; Pydantic schemas; SQLAlchemy ORM only | Query-param validation tests; WAF logs (P5) | **P2 (app)**, P5 |
 | XSS | T-ID-02, T-EDGE-06 | React escaping + strict CSP + lint bans + WAF XSS rules | `security-headers.conf`; `eslint.config.js`; WAF | Lint in CI; header tests; ZAP (P8) | P1, P5, P8 |
-| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA | WAF module; auth service | `test_account_locks_after_repeated_failures`; WAF match counts (P5) | **P2**, P5 |
+| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA | WAF module; auth service; `api_policy.LOGIN` | `test_account_locks_after_repeated_failures`, `test_login_is_limited_per_ip_with_retry_after`; WAF match counts (P5) | **P2, P6**, P5 |
 | Broken object authorization | T-API-01 | Ownership checks in services | `UserService.get_user` | `test_users_can_read_only_their_own_record` | **P2**, P6 |
 | Broken function authorization | T-API-02 | Role dependency on every route | `core/authz.py` | `test_authz_matrix.py` | **P2** |
-| Mass assignment | T-API-03 | `extra="forbid"` | Request schemas | `test_mass_assignment_style_extra_field_rejected` | **P1** |
-| Excessive data exposure | T-API-05 | Explicit response models | ADR-0012 | Response-shape tests | **P1 pattern** |
+| Mass assignment | T-API-03 | `extra="forbid"` | Request schemas | `test_every_request_body_rejects_unknown_fields` (sweep) | **P1, P6** |
+| Excessive data exposure | T-API-05 | Explicit response models | ADR-0012 | `test_every_json_route_declares_a_response_model`, `test_no_response_model_exposes_secret_fields` | **P1, P6** |
 | Information leakage in errors | T-API-09 | Generic envelope, internal logging | `errors.py` | `test_error_handling.py` | **P1** |
 | Origin bypass | T-EDGE-03 | Internal ALB + VPC origin | `alb`, `cloudfront` modules | External connection test fails; Checkov | P4–5 |
 | Public database | T-DB-01 | Isolated subnets, SG, `publicly_accessible=false` | `rds`, `vpc` modules | Checkov; plan review | P3–4 |

@@ -3,7 +3,9 @@
 from app.core.capabilities import CAPABILITIES
 from app.core.provenance import Provenance, Status
 
-CURRENT_PHASE = 2
+# Phases are built out of numerical order to defer AWS cost (ADR-0016): 1, 2, 6, 7, 8, 10, 9,
+# then 3, 4, 5, 11, 12. The rule is completion, not phase number.
+COMPLETED_PHASES = frozenset({1, 2, 6})
 
 
 def test_keys_are_unique() -> None:
@@ -22,12 +24,12 @@ def test_no_implemented_real_aws_capability_before_aws_phases() -> None:
     assert offenders == []
 
 
-def test_implemented_items_are_not_from_future_phases() -> None:
-    assert all(c.phase <= CURRENT_PHASE for c in CAPABILITIES if c.status is Status.IMPLEMENTED)
+def test_implemented_items_belong_to_completed_phases() -> None:
+    assert all(c.phase in COMPLETED_PHASES for c in CAPABILITIES if c.status is Status.IMPLEMENTED)
 
 
-def test_planned_items_are_scheduled_in_future_phases() -> None:
-    assert all(c.phase > CURRENT_PHASE for c in CAPABILITIES if c.status is Status.PLANNED)
+def test_planned_items_belong_to_phases_not_yet_completed() -> None:
+    assert all(c.phase not in COMPLETED_PHASES for c in CAPABILITIES if c.status is Status.PLANNED)
 
 
 def test_simulations_are_never_marked_real() -> None:

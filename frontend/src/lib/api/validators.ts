@@ -1,12 +1,20 @@
 /** Runtime shape checks for API responses. The UI trusts nothing it hasn't checked. */
 import {
   AUDIT_RESULTS,
+  COVERAGE_STATUSES,
+  ENDPOINT_STATUSES,
+  RISKS,
   PENDING_STEPS,
   ROLES,
   type AuditEntry,
   type AuditPage,
   type AuthenticatedResponse,
   type ChainStatus,
+  type EndpointMetrics,
+  type Inventory,
+  type InventoryItem,
+  type OwaspCategory,
+  type OwaspCoverage,
   type ManagedUser,
   type MfaRequiredResponse,
   type UserProfile,
@@ -113,3 +121,85 @@ export const isEnrollmentStart = (v: unknown): v is { secret: string; otpauth_ur
 
 export const isRecoveryCodes = (v: unknown): v is { recovery_codes: string[] } =>
   isRecord(v) && Array.isArray(v.recovery_codes) && v.recovery_codes.every(isString);
+
+// --- API Security Center ---------------------------------------------------------------------
+const isNumber = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every(isString);
+const hasNumbers = (v: Record<string, unknown>, keys: readonly string[]) => keys.every((k) => isNumber(v[k]));
+
+const METRIC_KEYS = [
+  "requests",
+  "error_rate",
+  "client_errors",
+  "server_errors",
+  "unauthenticated",
+  "forbidden",
+  "throttled",
+  "security_rejections",
+] as const;
+
+export const isEndpointMetrics = (v: unknown): v is EndpointMetrics => isRecord(v) && hasNumbers(v, METRIC_KEYS);
+
+export function isInventoryItem(v: unknown): v is InventoryItem {
+  return (
+    isRecord(v) &&
+    isString(v.method) &&
+    isString(v.path) &&
+    isString(v.summary) &&
+    isString(v.authentication) &&
+    isString(v.authorization) &&
+    isStringArray(v.roles) &&
+    isNullableString(v.object_rule) &&
+    typeof v.csrf_protected === "boolean" &&
+    oneOf(RISKS)(v.risk) &&
+    isString(v.rate_limit) &&
+    isStringArray(v.owasp) &&
+    isString(v.data) &&
+    isEndpointMetrics(v.metrics) &&
+    isNullableString(v.last_scan) &&
+    isString(v.scan_note) &&
+    oneOf(ENDPOINT_STATUSES)(v.status) &&
+    isStringArray(v.status_reasons)
+  );
+}
+
+const SUMMARY_KEYS = [
+  "endpoints",
+  "public",
+  "critical",
+  "high",
+  "requests",
+  "security_rejections",
+  "throttled",
+  "unmatched_requests",
+  "needs_attention",
+] as const;
+
+export function isInventory(v: unknown): v is Inventory {
+  return (
+    isRecord(v) &&
+    isString(v.generated_at) &&
+    isNumber(v.window_hours) &&
+    typeof v.metrics_enabled === "boolean" &&
+    isRecord(v.summary) &&
+    hasNumbers(v.summary, SUMMARY_KEYS) &&
+    Array.isArray(v.items) &&
+    v.items.every(isInventoryItem)
+  );
+}
+
+function isOwaspCategory(v: unknown): v is OwaspCategory {
+  return (
+    isRecord(v) &&
+    isString(v.code) &&
+    isString(v.name) &&
+    oneOf(COVERAGE_STATUSES)(v.status) &&
+    isStringArray(v.controls) &&
+    isStringArray(v.evidence) &&
+    isNullableString(v.planned) &&
+    isNumber(v.exposed_endpoints)
+  );
+}
+
+export const isOwaspCoverage = (v: unknown): v is OwaspCoverage =>
+  isRecord(v) && isString(v.edition) && Array.isArray(v.items) && v.items.every(isOwaspCategory);

@@ -29,6 +29,6 @@ USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \
   CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=2).status == 200 else 1)"]
-# --no-server-header: don't advertise uvicorn. --proxy-headers stays OFF until Phase 4,
-# when forwarded-for trust is restricted to the ALB (see ADR-0001).
-CMD ["uvicorn", "--factory", "app.main:create_app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-access-log"]
+# --no-server-header: don't advertise uvicorn. --no-proxy-headers: the app's own
+# ClientIpMiddleware decides which proxies to trust (SENTINEL_TRUSTED_PROXY_CIDRS, T-ORG-02).
+CMD ["uvicorn", "--factory", "app.main:create_app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-access-log", "--no-proxy-headers"]

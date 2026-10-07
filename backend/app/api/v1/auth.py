@@ -73,6 +73,10 @@ def require_same_origin(
         raise ApiError(403, "csrf_rejected", "Request origin not allowed")
 
 
+# Read by the API inventory to report this control (app.services.api_inventory).
+require_same_origin.csrf_protection = True  # type: ignore[attr-defined]
+
+
 def user_profile(user: User) -> UserProfile:
     return UserProfile(
         id=user.id,

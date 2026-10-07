@@ -41,6 +41,18 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.2.0 (Phase 2) to v0.3.0 (Phase 6)
+
+Your data is kept: new migrations add tables to the existing database. The only change that
+needs a step is the pinned Docker network for trusted client IPs (ADR-0017).
+
+```bash
+docker compose down        # removes containers and networks, KEEPS the database volume
+make dev                   # rebuilds images, re-creates the network, applies migrations 0004-0005
+```
+
+If `make dev` fails, it now prints the likely cause and fix (`scripts/diagnose-startup.sh`).
+
 ## Upgrading from Phase 1
 
 Phase 2 introduced separate database roles (ADR-0015) and authentication keys. Roles are created
@@ -67,6 +79,7 @@ make create-admin EMAIL=you@example.com
 | Hot-reload frontend against the API container | `cd frontend && npm run dev` (http://127.0.0.1:5173) |
 | Follow logs | `make logs` |
 | Reset everything including DB data | `make clean` |
+| Delete idle rate-limit buckets | `make prune-rate-limits` |
 
 ## Exposure rules
 

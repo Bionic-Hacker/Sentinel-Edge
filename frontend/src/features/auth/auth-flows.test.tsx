@@ -1,18 +1,21 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../app/App";
 import { authenticated, CAPS, jsonResponse, mockApi, profile, unauthorized } from "../../test/fixtures";
+import { renderSettled } from "../../test/render";
 
-const health = () => jsonResponse({ status: "ok", version: "0.2.0" });
+const health = () => jsonResponse({ status: "ok", version: "0.3.0" });
 const caps = () => jsonResponse({ items: CAPS });
 
-function renderAt(path: string, routes: Parameters<typeof mockApi>[0]) {
+// renderSettled waits, inside act(), for the initial silent sign-in to finish, so React state
+// updates never happen outside act() on any runtime.
+async function renderAt(path: string, routes: Parameters<typeof mockApi>[0]) {
   const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(
     mockApi({ "/api/v1/health": health, "/api/v1/platform/capabilities": caps, ...routes }),
   );
-  render(
+  await renderSettled(
     <MemoryRouter initialEntries={[path]}>
       <AppRoutes />
     </MemoryRouter>,
@@ -22,18 +25,18 @@ function renderAt(path: string, routes: Parameters<typeof mockApi>[0]) {
 
 describe("route guards", () => {
   it("sends anonymous visitors to sign in", async () => {
-    renderAt("/settings", { "POST /api/v1/auth/refresh": unauthorized });
+    await renderAt("/settings", { "POST /api/v1/auth/refresh": unauthorized });
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();
   });
 
   it("restores the session silently from the refresh cookie", async () => {
-    renderAt("/", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
+    await renderAt("/", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
     expect(await screen.findByText("Ana Lyst")).toBeInTheDocument();
   });
 
   it("holds users with pending setup at the setup page", async () => {
     const user = profile({ role: "ADMIN", pending_steps: ["password_change"] });
-    renderAt("/audit-logs", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(user)) });
+    await renderAt("/audit-logs", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(user)) });
     expect(await screen.findByRole("heading", { name: "Set your own password" })).toBeInTheDocument();
   });
 });
@@ -41,7 +44,7 @@ describe("route guards", () => {
 describe("sign in", () => {
   it("completes a password + TOTP sign-in", async () => {
     const user = userEvent.setup();
-    const fetchMock = renderAt("/login", {
+    const fetchMock = await renderAt("/login", {
       "POST /api/v1/auth/refresh": unauthorized,
       "POST /api/v1/auth/login": () =>
         jsonResponse({ status: "mfa_required", challenge_token: "challenge.jwt.value", expires_in: 300 }),
@@ -65,7 +68,7 @@ describe("sign in", () => {
 
   it("shows the server's generic error and keeps the user on the form", async () => {
     const user = userEvent.setup();
-    renderAt("/login", {
+    await renderAt("/login", {
       "POST /api/v1/auth/refresh": unauthorized,
       "POST /api/v1/auth/login": () =>
         jsonResponse({ error: { code: "invalid_credentials", message: "Invalid email or password" } }, 401),
@@ -86,7 +89,7 @@ describe("sign in", () => {
         "POST /api/v1/auth/login": () => jsonResponse(authenticated()),
       }),
     );
-    render(
+    await renderSettled(
       <MemoryRouter initialEntries={[{ pathname: "/login", state: { from: "//evil.example/phish" } }]}>
         <AppRoutes />
       </MemoryRouter>,
@@ -102,7 +105,7 @@ describe("password reset", () => {
   it("reads the token from the fragment and removes it from the address bar", async () => {
     const user = userEvent.setup();
     window.history.replaceState(null, "", "/reset-password#token=abcdefghijklmnopqrstuvwxyz012345");
-    const fetchMock = renderAt("/reset-password", {
+    const fetchMock = await renderAt("/reset-password", {
       "POST /api/v1/auth/refresh": unauthorized,
       "POST /api/v1/auth/password/reset": () => new Response(null, { status: 204 }),
     });
@@ -119,13 +122,13 @@ describe("password reset", () => {
 
   it("explains a missing or malformed token instead of showing the form", async () => {
     window.history.replaceState(null, "", "/reset-password#token=<script>");
-    renderAt("/reset-password", { "POST /api/v1/auth/refresh": unauthorized });
+    await renderAt("/reset-password", { "POST /api/v1/auth/refresh": unauthorized });
     expect(await screen.findByRole("heading", { name: "Link not valid" })).toBeInTheDocument();
   });
 
   it("gives the same answer whether or not the account exists", async () => {
     const user = userEvent.setup();
-    renderAt("/forgot-password", {
+    await renderAt("/forgot-password", {
       "POST /api/v1/auth/refresh": unauthorized,
       "POST /api/v1/auth/password/forgot": () => jsonResponse({ status: "accepted" }, 202),
     });
@@ -137,14 +140,14 @@ describe("password reset", () => {
 
 describe("role-aware pages", () => {
   it("shows user management only to administrators", async () => {
-    renderAt("/settings", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
+    await renderAt("/settings", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
     expect(await screen.findByRole("heading", { name: "Your account" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Users" })).not.toBeInTheDocument();
   });
 
   it("lists users for administrators", async () => {
     const admin = profile({ role: "ADMIN", mfa_enabled: true, display_name: "Ada Admin" });
-    renderAt("/settings", {
+    await renderAt("/settings", {
       "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(admin)),
       "/api/v1/users": () =>
         jsonResponse({
@@ -187,7 +190,7 @@ describe("role-aware pages", () => {
     });
     const analystId = "00000000-0000-4000-8000-0000000000bb";
     let deleted = false;
-    const fetchMock = renderAt("/settings", {
+    const fetchMock = await renderAt("/settings", {
       "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(admin)),
       "/api/v1/users": () =>
         jsonResponse({
@@ -236,14 +239,14 @@ describe("role-aware pages", () => {
   });
 
   it("tells non-auditors they have no access to audit logs", async () => {
-    renderAt("/audit-logs", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
+    await renderAt("/audit-logs", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
     expect(await screen.findByText(/available to administrators and security engineers/)).toBeInTheDocument();
   });
 
   it("renders audit details as text, never as markup", async () => {
     const user = userEvent.setup();
     const auditor = profile({ role: "SECURITY_ENGINEER", mfa_enabled: true });
-    renderAt("/audit-logs", {
+    await renderAt("/audit-logs", {
       "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(auditor)),
       "/api/v1/audit-logs": () =>
         jsonResponse({
