@@ -30,7 +30,7 @@ env-check: # Refuse to start with a .env from an older phase (missing required s
 	done
 
 dev: env env-check ## Build and start the local stack (web :8080, api :8000)
-	docker compose up --build -d
+	@docker compose up --build -d || { ./scripts/diagnose-startup.sh; exit 1; }
 	@echo "SentinelEdge:  http://localhost:8080   API health: http://localhost:8000/api/v1/health"
 
 down: ## Stop the local stack
