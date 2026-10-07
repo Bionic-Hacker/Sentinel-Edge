@@ -39,8 +39,10 @@ for svc in api web db; do
 done
 
 echo "Network (C-NET-00, T-DB-01)"
+# Read the container's actual port bindings rather than `docker compose port`, whose exit status
+# for an unpublished port differs between Compose releases (Compose v5 reports success).
 check "database port is not published to the host" \
-  bash -c "! docker compose port db 5432"
+  bash -c "! docker inspect -f '{{json .NetworkSettings.Ports}}' $(container_id db) | grep -q HostPort"
 check "database network is internal (no route out)" \
   bash -c "[[ \$(docker network inspect -f '{{.Internal}}' sentineledge_data) == true ]]"
 check "API is bound to localhost only" \
