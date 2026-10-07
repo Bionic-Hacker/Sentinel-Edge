@@ -57,7 +57,8 @@ handling is switched off so there is exactly one decision point.
 limiter, metrics and audit records use that map.
 
 **Guard rails.** Rate limiting cannot be disabled in deployed environments (config validation).
-Idle buckets are pruned after a day.
+Idle buckets are pruned after a day. If the limiter cannot reach its database it fails closed:
+the request is refused with `503` and `Retry-After: 5`, never let through unlimited.
 
 ## Policies
 

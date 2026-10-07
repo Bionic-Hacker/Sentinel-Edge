@@ -14,7 +14,10 @@ A denied request gets 429 with Retry-After; allowed requests carry RateLimit-* h
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import Request, Response
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.api_policy import (
     GLOBAL_IP,
@@ -27,6 +30,9 @@ from app.core.errors import ApiError
 from app.core.request_context import request_context
 from app.models.user import User
 from app.security.rate_limit import Decision, RateLimiter
+
+logger = logging.getLogger("sentineledge.ratelimit")
+UNAVAILABLE_RETRY_AFTER_S = 5
 
 
 def _limiter(request: Request) -> RateLimiter | None:
@@ -46,7 +52,18 @@ def _apply(
     subject: str,
     actor: User | str,
 ) -> Decision | None:
-    decision = limiter.check(policy, subject)
+    try:
+        decision = limiter.check(policy, subject)
+    except SQLAlchemyError:
+        # Fail closed, honestly: without the limiter's state the request is refused, as 503
+        # (temporarily unavailable, retry shortly) rather than a generic 500.
+        logger.exception("rate_limiter_unavailable", extra={"policy": policy.name})
+        raise ApiError(
+            503,
+            "service_unavailable",
+            "The service is temporarily unavailable. Please try again shortly.",
+            headers={"Retry-After": str(UNAVAILABLE_RETRY_AFTER_S)},
+        ) from None
     if decision is None:
         return None
     if not decision.allowed:

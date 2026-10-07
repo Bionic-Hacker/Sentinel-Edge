@@ -31,6 +31,9 @@ BASE = os.environ.get("SMOKE_BASE_URL", "http://localhost:8080")
 CLI = shlex.split(os.environ.get("SMOKE_CLI", "docker compose exec -T api python -m app.cli"))
 HEADERS = {"Origin": BASE, "X-SentinelEdge-CSRF": "1"}
 COOKIE = "__Host-sentinel_refresh"
+# The probe policy allows a burst of 120 and refills 2 per second; 400 is far beyond what any
+# working limiter needs, and well under the 600-per-minute global ceiling.
+PROBE_BURST_CAP = 400
 
 passed = 0
 
@@ -229,11 +232,18 @@ def main() -> None:
         client.get("/api/v1/api-security/inventory").status_code == 401,
     )
     # Exhaust the readiness probe's per-IP bucket (it refills within a minute and affects only
-    # probes from this machine). The spoofed X-Forwarded-For must be ignored.
+    # probes from this machine). The bucket refills while the burst runs, so keep going until the
+    # first 429 rather than sending a fixed number; the cap stops a broken limiter looping forever.
+    # The spoofed X-Forwarded-For must be ignored.
     spoofed = {"X-Forwarded-For": "6.6.6.6"}
-    probes = [client.get("/api/v1/ready", headers=spoofed) for _ in range(125)]
-    throttled = [r for r in probes if r.status_code == 429]
-    check("probe flood is throttled with 429", len(throttled) > 0)
+    throttled = []
+    sent = 0
+    while sent < PROBE_BURST_CAP and not throttled:
+        sent += 1
+        response = client.get("/api/v1/ready", headers=spoofed)
+        if response.status_code == 429:
+            throttled.append(response)
+    check(f"probe flood is throttled with 429 (after {sent} requests)", len(throttled) > 0)
     check(
         "throttled response carries Retry-After and RateLimit headers",
         bool(throttled)

@@ -68,5 +68,7 @@ to the approved addresses, not to a fresh DNS lookup, which defeats DNS rebindin
 - `make prune-rate-limits`: delete rate-limit buckets idle for over a day (also done
   automatically).
 - A user locked out by a rate limit waits for `Retry-After`; there is no manual reset, by design.
+- If the database is unreachable, the limiter fails closed: requests get `503` with
+  `Retry-After: 5` until it returns.
 - `ratelimit.exceeded` in the audit log marks the start of each throttled run, with policy, scope
   and endpoint.

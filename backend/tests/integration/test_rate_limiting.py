@@ -230,3 +230,19 @@ def test_idle_buckets_are_pruned(limiter: RateLimiter, migrator_engine: Engine) 
     with migrator_engine.connect() as conn:
         keys = conn.execute(text("SELECT bucket_key FROM sentinel.rate_limit_buckets")).scalars()
         assert set(keys) == {"prune_test|ip:192.0.2.4"}
+
+
+def test_limiter_outage_fails_closed_with_503(rl_app: FastAPI) -> None:
+    """If the limiter cannot reach its database, requests are refused (fail closed) with an
+    honest 503 and Retry-After, not a generic 500."""
+    from sqlalchemy.exc import OperationalError
+
+    def unavailable() -> None:
+        raise OperationalError("SELECT 1", {}, Exception("connection refused"))
+
+    rl_app.state.rate_limiter.session_factory = unavailable
+    with TestClient(rl_app, raise_server_exceptions=False) as c:
+        response = c.get("/api/v1/ready")
+    assert response.status_code == 503
+    assert response.json()["error"]["code"] == "service_unavailable"
+    assert response.headers["Retry-After"] == "5"

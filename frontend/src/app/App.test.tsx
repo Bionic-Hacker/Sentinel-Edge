@@ -1,7 +1,8 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { authenticated, CAPS, jsonResponse, mockApi } from "../test/fixtures";
+import { renderSettled } from "../test/render";
 import { AppRoutes } from "./App";
 import { MODULES } from "./modules";
 
@@ -19,14 +20,11 @@ async function renderAt(path: string) {
       "/api/v1/platform/capabilities": () => jsonResponse({ items: CAPS }),
     }),
   );
-  let view!: ReturnType<typeof render>;
-  await act(async () => {
-    view = render(
-      <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
-  });
+  const view = await renderSettled(
+    <MemoryRouter initialEntries={[path]}>
+      <AppRoutes />
+    </MemoryRouter>,
+  );
   await screen.findByText(/API online/); // let async effects settle
   return view;
 }
@@ -86,7 +84,7 @@ describe("module pages", () => {
         },
       }),
     );
-    render(
+    await renderSettled(
       <MemoryRouter initialEntries={["/apis"]}>
         <AppRoutes />
       </MemoryRouter>,

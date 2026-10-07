@@ -1,26 +1,25 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../app/App";
 import { authenticated, CAPS, jsonResponse, mockApi, profile, unauthorized } from "../../test/fixtures";
+import { renderSettled } from "../../test/render";
 
 const health = () => jsonResponse({ status: "ok", version: "0.3.0" });
 const caps = () => jsonResponse({ items: CAPS });
 
-// Rendering inside act() lets the initial session check (an async refresh) settle before
-// assertions run, so React state updates never happen outside act().
+// renderSettled waits, inside act(), for the initial silent sign-in to finish, so React state
+// updates never happen outside act() on any runtime.
 async function renderAt(path: string, routes: Parameters<typeof mockApi>[0]) {
   const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(
     mockApi({ "/api/v1/health": health, "/api/v1/platform/capabilities": caps, ...routes }),
   );
-  await act(async () => {
-    render(
-      <MemoryRouter initialEntries={[path]}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
-  });
+  await renderSettled(
+    <MemoryRouter initialEntries={[path]}>
+      <AppRoutes />
+    </MemoryRouter>,
+  );
   return fetchMock;
 }
 
@@ -90,13 +89,11 @@ describe("sign in", () => {
         "POST /api/v1/auth/login": () => jsonResponse(authenticated()),
       }),
     );
-    await act(async () => {
-      render(
-        <MemoryRouter initialEntries={[{ pathname: "/login", state: { from: "//evil.example/phish" } }]}>
-          <AppRoutes />
-        </MemoryRouter>,
-      );
-    });
+    await renderSettled(
+      <MemoryRouter initialEntries={[{ pathname: "/login", state: { from: "//evil.example/phish" } }]}>
+        <AppRoutes />
+      </MemoryRouter>,
+    );
     await user.type(await screen.findByLabelText("Email"), "a@example.com");
     await user.type(screen.getByLabelText("Password"), "a long passphrase here");
     await user.click(screen.getByRole("button", { name: "Sign in" }));

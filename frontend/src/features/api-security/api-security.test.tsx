@@ -1,9 +1,10 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../app/App";
 import { authenticated, CAPS, jsonResponse, mockApi, profile } from "../../test/fixtures";
+import { renderSettled } from "../../test/render";
 import type { Inventory, InventoryItem, OwaspCoverage, Role } from "../../lib/types";
 
 const metrics = (over: Partial<InventoryItem["metrics"]> = {}): InventoryItem["metrics"] => ({
@@ -108,13 +109,11 @@ async function renderAs(role: Role, inventory: unknown = INVENTORY) {
       "/api/v1/api-security/owasp": () => jsonResponse(OWASP),
     }),
   );
-  await act(async () => {
-    render(
-      <MemoryRouter initialEntries={["/apis"]}>
-        <AppRoutes />
-      </MemoryRouter>,
-    );
-  });
+  await renderSettled(
+    <MemoryRouter initialEntries={["/apis"]}>
+      <AppRoutes />
+    </MemoryRouter>,
+  );
   return fetchMock;
 }
 
