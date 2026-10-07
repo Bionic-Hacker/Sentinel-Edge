@@ -91,6 +91,8 @@ jobs:
           } >> "$GITHUB_ENV"
       - name: Tests (unit, API, security, database) with coverage gate
         run: python -m pytest
+      - name: Schema drift check (ORM models must match migrations)
+        run: alembic upgrade head && alembic check
 
   frontend:
     name: Frontend (lint, types, tests, build, SCA)

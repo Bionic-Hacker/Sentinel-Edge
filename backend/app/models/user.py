@@ -19,7 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.clock import utcnow
 from app.db.base import Base
-from app.models._types import created_at, timestamp, uuid_pk
+from app.models._types import StrEnumType, created_at, timestamp, uuid_pk
 
 
 class Role(StrEnum):
@@ -47,7 +47,7 @@ class User(Base):
     id: Mapped[uuid.UUID] = uuid_pk()
     email: Mapped[str] = mapped_column(String(254), unique=True, nullable=False)
     display_name: Mapped[str] = mapped_column(String(100), nullable=False)
-    role: Mapped[Role] = mapped_column(String(32), nullable=False)
+    role: Mapped[Role] = mapped_column(StrEnumType(Role, 32), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

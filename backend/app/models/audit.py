@@ -20,6 +20,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.models._types import StrEnumType
 
 
 class AuditResult(StrEnum):
@@ -50,7 +51,7 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     resource_type: Mapped[str | None] = mapped_column(String(64))
     resource_id: Mapped[str | None] = mapped_column(String(128))
-    result: Mapped[AuditResult] = mapped_column(String(16), nullable=False)
+    result: Mapped[AuditResult] = mapped_column(StrEnumType(AuditResult, 16), nullable=False)
     source_ip: Mapped[str | None] = mapped_column(String(45))
     correlation_id: Mapped[str | None] = mapped_column(String(64))
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)

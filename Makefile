@@ -65,7 +65,7 @@ install: ## Install backend and frontend dependencies for local tooling
 test: test-backend test-frontend ## Run all tests
 
 test-backend: ## Backend tests against a throwaway PostgreSQL (needs Docker), with coverage gate
-	cd backend && ../scripts/with-test-db.sh python -m pytest
+	cd backend && ../scripts/with-test-db.sh sh -c 'python -m pytest && alembic upgrade head && alembic check'
 
 test-frontend: ## Frontend unit and component tests
 	cd frontend && npm test

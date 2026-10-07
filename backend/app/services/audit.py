@@ -47,6 +47,8 @@ class AuditAction(StrEnum):
     PASSWORD_RESET = "auth.password_reset"  # noqa: S105 - action name, not a secret  # nosec B105
     USER_CREATED = "user.created"
     USER_UPDATED = "user.updated"
+    USER_MFA_RESET = "user.mfa_reset"
+    AUDIT_VERIFIED = "audit.verified"
     ACCESS_DENIED = "authz.denied"
 
 

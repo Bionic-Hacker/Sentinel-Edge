@@ -86,3 +86,26 @@ def get_user(app: FastAPI, email: str) -> User:
         user = db.scalar(select(User).where(User.email == email))
         assert user is not None
         return user
+
+
+def session_token(app: FastAPI, user: User, *, mfa_verified: bool = True) -> str:
+    """Issue a real access token for `user` without going through login (for wide sweeps).
+
+    Uses the same TokenService and session model as login, so the token is validated exactly
+    like a real one on every request.
+    """
+    from datetime import timedelta
+
+    from app.core.clock import utcnow
+    from app.models.session import AuthSession
+
+    with app.state.session_factory() as db:
+        session = AuthSession(
+            user_id=user.id,
+            expires_at=utcnow() + timedelta(hours=1),
+            mfa_verified=mfa_verified,
+        )
+        db.add(session)
+        db.commit()
+        token: str = app.state.tokens.issue_access(user.id, session.id)
+        return token

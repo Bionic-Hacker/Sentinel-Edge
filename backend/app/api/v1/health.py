@@ -21,12 +21,14 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.core.authz import public_endpoint
 from app.core.config import Settings
 from app.core.deps import app_settings
 from app.core.errors import error_response
 from app.db.session import get_db
 
-router = APIRouter(tags=["platform"])
+# Probes are deliberately public: orchestrators and load balancers call them unauthenticated.
+router = APIRouter(tags=["platform"], dependencies=[Depends(public_endpoint)])
 logger = logging.getLogger("sentineledge.health")
 
 

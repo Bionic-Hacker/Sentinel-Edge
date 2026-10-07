@@ -101,6 +101,7 @@ class Settings(BaseSettings):
     session_max_age_seconds: int = Field(default=24 * 3600, ge=300, le=30 * 24 * 3600)
     mfa_challenge_ttl_seconds: int = Field(default=300, ge=60, le=900)
     password_reset_ttl_seconds: int = Field(default=1800, ge=300, le=86400)
+    invite_ttl_seconds: int = Field(default=72 * 3600, ge=3600, le=7 * 24 * 3600)
     max_failed_logins: int = Field(default=5, ge=3, le=20)
     lockout_seconds: int = Field(default=900, ge=60, le=86400)
     # Argon2id cost. Defaults follow RFC 9106's second recommended profile (64 MiB, t=3, p=4).
@@ -162,7 +163,7 @@ class Settings(BaseSettings):
         if self.is_deployed:
             # Interactive API docs widen the attack surface; never in a deployed environment.
             self.enable_api_docs = False
-            if self.log_level is LogLevel.DEBUG:
+            if self.log_level == LogLevel.DEBUG:
                 raise ValueError("DEBUG logging is not permitted in deployed environments")
             if self.db_sslmode not in VERIFIED_TLS:
                 raise ValueError(
@@ -174,7 +175,7 @@ class Settings(BaseSettings):
             # OWASP password storage minimum for Argon2id: 19 MiB, t=2.
             if self.password_hash_memory_kib < 19456 or self.password_hash_time_cost < 2:
                 raise ValueError("password hashing cost is below the deployed minimum")
-        if self.environment is Environment.PRODUCTION and self.ai_provider is AIProvider.OFFLINE:
+        if self.environment == Environment.PRODUCTION and self.ai_provider == AIProvider.OFFLINE:
             raise ValueError("the offline AI analyser is a test/demo aid, not for production")
         return self
 
@@ -200,7 +201,7 @@ class Settings(BaseSettings):
         string form masks it, and Settings repr masks SecretStr."""
         user, secret = (
             (self.db_user, self.db_password)
-            if role is DbRole.APP
+            if role == DbRole.APP
             else (self.db_migrator_user, self.db_migrator_password)
         )
         query: dict[str, str] = {
@@ -210,7 +211,7 @@ class Settings(BaseSettings):
         }
         if self.db_sslrootcert:
             query["sslrootcert"] = self.db_sslrootcert
-        if role is DbRole.MIGRATOR:
+        if role == DbRole.MIGRATOR:
             # Migrations are fully schema-qualified. A neutral search_path, set at connect time,
             # stops Alembic treating `sentinel` as the default schema and reflecting our tables
             # as schema-less (which makes `alembic check` report phantom differences).
