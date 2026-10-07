@@ -92,6 +92,9 @@ CREDENTIAL_CHANGE = RateLimitPolicy("credential_change", 10, 300, LimitScope.USE
 READ = RateLimitPolicy("read", 120, 60, LimitScope.USER)
 ADMIN_WRITE = RateLimitPolicy("admin_write", 30, 60, LimitScope.USER)
 EXPENSIVE = RateLimitPolicy("expensive", 6, 60, LimitScope.USER)
+# Not an endpoint policy: bounds how many attack-detection events one source IP can create, so a
+# flood of malicious requests cannot flood the event store (app.core.http_inspection).
+DETECTION_EVENTS = RateLimitPolicy("detection_events", 30, 60, LimitScope.IP)
 
 ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     GLOBAL_IP,
@@ -105,6 +108,7 @@ ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     READ,
     ADMIN_WRITE,
     EXPENSIVE,
+    DETECTION_EVENTS,
 )
 
 
@@ -234,6 +238,20 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
     ),
     ("GET", "/api/v1/api-security/owasp"): EndpointPolicy(
         "OWASP API Top 10 coverage", Risk.LOW, READ, (A.API5, A.API9), "Control evidence"
+    ),
+    ("GET", "/api/v1/security-events"): EndpointPolicy(
+        "Query security events",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Security telemetry: source IPs, attack payload snippets",
+    ),
+    ("GET", "/api/v1/security-events/{event_id}"): EndpointPolicy(
+        "Read one security event with its evidence",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Security evidence (bounded, redacted)",
     ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",

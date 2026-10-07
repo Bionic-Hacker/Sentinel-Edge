@@ -56,6 +56,9 @@ def make_settings(**overrides: object) -> Settings:
         base.setdefault("rate_limit_enabled", False)
     # Metrics write to the database on every request; tests that need them turn them on.
     base.setdefault("api_metrics_enabled", False)
+    # Attack detection records events in the database; tests that exercise it turn it on.
+    if base["environment"] in NON_DEPLOYED:
+        base.setdefault("http_analysis_enabled", False)
     return Settings(**base)  # type: ignore[arg-type]
 
 

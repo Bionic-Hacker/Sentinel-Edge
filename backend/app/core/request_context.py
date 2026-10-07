@@ -6,6 +6,7 @@ import re
 
 from fastapi import Request
 
+from app.core.api_policy import route_template
 from app.core.correlation import get_correlation_id
 from app.services.audit import RequestContext
 
@@ -20,4 +21,6 @@ def request_context(request: Request) -> RequestContext:
         source_ip=request.client.host if request.client else None,
         user_agent=_UNPRINTABLE.sub("?", user_agent)[:256] if user_agent else None,
         correlation_id=get_correlation_id(),
+        method=request.method,
+        endpoint=route_template(request) or _UNPRINTABLE.sub("?", request.url.path)[:200],
     )

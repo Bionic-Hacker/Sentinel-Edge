@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Any
 
@@ -29,6 +30,7 @@ ALL = frozenset(Role)
 ADMIN = frozenset({Role.ADMIN})
 AUDITORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
 API_SECURITY = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
+SECOPS_READ = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -54,6 +56,8 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/audit-logs/verify"): AUDITORS,
     ("GET", "/api/v1/api-security/inventory"): API_SECURITY,
     ("GET", "/api/v1/api-security/owasp"): API_SECURITY,
+    ("GET", "/api/v1/security-events"): SECOPS_READ,
+    ("GET", "/api/v1/security-events/{event_id}"): SECOPS_READ,
 }
 
 
@@ -113,7 +117,7 @@ def test_table_is_not_empty(app: FastAPI) -> None:
 
 
 def _url(path: str) -> str:
-    return path.replace("{user_id}", str(uuid.uuid4()))
+    return re.sub(r"\{\w+_id\}", lambda _: str(uuid.uuid4()), path)
 
 
 @pytest.fixture

@@ -31,6 +31,7 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "audit_log": {"SELECT", "INSERT"},  # append-only (ADR-0005)
     "rate_limit_buckets": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # idle buckets pruned
     "api_endpoint_stats": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # pruned after 30 days
+    "security_events": {"SELECT", "INSERT"},  # evidence: append-only (0006)
 }
 
 
