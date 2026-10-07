@@ -25,14 +25,14 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 6. When a real integration is not yet possible, the UI says "Simulation / planned API
    integration" rather than implying the action happened.
 
-## Current register (Phase 2)
+## Current register (Phase 6)
 
 | Area | Implemented now (LOCAL) | Planned LOCAL | Planned REAL_AWS | Planned SIMULATED / DEMO |
 |---|---|---|---|---|
 | Platform | Health, secure errors, structured logging, Host allow-list | — | ECS, ALB, RDS (P4) | — |
 | Edge / WAF / TLS | API + local edge security headers | — | CloudFront, WAF, ACM, WAF logs (P5–7) | WAF toggle simulator (P7) |
 | Identity | Auth, MFA, RBAC, user admin (P2) | — | — | — |
-| API security | Host allow-list, mass-assignment pattern | Inventory, rate limiting (P6) | — | — |
+| API security | Host allow-list, mass-assignment sweep, API inventory and metrics, OWASP API mapping, rate limiting, SSRF guard, trusted client IP (P6) | Application inventory (P7) | WAF rate rules (P5) | — |
 | Security operations | — | Incidents (P7) | WAF log ingestion (P7) | Attack simulator (P7) |
 | AppSec / DevSecOps | Pre-commit + CI baseline gates | Scanning, SBOM (P8), automation tools (P11) | GitHub OIDC to AWS (P11) | — |
 | AI security | — | Bedrock analysis + approval (P9) | — | — |

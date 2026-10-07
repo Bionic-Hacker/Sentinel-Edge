@@ -5,9 +5,10 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1–2 complete (v0.2.0) — secure application foundation.**
-> Authentication with MFA, role-based access control, user administration and a tamper-evident
-> audit log run locally. **No AWS resources exist yet**: AWS phases are deliberately grouped late
+> **Current status: Phases 1, 2 and 6 complete (v0.3.0) — API security.**
+> Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
+> and an API Security Center with a live endpoint inventory and OWASP API Top 10 coverage run
+> locally. **No AWS resources exist yet**: AWS phases are deliberately grouped late
 > to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
 > capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
 > and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
@@ -78,7 +79,19 @@ Seventeen defense-in-depth layers, from DNS to AI security, each with a stated r
 requirement → threat → control → implementation → evidence in
 [docs/security-controls.md](docs/security-controls.md).
 
-**In place after Phase 2 (LOCAL):**
+**In place after Phase 6 (LOCAL):**
+
+- **Rate limiting:** PostgreSQL token buckets per IP (before authentication) and per account
+  (after), 429 with Retry-After, first denial audited ([ADR-0017](docs/adr/0017-rate-limiting-and-client-ip.md)).
+- **API Security Center:** every endpoint with authentication, authorization, risk, rate limit,
+  24-hour traffic, error rate and security rejections, generated from the live route table;
+  OWASP API Top 10 coverage with cited test evidence ([docs/api-security.md](docs/api-security.md)).
+- **Trusted client IPs:** `X-Forwarded-For` honoured only from the proxy network; spoofing is
+  ignored and audit records name the real client.
+- **SSRF guard** ready for future outbound calls; route-table sweeps against mass assignment and
+  excessive data exposure.
+
+**In place since Phase 2 (LOCAL):**
 
 - **Authentication:** Argon2id, 15-minute JWTs checked against a live session on every request,
   rotating refresh tokens in a `__Host-` HttpOnly cookie with theft detection, TOTP MFA with
@@ -118,7 +131,7 @@ make env                                  # .env with random local secrets (mode
 make dev                                  # web on http://localhost:8080
 make create-admin EMAIL=you@example.com   # one-time password; you'll set your own + MFA
 make check                                # lint, types, tests, SAST, SCA — the CI gates
-make smoke                                # end-to-end auth/authz/audit test (26 checks)
+make smoke                                # end-to-end auth, authz, audit and API security test (34 checks)
 ```
 
 More in [docs/local-development.md](docs/local-development.md).
@@ -157,8 +170,8 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 |---|---|---|
 | 1 | Architecture, repository, ADRs, local environment, CI baseline | **Complete** (v0.1.0) |
 | 2 | Secure application foundation: auth, MFA, RBAC, audit logging | **Complete** (v0.2.0) |
-| 6 | API security: inventory, OWASP API mapping, rate limiting | Next |
-| 7 | Security operations: events, dashboard, incidents, simulator | Planned |
+| 6 | API security: inventory, OWASP API mapping, rate limiting | **Complete** (v0.3.0) |
+| 7 | Security operations: events, dashboard, incidents, simulator, application inventory | Next |
 | 8 | Application security scanning and SBOM | Planned |
 | 10 | Threat modeling and governance | Planned |
 | 9 | AI security engine on Amazon Bedrock | Planned |

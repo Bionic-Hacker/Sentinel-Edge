@@ -14,7 +14,7 @@ from it in either direction.
 | ANALYST | Incident investigation | No |
 | VIEWER | Read-only | No |
 
-## Endpoint matrix (Phase 2)
+## Endpoint matrix (Phase 6)
 
 ✓ = allowed. "Setup" = any signed-in user, even before finishing forced setup.
 
@@ -30,6 +30,7 @@ from it in either direction.
 | `GET /users`, `POST /users` | | | ✓ | | | | |
 | `PATCH /users/{id}`, `POST /users/{id}/mfa/reset`, `DELETE /users/{id}` | | | ✓³ | | | | |
 | `GET /audit-logs`, `GET /audit-logs/verify` | | | ✓ | ✓ | | | |
+| `GET /api-security/inventory`, `GET /api-security/owasp` | | | ✓ | ✓ | ✓ | | |
 
 1. Same-origin only: requires an allowed `Origin` and the `X-SentinelEdge-CSRF` header.
 2. Object-level check (OWASP API1): any other ID returns the same 404 as a non-existent one, and
@@ -69,3 +70,9 @@ confirmation in a warning dialog whose default action is Cancel.
 The app database role gained `DELETE` on `users`, `auth_sessions`, `refresh_tokens` and
 `password_reset_tokens` for this (migration `0003_user_deletion`). It still has no `DELETE`,
 `UPDATE` or `TRUNCATE` on `audit_log`, and the privilege-matrix test pins the full set.
+
+## Rate limits
+
+Every endpoint also has a rate limit, keyed by client IP before authentication or by account
+after it. The full policy table is in [ADR-0017](adr/0017-rate-limiting-and-client-ip.md); the
+live values per endpoint are in the API Security Center (`/apis`).

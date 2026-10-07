@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""End-to-end smoke test of authentication, authorization and auditing, run against the live
-local stack through the nginx edge exactly as a browser would use it.
+"""End-to-end smoke test of authentication, authorization, auditing and API security, run
+against the live local stack through the nginx edge exactly as a browser would use it.
 
     make smoke            # stack must be running (make dev)
 
 Each run creates its own uniquely named admin and analyst (synthetic @example.com addresses) via
 the API container's CLI, so it can be repeated. It deliberately locks the analyst account it
-created. Nothing else is modified.
+created, and exhausts this machine's readiness-probe rate limit, which refills within a minute.
+Nothing else is modified.
 
 Note on cookies: browsers send `Secure` cookies to http://localhost; this HTTP client does not,
 so the script carries the refresh cookie explicitly. That reproduces browser behaviour; it does
@@ -211,6 +212,48 @@ def main() -> None:
         check(f"audit log recorded {action}", action in actions)
     status = client.get("/api/v1/audit-logs/verify", headers=bearer(token)).json()
     check(f"audit chain intact ({status['records_checked']} records)", status["intact"])
+
+    print("\nAPI security (Phase 6)")
+    inventory = client.get("/api/v1/api-security/inventory", headers=bearer(token))
+    items = inventory.json().get("items", []) if inventory.status_code == 200 else []
+    check(f"admin reads the API inventory ({len(items)} endpoints)", len(items) >= 20)
+    check(
+        "every endpoint has authentication, authorization, risk and a rate limit",
+        all(
+            all(i[k] for k in ("authentication", "authorization", "risk", "rate_limit"))
+            for i in items
+        ),
+    )
+    check(
+        "the inventory requires a session",
+        client.get("/api/v1/api-security/inventory").status_code == 401,
+    )
+    # Exhaust the readiness probe's per-IP bucket (it refills within a minute and affects only
+    # probes from this machine). The spoofed X-Forwarded-For must be ignored.
+    spoofed = {"X-Forwarded-For": "6.6.6.6"}
+    probes = [client.get("/api/v1/ready", headers=spoofed) for _ in range(125)]
+    throttled = [r for r in probes if r.status_code == 429]
+    check("probe flood is throttled with 429", len(throttled) > 0)
+    check(
+        "throttled response carries Retry-After and RateLimit headers",
+        bool(throttled)
+        and "retry-after" in throttled[0].headers
+        and "ratelimit-limit" in throttled[0].headers,
+    )
+    entries = client.get(
+        "/api/v1/audit-logs",
+        headers=bearer(token),
+        params={"action": "ratelimit.exceeded", "limit": 20},
+    ).json()["items"]
+    ready_entries = [e for e in entries if e["resource_id"] == "GET /api/v1/ready"]
+    check("rate limiting is audited", bool(ready_entries))
+    check(
+        "spoofed X-Forwarded-For is ignored (real client IP recorded)",
+        bool(ready_entries) and ready_entries[0]["source_ip"] != "6.6.6.6",
+    )
+    after = client.get("/api/v1/api-security/inventory", headers=bearer(token)).json()["items"]
+    ready = next(i for i in after if i["method"] == "GET" and i["path"] == "/api/v1/ready")
+    check("inventory counts the throttled probes", ready["metrics"]["throttled"] > 0)
 
     print(f"\nAll {passed} checks passed.")
 
