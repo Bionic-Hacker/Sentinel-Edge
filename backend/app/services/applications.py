@@ -31,6 +31,7 @@ from app.schemas.applications import (
     ApplicationUpdate,
     Measure,
 )
+from app.schemas.incidents import AssigneeList
 from app.services import audit
 from app.services.audit import AuditAction, RequestContext
 from app.services.incidents import LIVE, _person
@@ -141,6 +142,15 @@ class ApplicationService:
             )
             self.db.commit()
         raise ApiError(404, "not_found", "Not Found")
+
+    def owners(self) -> AssigneeList:
+        """People who can own an application: active admins, security engineers, developers."""
+        users = self.db.scalars(
+            select(User)
+            .where(User.is_active, User.role.in_(sorted(OWNER_ROLES)))
+            .order_by(User.display_name)
+        ).all()
+        return AssigneeList(items=[p for u in users if (p := _person(u)) is not None])
 
     # --- writes -------------------------------------------------------------------------
 

@@ -73,6 +73,7 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/security/overview"): SECOPS_READ,
     ("GET", "/api/v1/applications"): ALL,  # plus an object-level filter (developers: own apps)
     ("POST", "/api/v1/applications"): AUDITORS,
+    ("GET", "/api/v1/applications/owners"): AUDITORS,
     ("GET", "/api/v1/applications/{application_id}"): ALL,  # plus an object-level check
     ("PATCH", "/api/v1/applications/{application_id}"): AUDITORS,
     ("GET", "/api/v1/simulator/scenarios"): INVESTIGATORS,

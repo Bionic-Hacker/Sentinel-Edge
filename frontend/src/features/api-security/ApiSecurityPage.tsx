@@ -350,7 +350,7 @@ function OwaspSection({ coverage }: { coverage: OwaspCoverage }) {
           if any cited evidence disappears.
         </p>
       </div>
-      <ul className="grid gap-3 lg:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {coverage.items.map((c) => (
           <OwaspCard key={c.code} category={c} />
         ))}

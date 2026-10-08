@@ -347,6 +347,13 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         "Application inventory",
         object_rule="Owner must be an active admin, security engineer or developer",
     ),
+    ("GET", "/api/v1/applications/owners"): EndpointPolicy(
+        "People an application can be assigned to",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API5),
+        "Names and roles of possible owners",
+    ),
     ("GET", "/api/v1/applications/{application_id}"): EndpointPolicy(
         "Read one protected application",
         Risk.MEDIUM,

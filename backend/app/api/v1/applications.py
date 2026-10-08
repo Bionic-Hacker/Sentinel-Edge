@@ -17,6 +17,7 @@ from app.schemas.applications import (
     ApplicationOut,
     ApplicationUpdate,
 )
+from app.schemas.incidents import AssigneeList
 from app.services.applications import ApplicationService
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -42,6 +43,16 @@ def create_application(
     service: ApplicationService = Depends(get_service),  # noqa: B008
 ) -> ApplicationOut:
     return service.create(principal, body)
+
+
+@router.get("/owners", response_model=AssigneeList)
+def list_owners(
+    _: Principal = Depends(editors),  # noqa: B008
+    service: ApplicationService = Depends(get_service),  # noqa: B008
+) -> AssigneeList:
+    """People an application can be assigned to: active admins, security engineers and
+    developers (names and roles only)."""
+    return service.owners()
 
 
 @router.get("/{application_id}", response_model=ApplicationOut)

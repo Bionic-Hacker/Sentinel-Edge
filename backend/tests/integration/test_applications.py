@@ -187,3 +187,11 @@ def test_owner_cannot_be_set_and_cleared_at_once(
         headers=people["lead"]["h"],
     )
     assert response.status_code == 422
+
+
+def test_owner_candidates_are_listed_for_editors(
+    db_client: TestClient, people: dict[str, Any]
+) -> None:
+    owners = db_client.get("/api/v1/applications/owners", headers=people["lead"]["h"]).json()
+    assert {o["role"] for o in owners["items"]} == {"ADMIN", "SECURITY_ENGINEER", "DEVELOPER"}
+    assert all(set(o) == {"id", "display_name", "role"} for o in owners["items"])

@@ -169,3 +169,326 @@ export interface OwaspCoverage {
   edition: string;
   items: OwaspCategory[];
 }
+
+// --- Security operations (Phase 7) --------------------------------------------------------------
+/** Mirrors backend/app/models/security_event.py. */
+export const SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
+export type Severity = (typeof SEVERITIES)[number];
+export const EVENT_SOURCES = [
+  "auth",
+  "authz",
+  "rate_limit",
+  "http_analysis",
+  "audit",
+  "correlation",
+  "waf",
+  "certificate",
+  "dependency",
+] as const;
+export type EventSource = (typeof EVENT_SOURCES)[number];
+export const EVENT_CATEGORIES = [
+  "sql_injection",
+  "xss",
+  "path_traversal",
+  "command_injection",
+  "ssrf",
+  "scanner",
+  "recon",
+  "bot",
+  "auth_failure",
+  "brute_force",
+  "credential_stuffing",
+  "token_theft",
+  "bola",
+  "bfla",
+  "privilege_change",
+  "rate_limit",
+  "api_abuse",
+  "audit_tampering",
+  "suspicious_auth",
+  "certificate",
+  "vulnerable_dependency",
+] as const;
+export type EventCategory = (typeof EVENT_CATEGORIES)[number];
+export const OUTCOMES = ["allowed", "rejected", "throttled", "blocked", "detected"] as const;
+export type Outcome = (typeof OUTCOMES)[number];
+
+/** "live" = LOCAL and REAL_AWS; "simulated" = SIMULATED and DEMO. Never mixed. */
+export type DataView = "live" | "simulated";
+
+export interface SecurityEventSummary {
+  id: string;
+  seq: number;
+  occurred_at: string;
+  provenance: Provenance;
+  source: EventSource;
+  category: EventCategory;
+  severity: Severity;
+  outcome: Outcome;
+  title: string;
+  rule_id: string | null;
+  source_ip: string | null;
+  method: string | null;
+  endpoint: string | null;
+  status_code: number | null;
+  actor_label: string | null;
+  incident_id: string | null;
+}
+
+export interface SecurityEventDetail extends SecurityEventSummary {
+  user_agent: string | null;
+  correlation_id: string | null;
+  /** Attacker-influenced data: render as text only. */
+  evidence: Record<string, unknown>;
+}
+
+export interface EventPage {
+  items: SecurityEventSummary[];
+  next_before_seq: number | null;
+}
+
+/** Mirrors backend/app/models/incident.py. */
+export const INCIDENT_STATUSES = [
+  "DETECTED",
+  "TRIAGED",
+  "INVESTIGATING",
+  "CONTAINMENT",
+  "REMEDIATION",
+  "VALIDATION",
+  "CLOSED",
+] as const;
+export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
+export const RESOLUTIONS = ["resolved", "accepted_risk", "false_positive", "duplicate"] as const;
+export type Resolution = (typeof RESOLUTIONS)[number];
+export const TIMELINE_KINDS = [
+  "created",
+  "status_changed",
+  "note",
+  "assigned",
+  "updated",
+  "severity_raised",
+  "events_linked",
+] as const;
+export type TimelineKind = (typeof TIMELINE_KINDS)[number];
+
+export interface Person {
+  id: string;
+  display_name: string;
+  role: Role;
+}
+
+export interface IncidentSummary {
+  id: string;
+  reference: string;
+  title: string;
+  severity: Severity;
+  category: EventCategory | null;
+  status: IncidentStatus;
+  resolution: Resolution | null;
+  provenance: Provenance;
+  source_ip: string | null;
+  detection_rule: string | null;
+  owner: Person | null;
+  event_count: number;
+  detected_at: string;
+  created_at: string;
+  updated_at: string;
+  closed_at: string | null;
+}
+
+export interface IncidentPage {
+  items: IncidentSummary[];
+  next_before_number: number | null;
+}
+
+export interface TimelineEntry {
+  id: string;
+  at: string;
+  actor_label: string;
+  kind: TimelineKind;
+  from_status: IncidentStatus | null;
+  to_status: IncidentStatus | null;
+  body: string | null;
+  details: Record<string, unknown>;
+}
+
+export interface AvailableMove {
+  to_status: IncidentStatus;
+  label: string;
+  resolutions: Resolution[];
+  note_required: boolean;
+}
+
+export interface IncidentPermissions {
+  can_edit: boolean;
+  can_change_severity: boolean;
+  can_assign: boolean;
+  can_take: boolean;
+  can_add_note: boolean;
+  can_link_events: boolean;
+  moves: AvailableMove[];
+}
+
+export interface RiskScore {
+  score: number;
+  factors: { reason: string; points: number }[];
+}
+
+export interface Integrity {
+  verified: boolean;
+  entries_checked: number;
+  first_mismatch: string | null;
+}
+
+export interface IncidentDetail extends IncidentSummary {
+  summary: string;
+  remediation: string | null;
+  version: number;
+  created_by_label: string;
+  trigger_event: SecurityEventDetail | null;
+  events: SecurityEventSummary[];
+  timeline: TimelineEntry[];
+  risk: RiskScore;
+  integrity: Integrity;
+  permissions: IncidentPermissions;
+}
+
+// --- Dashboard (spec §12) -----------------------------------------------------------------------
+export interface Overview {
+  view: DataView;
+  window_hours: number;
+  generated_at: string;
+  status: { level: "ok" | "attention" | "critical"; reasons: string[] };
+  incidents: {
+    open: number;
+    unassigned: number;
+    by_severity: Record<string, number>;
+    by_status: Record<string, number>;
+    closed_in_window: number;
+    mean_minutes_to_triage: number | null;
+    mean_minutes_to_close: number | null;
+  };
+  recent_incidents: {
+    id: string;
+    reference: string;
+    title: string;
+    severity: Severity;
+    status: IncidentStatus;
+    detected_at: string;
+  }[];
+  events: {
+    total: number;
+    detections: number;
+    stopped: number;
+    reached_app: number;
+    by_category: Record<string, number>;
+    by_severity: Record<string, number>;
+    by_outcome: Record<string, number>;
+  };
+  series: { hour: string; events: number; detections: number; high_or_critical: number }[];
+  top_sources: {
+    source_ip: string;
+    events: number;
+    max_severity: Severity;
+    categories: EventCategory[];
+    country: string | null;
+    last_seen: string;
+  }[];
+  top_rules: { rule_id: string; events: number }[];
+  countries: { country: string; events: number }[];
+  traffic: {
+    source: "api_metrics" | "simulator";
+    requests: number;
+    allowed: number;
+    rejected: number;
+    blocked_at_edge: number;
+    errors: number;
+    unknown_paths: number;
+    by_method: Record<string, number>;
+    series: { hour: string; requests: number; rejected: number; errors: number }[];
+    top_endpoints: { method: string; endpoint: string; requests: number }[];
+  };
+  controls: Record<string, { status: "measured" | "simulated" | "planned"; summary: string; values: Record<string, number> }>;
+}
+
+// --- Applications (spec §40) --------------------------------------------------------------------
+export const APP_ENVIRONMENTS = ["local", "dev", "staging", "production"] as const;
+export type AppEnvironment = (typeof APP_ENVIRONMENTS)[number];
+export const CRITICALITIES = ["low", "medium", "high", "critical"] as const;
+export type Criticality = (typeof CRITICALITIES)[number];
+
+export interface Measure {
+  status: "measured" | "not_connected" | "planned";
+  value: number | null;
+  note: string;
+}
+
+export interface Application {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  owner: Person | null;
+  environment: AppEnvironment;
+  criticality: Criticality;
+  domain: string | null;
+  status: "active" | "retired";
+  is_platform: boolean;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  api_count: Measure;
+  open_incidents: Measure;
+  security_events_24h: Measure;
+  waf_status: Measure;
+  certificate_status: Measure;
+  security_score: Measure;
+  last_scan: Measure;
+  vulnerability_count: Measure;
+}
+
+// --- Simulator (spec §23) -----------------------------------------------------------------------
+export const WAF_MODES = ["block", "count", "off"] as const;
+export type WafMode = (typeof WAF_MODES)[number];
+
+export interface Scenario {
+  scenario: string;
+  name: string;
+  description: string;
+  demonstrates: string;
+}
+
+export interface SimulationRun {
+  id: string;
+  reference: string;
+  scenario: string;
+  started_by_label: string;
+  started_at: string;
+  completed_at: string;
+  seed: number;
+  summary: {
+    requests?: Record<string, number>;
+    events?: number;
+    detections?: { rule_id: string; title: string; severity: Severity }[];
+    incidents?: { id: string; reference: string; title: string; severity: Severity; opened: boolean }[];
+    waf_modes?: Record<string, string>;
+  };
+}
+
+export interface WafRule {
+  rule_id: string;
+  description: string;
+  category: EventCategory;
+  severity: Severity;
+  comparable_group: string;
+  mode: WafMode;
+  matches_24h: number;
+  updated_at: string | null;
+  updated_by_label: string | null;
+}
+
+export interface WafRuleList {
+  web_acl: string;
+  note: string;
+  items: WafRule[];
+}
