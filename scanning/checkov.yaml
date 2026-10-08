@@ -1,0 +1,21 @@
+# Checkov: infrastructure-as-code and configuration scanning (spec §19).
+# Until Terraform exists (Phase 3) it covers the Dockerfiles and the GitHub Actions workflows;
+# the terraform framework is listed so modules are scanned from their first commit.
+# Suppressions are made in place with `# checkov:skip=<ID>: <reason>`, never here, so each one
+# is reviewed next to the code it excuses.
+directory:
+  - .
+framework:
+  - dockerfile
+  - github_actions
+  - terraform
+  - secrets
+skip-path:
+  - node_modules
+  - .venv
+  - reports
+  - scanning/semgrep
+# Never contact Prisma Cloud: scans are fully local and send nothing.
+skip-download: true
+compact: true
+quiet: true

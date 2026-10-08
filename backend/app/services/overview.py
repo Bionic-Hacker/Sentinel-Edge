@@ -28,6 +28,7 @@ from app.models.incident import (
 )
 from app.models.security_event import EventSource, Outcome, SecurityEvent, Severity
 from app.models.simulation import SimulationRun, WafMode
+from app.models.vulnerability import ACTIVE_STATUSES, ScanRun, Vulnerability
 from app.schemas.overview import (
     Control,
     CountryCount,
@@ -48,6 +49,7 @@ from app.services import correlation
 from app.services.api_inventory import build_inventory
 from app.services.incidents import view_provenances
 from app.services.simulator import waf_modes
+from app.services.vulnerabilities import is_fixable
 
 E = SecurityEvent
 STOPPED = (Outcome.BLOCKED, Outcome.REJECTED, Outcome.THROTTLED)
@@ -197,9 +199,11 @@ class OverviewService:
         ]
 
     def _rules(self, in_view: Any) -> list[RuleCount]:
+        """Detection rules that matched activity. Scan findings carry their scanner's rule ID
+        (B602, CVE-…) but are not detections; they are counted under Vulnerabilities."""
         rows = self.db.execute(
             select(E.rule_id, func.count())
-            .where(in_view, E.rule_id.is_not(None))
+            .where(in_view, E.rule_id.is_not(None), E.source != EventSource.APPSEC)
             .group_by(E.rule_id)
             .order_by(func.count().desc(), E.rule_id)
             .limit(8)
@@ -403,6 +407,43 @@ class OverviewService:
 
     # --- controls -----------------------------------------------------------------------
 
+    def _vulnerability_control(self) -> Control:
+        """Live: findings from imported scans, every application (Phase 8)."""
+        scan = self.db.scalar(select(ScanRun).order_by(ScanRun.imported_at.desc()).limit(1))
+        if scan is None:
+            return Control(
+                status="not_connected",
+                summary="No scan imported yet: `make scan`, then `make scan-import`",
+                values={},
+            )
+        now = utcnow()
+        active = self.db.scalars(
+            select(Vulnerability).where(Vulnerability.status.in_(ACTIVE_STATUSES))
+        ).all()
+        values = {str(sev): sum(1 for v in active if v.severity == sev) for sev in Severity}
+        values["open"] = len(active)
+        values["overdue"] = sum(1 for v in active if v.sla_due_at and v.sla_due_at < now)
+        values["awaiting_fix"] = sum(1 for v in active if not is_fixable(v))
+        blocking = (
+            values["critical"]
+            + values["high"]
+            - sum(
+                1
+                for v in active
+                if v.severity in (Severity.CRITICAL, Severity.HIGH) and not is_fixable(v)
+            )
+        )
+        return Control(
+            status="measured",
+            summary=(
+                f"{values['open']} open findings ({values['critical']} critical, "
+                f"{values['high']} high; {values['awaiting_fix']} awaiting an upstream fix), "
+                f"{values['overdue']} past SLA; last scan {scan.reference}, gate "
+                f"{'passed' if scan.gate_passed else 'failed'}"
+            ),
+            values={**values, "fixable_critical_high": blocking},
+        )
+
     def _count(self, *where: Any) -> dict[str, int]:
         rows = self.db.execute(
             select(E.severity, func.count()).where(*where).group_by(E.severity)
@@ -445,11 +486,7 @@ class OverviewService:
                     summary="ACM certificate monitoring arrives in Phase 5",
                     values={},
                 ),
-                "vulnerabilities": Control(
-                    status="planned",
-                    summary="Vulnerability management arrives in Phase 8",
-                    values={},
-                ),
+                "vulnerabilities": self._vulnerability_control(),
             }
         modes = waf_modes(self.db)
         counts = {m.value: sum(1 for v in modes.values() if v is m) for m in WafMode}

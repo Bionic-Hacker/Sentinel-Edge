@@ -15,5 +15,5 @@ written in the phase that introduces its failure mode, then exercised in a demo 
 | [API abuse](api-abuse.md) | 7 ✓ |
 | [Credential stuffing](credential-stuffing.md) | 7 ✓ |
 | [Bot traffic and scanning](bot-traffic.md) | 7 ✓ |
-| Vulnerability remediation | 8 |
+| [Vulnerability remediation](vulnerability-remediation.md) | 8 ✓ |
 | AI prompt injection | 9 |

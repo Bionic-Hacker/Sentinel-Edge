@@ -24,6 +24,7 @@ from app.models.audit import AuditResult
 from app.models.incident import OPEN_STATUSES, Incident
 from app.models.security_event import SecurityEvent
 from app.models.user import Role, User
+from app.models.vulnerability import ACTIVE_STATUSES, ScanRun, Vulnerability
 from app.schemas.applications import (
     ApplicationCreate,
     ApplicationList,
@@ -109,9 +110,48 @@ class ApplicationService:
             waf_status=_planned(5, "AWS WAF in front of the application"),
             certificate_status=_planned(5, "ACM certificate monitoring"),
             security_score=_planned(10, "The explainable posture score"),
-            last_scan=_planned(8, "Application security scanning"),
-            vulnerability_count=_planned(8, "Vulnerability management"),
+            **self._scan_measures(app),
         )
+
+    def _scan_measures(self, app: Application) -> dict[str, Measure]:
+        """Last scan and open findings, measured from imported scans (Phase 8)."""
+        scan = self.db.scalar(
+            select(ScanRun)
+            .where(ScanRun.application_id == app.id)
+            .order_by(ScanRun.imported_at.desc())
+            .limit(1)
+        )
+        if scan is None:
+            none = Measure(
+                status="not_connected",
+                value=None,
+                note="No scan imported yet: `make scan`, then `make scan-import`.",
+            )
+            return {"last_scan": none, "vulnerability_count": none}
+        days = (utcnow() - scan.imported_at).days
+        commit = f", commit {scan.commit_sha[:7]}" if scan.commit_sha else ""
+        verdict = "passed" if scan.gate_passed else "failed"
+        active = (
+            self.db.scalar(
+                select(func.count())
+                .select_from(Vulnerability)
+                .where(
+                    Vulnerability.application_id == app.id,
+                    Vulnerability.status.in_(ACTIVE_STATUSES),
+                )
+            )
+            or 0
+        )
+        return {
+            "last_scan": Measure(
+                status="measured",
+                value=days,
+                note=f"{scan.reference}, {days} days ago{commit}; gate {verdict}.",
+            ),
+            "vulnerability_count": Measure(
+                status="measured", value=active, note="Open or in progress, from imported scans."
+            ),
+        }
 
     # --- reads --------------------------------------------------------------------------
 

@@ -34,6 +34,13 @@ const KNOWN_ACTIONS = [
   "simulator.waf_rule_changed",
   "application.created",
   "application.updated",
+  "scan.imported",
+  "vulnerability.status_changed",
+  "vulnerability.risk_accepted",
+  "vulnerability.acceptance_revoked",
+  "vulnerability.acceptance_expired",
+  "dast.session_issued",
+  "dast.session_revoked",
 ] as const;
 
 const RESULT_STYLE: Record<AuditEntry["result"], string> = {

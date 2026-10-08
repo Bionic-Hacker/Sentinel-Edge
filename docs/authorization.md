@@ -14,7 +14,7 @@ from it in either direction.
 | ANALYST | Incident investigation | No |
 | VIEWER | Read-only | No |
 
-## Endpoint matrix (Phase 7)
+## Endpoint matrix (Phase 8)
 
 ✓ = allowed. "Setup" = any signed-in user, even before finishing forced setup.
 
@@ -40,6 +40,10 @@ from it in either direction.
 | `POST /applications`, `PATCH /applications/{id}`, `GET /applications/owners` | | | ✓ | ✓ | | | |
 | `GET /simulator/scenarios`, `/simulator/runs`, `/simulator/waf-rules` | | | ✓ | ✓ | | ✓ | |
 | `POST /simulator/runs`, `PUT /simulator/waf-rules/{rule_id}` | | | ✓ | ✓ | | | |
+| `GET /vulnerabilities`, `/vulnerabilities/overview`, `/vulnerabilities/{id}` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
+| `GET /scans`, `/scans/{id}`, `/sboms`, `/sboms/{id}`, `/sboms/{id}/document` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
+| `POST /vulnerabilities/{id}/status` | | | ✓ | ✓ | ✓ own⁶ | | |
+| `POST /vulnerabilities/{id}/acceptances`, `.../acceptances/{acceptance_id}/revoke` | | | ✓ | ✓ | | | |
 
 1. Same-origin only: requires an allowed `Origin` and the `X-SentinelEdge-CSRF` header.
 2. Object-level check (OWASP API1): any other ID returns the same 404 as a non-existent one, and
@@ -47,8 +51,9 @@ from it in either direction.
 3. An admin cannot demote, deactivate, delete or reset MFA on themselves, and the last active
    admin can't be removed.
 4. Object-level workflow rules apply on top of the role check; see the incident matrix below.
-5. Developers see only the applications they own. Any other ID returns 404, audited as
-   `authz.denied`.
+5. Developers see only the applications they own, and only those applications' findings, scans
+   and SBOMs. Any other ID returns 404, audited as `authz.denied`.
+6. Status rules apply on top of the role check; see the finding matrix below.
 
 ## Incident permission matrix (Phase 7)
 
@@ -76,6 +81,25 @@ Moves that end or reverse work need a note (close, close as not an incident, val
 reopen); closing needs a resolution. Every write names the `version` it read and gets 409
 `stale_version` if someone else changed the incident first. Notes, assignments and status changes
 are timeline entries, committed to the audit chain and never edited.
+
+## Finding permission matrix (Phase 8)
+
+Every finding response carries `allowed_statuses`, `can_accept_risk` and `can_revoke_acceptance`,
+computed by the server; the UI renders only those (ADR-0021).
+
+| Action | Leads (ADMIN, SECURITY_ENGINEER) | DEVELOPER (own applications) | ANALYST, VIEWER |
+|---|---|---|---|
+| Read findings, scans and SBOMs; download an SBOM | ✓ | ✓ | ✓ |
+| Open ↔ in progress | ✓ | ✓ | |
+| Mark a false positive, or reopen one (note required) | ✓ | | |
+| Accept a risk (within the severity's limit), revoke an acceptance | ✓ | | |
+| Mark fixed | Nobody: only a scan that no longer reports the finding | | |
+
+Every write names the `version` it read (409 `stale_version` otherwise) and is audited
+(`vulnerability.status_changed`, `vulnerability.risk_accepted`, `vulnerability.acceptance_revoked`).
+Scans are imported only through the CLI inside the API container (`make scan-import`); there is no
+import endpoint. The authenticated DAST scan signs in as `dast-scanner@example.com`, a VIEWER,
+through a session the CLI issues for one scan and revokes afterwards.
 
 ## How it is enforced
 

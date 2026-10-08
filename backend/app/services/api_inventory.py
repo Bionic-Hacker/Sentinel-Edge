@@ -35,7 +35,27 @@ from app.schemas.api_security import (
 
 WINDOW = timedelta(hours=24)
 FORBIDDEN_ALERT = 5  # 403s in the window that mark an endpoint "elevated"
-SCAN_NOTE = "Not scanned yet: authenticated DAST runs arrive in Phase 8."
+SCAN_NOTE = "Not scanned yet: run `make dast`, then `make scan-import`."
+
+
+@dataclass(frozen=True)
+class DastCoverage:
+    """The latest imported scan that included DAST (Phase 8)."""
+
+    imported_at: datetime
+    reference: str
+    authenticated: bool  # the ZAP API scan ran (every endpoint in the OpenAPI document)
+
+    @property
+    def note(self) -> str:
+        if self.authenticated:
+            return f"Authenticated DAST (ZAP API scan of the OpenAPI document) in {self.reference}."
+        return (
+            f"Only the passive baseline has run ({self.reference}); `make dast` adds the "
+            "authenticated API scan."
+        )
+
+
 RISK_ORDER = {Risk.CRITICAL: 0, Risk.HIGH: 1, Risk.MEDIUM: 2, Risk.LOW: 3}
 
 
@@ -117,7 +137,10 @@ def _metrics(raw: dict[str, int] | None) -> EndpointMetrics:
 
 
 def build_inventory(
-    app: FastAPI, metrics: ApiMetrics, now: datetime | None = None
+    app: FastAPI,
+    metrics: ApiMetrics,
+    now: datetime | None = None,
+    dast: DastCoverage | None = None,
 ) -> InventoryResponse:
     now = now or utcnow()
     since = now - WINDOW
@@ -150,8 +173,8 @@ def build_inventory(
                     owasp=[c.code for c in policy.owasp],
                     data=policy.data,
                     metrics=stats,
-                    last_scan=None,
-                    scan_note=SCAN_NOTE,
+                    last_scan=dast.imported_at if dast and dast.authenticated else None,
+                    scan_note=dast.note if dast else SCAN_NOTE,
                     status=status,
                     status_reasons=reasons,
                 )

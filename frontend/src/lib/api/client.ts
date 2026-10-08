@@ -41,7 +41,8 @@ export function configureAuth(hooks: AuthHooks | null): void {
   authHooks = hooks;
 }
 
-export type QueryValue = string | number | boolean | null | undefined;
+/** A list is sent as a repeated parameter (`status=open&status=in_progress`). */
+export type QueryValue = string | number | boolean | null | undefined | readonly string[];
 
 export interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -67,7 +68,11 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
   assertSafePath(path);
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null && value !== "") params.set(key, String(value));
+    if (Array.isArray(value)) {
+      for (const item of value as readonly string[]) if (item !== "") params.append(key, item);
+    } else if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
   }
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
@@ -148,6 +153,22 @@ export async function apiRequest<T>(
     );
   }
   return body;
+}
+
+/**
+ * Download a file the API serves as an attachment (for example a CycloneDX SBOM). Same rules as
+ * every other request (same-origin path, bearer token, one refresh, timeout); the body is
+ * returned as a Blob for the caller to save, never rendered.
+ */
+export async function apiDownload(path: string, options: { signal?: AbortSignal } = {}): Promise<Blob> {
+  const url = buildUrl(path);
+  const request: RequestOptions = { method: "GET", timeoutMs: 30000, ...options };
+  let response = await send(url, request, authHooks ? authHooks.getAccessToken() : null);
+  if (response.status === 401 && authHooks?.getAccessToken() && (await authHooks.refresh())) {
+    response = await send(url, request, authHooks.getAccessToken());
+  }
+  if (!response.ok) throw await toApiError(response);
+  return response.blob();
 }
 
 export function apiGet<T>(

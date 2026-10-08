@@ -234,7 +234,7 @@ export function isOverview(v: unknown): v is Overview {
     Object.values(controls).every(
       (c) =>
         isRecord(c) &&
-        oneOf(["measured", "simulated", "planned"] as const)(c.status) &&
+        oneOf(["measured", "simulated", "planned", "not_connected"] as const)(c.status) &&
         isString(c.summary) &&
         isCounts(c.values),
     )

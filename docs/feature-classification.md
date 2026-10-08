@@ -25,7 +25,7 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 6. When a real integration is not yet possible, the UI says "Simulation / planned API
    integration" rather than implying the action happened.
 
-## Current register (Phase 7)
+## Current register (Phase 8)
 
 | Area | Implemented now (LOCAL) | Planned LOCAL | Planned REAL_AWS | Planned SIMULATED / DEMO |
 |---|---|---|---|---|
@@ -34,12 +34,15 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 | Identity | Auth, MFA, RBAC, user admin (P2) | — | — | — |
 | API security | Host allow-list, mass-assignment sweep, API inventory and metrics, OWASP API mapping, rate limiting, SSRF guard, trusted client IP (P6) | — | WAF rate rules (P5) | — |
 | Security operations | Security events, HTTP attack analysis (detect-only), correlation rules, incident workflow, security dashboard, application inventory (P7) | Retention policy (P12) | WAF log ingestion (P5) | **Implemented (P7):** attack simulator, simulated WAF rule toggling |
-| AppSec / DevSecOps | Pre-commit + CI baseline gates | Scanning, SBOM (P8), automation tools (P11) | GitHub OIDC to AWS (P11) | — |
+| AppSec / DevSecOps | Pre-commit + CI gates; scanning (Semgrep, Bandit, Trivy, Gitleaks, Checkov), scan gate, SBOMs, authenticated DAST against the local stack; vulnerability management with SLAs and risk acceptance (P8) | Automation tools (P11) | GitHub OIDC to AWS, scans of deployed environments (P11) | — |
 | AI security | — | Bedrock analysis + approval (P9) | — | — |
 | Governance | Provenance register, tamper-evident audit log (P2) | Threat modelling, controls, in-app exceptions (P10) | Audit archive to S3 Object Lock (P4) | — |
 | Demo | — | — | — | Demo mode, five scenarios (P12) |
 
-After Phase 7 there are still **zero** REAL_AWS capabilities; no AWS resources exist (ADR-0016).
+After Phase 8 there are still **zero** REAL_AWS capabilities; no AWS resources exist (ADR-0016).
+Vulnerability findings are LOCAL: they come from real scanner output against this repository, its
+images and the running local stack. The attack simulator's "vulnerable dependency" scenario stays
+SIMULATED and appears only in the simulated view.
 The attack simulator and the simulated WAF are the first implemented SIMULATED capabilities: their
 output is labelled at every layer (record, API view, page banner) and never mixed with live data
 (ADR-0019).

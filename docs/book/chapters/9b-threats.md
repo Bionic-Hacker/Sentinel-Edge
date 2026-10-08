@@ -1,6 +1,6 @@
 # Threat Register
 
-Condensed from `docs/threat-model.md` (version 0.4). L×I is likelihood × impact, each from 1 to 3.
+Condensed from `docs/threat-model.md` (version 0.5). L×I is likelihood × impact, each from 1 to 3.
 
 | ID | STRIDE | Threat | L×I | Status |
 |---|---|---|---|---|
@@ -42,7 +42,7 @@ Condensed from `docs/threat-model.md` (version 0.4). L×I is likelihood × impac
 | T-AI-01..06 | LLM01/02/05/06/10 | Prompt injection (direct, indirect), insecure output, data leakage, excessive agency, unbounded cost | — | Planned (P9) |
 | T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | Planned (P11); no keys exist |
 | T-CICD-02 | T | Hijacked third-party action | 1×3 | **Mitigated (P1)** |
-| T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | **Mitigated (P1)**; SBOM P8 |
+| T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | **Mitigated (P1, P8)**: Trivy, SBOMs, OS fixes at build |
 | T-SEC-01 | I | Secret committed to git | 2×3 | **Mitigated (P1)** |
 | T-IAC-01/02 | T/I | Cross-environment change; state disclosure | 1×3 | Planned (P3) |
 | T-WAF-01/02 | T/E | WAF weakened without review or via the app | — | Planned (P5) |
@@ -59,3 +59,11 @@ Condensed from `docs/threat-model.md` (version 0.4). L×I is likelihood × impac
 | T-SO-07 | T | Lost update between responders | 2×1 | **Mitigated (P7)** |
 | T-SO-08 | E | Simulator abused against another system | 1×3 | **Mitigated (P7)** |
 | T-SO-09 | I | Secrets captured in evidence | 2×3 | **Mitigated (P7)** |
+| T-VM-01 | T | Scanner output carries markup or escapes into the UI | 2×2 | **Mitigated (P8)** |
+| T-VM-02 | R | Risk acceptance silences a finding indefinitely or is rewritten | 2×3 | **Mitigated (P8)** |
+| T-VM-03 | T | Finding marked fixed without a fix | 2×3 | **Mitigated (P8)** |
+| T-VM-04 | E | Gate passes because a scanner crashed | 2×3 | **Mitigated (P8)** |
+| T-VM-05 | T | Compromised or swapped scanner image | 1×3 | **Mitigated (P8)** |
+| T-VM-06 | T | Authenticated DAST changes platform data | 2×2 | **Mitigated (P8)** |
+| T-VM-07 | I | Developers read other teams' findings | 2×2 | **Mitigated (P8)** |
+| T-VM-08 | D | Hostile import exhausts the API or floods events | 1×2 | **Mitigated (P8)** |

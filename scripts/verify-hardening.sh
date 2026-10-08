@@ -24,6 +24,18 @@ for svc in api web db; do
   fi
 done
 
+# Right after `make dev` the API may still be starting; HTTP checks need it to answer. Wait up
+# to 60 seconds, and stop if it never does (a check must never pass on a missing response).
+# Checks use GET: the API answers HEAD on its GET routes with 405.
+for _ in $(seq 1 60); do
+  curl -fsS -o /dev/null "$API_URL/api/v1/health" && break
+  sleep 1
+done
+if ! curl -fsS -o /dev/null "$API_URL/api/v1/health"; then
+  echo "The API is not answering on $API_URL after 60 seconds; see: make logs" >&2
+  exit 2
+fi
+
 echo "Containers (C-CNT-01)"
 for svc in api web; do
   check "$svc runs as a non-root user" \
@@ -57,8 +69,10 @@ check "API sends a deny-all Content-Security-Policy" \
   bash -c "curl -sI $API_URL/api/v1/health | grep -qi \"^content-security-policy: default-src 'none'\""
 check "SPA sends a strict CSP without unsafe-inline" \
   bash -c "curl -sI $WEB_URL/ | grep -i '^content-security-policy:' | grep -qv 'unsafe-inline'"
+check "SPA is cross-origin isolated (COOP same-origin, COEP require-corp)" \
+  bash -c "headers=\$(curl -fsS -D - -o /dev/null $WEB_URL/) && grep -qi '^cross-origin-opener-policy: same-origin' <<<\"\$headers\" && grep -qi '^cross-origin-embedder-policy: require-corp' <<<\"\$headers\""
 check "API does not disclose a Server header" \
-  bash -c "! curl -sI $API_URL/api/v1/health | grep -qi '^server:'"
+  bash -c "headers=\$(curl -fsS -D - -o /dev/null $API_URL/api/v1/health) && ! grep -qi '^server:' <<<\"\$headers\""
 
 echo
 if (( failures == 0 )); then

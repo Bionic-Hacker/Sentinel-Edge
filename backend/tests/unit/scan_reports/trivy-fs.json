@@ -1,0 +1,38 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": ".",
+  "ArtifactType": "filesystem",
+  "Results": [
+    {
+      "Target": "backend/requirements.txt",
+      "Class": "lang-pkgs",
+      "Type": "pip",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2099-0001",
+          "PkgName": "examplelib",
+          "InstalledVersion": "1.2.0",
+          "FixedVersion": "1.2.1",
+          "Severity": "HIGH",
+          "Title": "examplelib: request smuggling in the synthetic parser",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2099-0001",
+          "CVSS": {"nvd": {"V3Score": 7.5}, "ghsa": {"V3Score": 8.1}}
+        },
+        {
+          "VulnerabilityID": "CVE-2099-0002",
+          "PkgName": "otherlib",
+          "InstalledVersion": "0.9.0",
+          "FixedVersion": "",
+          "Severity": "MEDIUM",
+          "Title": "otherlib: synthetic denial of service"
+        }
+      ]
+    },
+    {
+      "Target": "frontend/package-lock.json",
+      "Class": "lang-pkgs",
+      "Type": "npm",
+      "Vulnerabilities": null
+    }
+  ]
+}

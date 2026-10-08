@@ -88,3 +88,4 @@ A git bundle carries commits with their IDs, authorship and parents intact. Veri
 | v0.2.0 | 2 | M0–M7 | Authentication with MFA, RBAC, tamper-evident audit log, least-privilege database |
 | v0.3.0 | 6 | M0–M5 | Rate limiting, trusted client IPs, API Security Center, OWASP API Top 10 coverage |
 | v0.4.0 | 7 | M0–M5 | Detect-only HTTP analysis, correlation, incidents with tamper-evident evidence, security dashboard, attack simulator and simulated WAF |
+| v0.5.0 | 8 | M0–M4 | One scan pipeline and fail-closed gate, authenticated DAST, SBOMs, vulnerability management with SLAs and risk acceptance |

@@ -47,7 +47,8 @@ class EventSource(StrEnum):
     CORRELATION = "correlation"  # a detection rule over several events
     WAF = "waf"  # edge WAF: SIMULATED until AWS WAF exists (Phase 5)
     CERTIFICATE = "certificate"  # certificate monitoring: SIMULATED until Phase 5
-    DEPENDENCY = "dependency"  # dependency scanning: SIMULATED until Phase 8
+    DEPENDENCY = "dependency"  # simulated dependency findings (the attack simulator)
+    APPSEC = "appsec"  # application security scans imported into vulnerability management
 
 
 class EventCategory(StrEnum):
@@ -72,6 +73,8 @@ class EventCategory(StrEnum):
     SUSPICIOUS_AUTH = "suspicious_auth"  # e.g. a sign-in from an address stuffing other accounts
     CERTIFICATE = "certificate"
     VULNERABLE_DEPENDENCY = "vulnerable_dependency"
+    CODE_WEAKNESS = "code_weakness"  # SAST, IaC and DAST findings
+    EXPOSED_SECRET = "exposed_secret"  # noqa: S105 - category name, not a secret  # nosec B105
 
 
 class Severity(StrEnum):

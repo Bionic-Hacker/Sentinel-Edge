@@ -3,9 +3,10 @@
 # In AWS the static build is served from private S3 via CloudFront OAC instead (Phase 5);
 # this image exists for local development and parity testing.
 
-ARG NODE_IMAGE=node:22-alpine
-ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:stable-alpine
+ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:stable-alpine@sha256:15c994d10d6d78658721c3bcafff14cb281fba2a4bdf9d5ba92c416a472516e3
 
+# checkov:skip=CKV_DOCKER_7: the base image is a build argument whose default above is pinned
 FROM ${NODE_IMAGE} AS build
 WORKDIR /build
 COPY package.json package-lock.json ./
@@ -14,6 +15,10 @@ COPY . .
 RUN npm run build
 
 FROM ${NGINX_IMAGE} AS runtime
+# OS security fixes published since the pinned base image was built (the scan gate blocks on a
+# fixable high or critical package vulnerability, ADR-0020). The base image runs as UID 101.
+USER root
+RUN apk upgrade --no-cache
 COPY --chown=root:root nginx.conf /etc/nginx/conf.d/default.conf
 COPY --chown=root:root security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --chown=root:root --from=build /build/dist /usr/share/nginx/html

@@ -44,6 +44,9 @@ class TokenClaims:
     expires_at: datetime
 
 
+MAX_OPERATOR_TTL = timedelta(hours=2)
+
+
 class TokenService:
     def __init__(self, settings: Settings) -> None:
         signing_key, _ = settings.require_auth_secrets()
@@ -55,8 +58,13 @@ class TokenService:
     def access_ttl_seconds(self) -> int:
         return int(self._access_ttl.total_seconds())
 
-    def issue_access(self, user_id: uuid.UUID, session_id: uuid.UUID) -> str:
-        return self._issue(TokenType.ACCESS, user_id, self._access_ttl, {"sid": str(session_id)})
+    def issue_access(
+        self, user_id: uuid.UUID, session_id: uuid.UUID, ttl: timedelta | None = None
+    ) -> str:
+        """An access token for a session. `ttl` overrides the configured lifetime for operator
+        sessions that cannot refresh (the DAST scanner); it is bounded at two hours."""
+        lifetime = self._access_ttl if ttl is None else min(ttl, MAX_OPERATOR_TTL)
+        return self._issue(TokenType.ACCESS, user_id, lifetime, {"sid": str(session_id)})
 
     def issue_mfa_challenge(self, user_id: uuid.UUID) -> str:
         return self._issue(TokenType.MFA_CHALLENGE, user_id, self._challenge_ttl, {})

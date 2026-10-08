@@ -41,7 +41,7 @@ The project is built to support conversations for these roles:
 | API Security Engineer | Rate limiting, inventory, OWASP API Top 10 coverage (Chapter 8) |
 | Cloud Security Engineer | Private-origin AWS design, IAM, state isolation (Chapters 3, 13) |
 | WAF / CDN Security Engineer | CloudFront, WAF rule governance via Terraform (Chapters 3, 13) |
-| DevSecOps Engineer | Shift-left gates from Phase 1, SBOM, OIDC pipeline (Chapters 6, 10, 14) |
+| DevSecOps Engineer | Shift-left gates from Phase 1, scan gate, SBOMs, authenticated DAST, vulnerability management, OIDC pipeline (Chapters 6, 10, 14) |
 | AI Application Security Engineer | Bedrock integration, output contract, human approval (Chapter 12) |
 | Security Operations | Events, incidents, runbooks, attack simulator (Chapter 9) |
 
@@ -53,8 +53,9 @@ The project is built to support conversations for these roles:
 | 2 | Secure application foundation: auth, MFA, RBAC, audit logging | <span class="status done">Complete · v0.2.0</span> |
 | 6 | API security: inventory, OWASP API mapping, rate limiting | <span class="status done">Complete · v0.3.0</span> |
 | 7 | Security operations: events, dashboard, incidents, simulator | <span class="status done">Complete · v0.4.0</span> |
-| 8 | Application security scanning and SBOM | <span class="status next">Next</span> |
-| 10, 9 | Threat modeling and governance · AI security | <span class="status plan">Planned</span> |
+| 8 | Application security scanning, SBOM, vulnerability management | <span class="status done">Complete · v0.5.0</span> |
+| 10 | Threat modeling and governance | <span class="status next">Next</span> |
+| 9 | AI security | <span class="status plan">Planned</span> |
 | 3, 4, 5 | AWS foundation, deployment, CloudFront + WAF + TLS | <span class="status plan">Planned</span> |
 | 11, 12 | Automation pipeline · hardening and final review | <span class="status plan">Planned</span> |
 

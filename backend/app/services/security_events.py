@@ -123,6 +123,9 @@ def record_event(
 _BOLA_TITLES = {
     "user": "Attempt to read another user's record",
     "incident": "Attempt to act on an incident assigned to someone else",
+    "vulnerability": "Attempt to read another team's vulnerability",
+    "scan": "Attempt to read another team's scan",
+    "sbom": "Attempt to read another team's SBOM",
 }
 
 

@@ -67,7 +67,8 @@ def test_sentineledge_is_the_first_protected_application(
     }
     assert platform["waf_status"]["status"] == "planned"
     assert "Phase 5" in platform["waf_status"]["note"]
-    assert platform["vulnerability_count"]["status"] == "planned"
+    assert platform["vulnerability_count"]["status"] == "not_connected"  # until a scan import
+    assert "make scan-import" in platform["last_scan"]["note"]
     assert platform["security_score"]["value"] is None
 
 

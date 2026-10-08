@@ -1,11 +1,16 @@
 """Guards on the REAL vs SIMULATED register (spec §43). These tests are the enforcement."""
 
+import re
+from pathlib import Path
+
+import pytest
+
 from app.core.capabilities import CAPABILITIES
 from app.core.provenance import Provenance, Status
 
 # Phases are built out of numerical order to defer AWS cost (ADR-0016): 1, 2, 6, 7, 8, 10, 9,
 # then 3, 4, 5, 11, 12. The rule is completion, not phase number.
-COMPLETED_PHASES = frozenset({1, 2, 6, 7})
+COMPLETED_PHASES = frozenset({1, 2, 6, 7, 8})
 
 
 def test_keys_are_unique() -> None:
@@ -42,3 +47,17 @@ def test_all_real_aws_entries_are_namespaced() -> None:
     assert all(
         c.key.startswith("aws.") for c in CAPABILITIES if c.provenance is Provenance.REAL_AWS
     )
+
+
+MODULES_TS = Path(__file__).resolve().parents[3] / "frontend" / "src" / "app" / "modules.ts"
+
+
+@pytest.mark.skipif(not MODULES_TS.exists(), reason="frontend sources not present")
+def test_every_module_capability_key_is_registered() -> None:
+    # Each UI module lists the capabilities it shows; a key missing from the register would
+    # silently show nothing, so the UI and the register must agree.
+    source = MODULES_TS.read_text()
+    blocks = re.findall(r"capabilityKeys:\s*\[(.*?)\]", source, re.S)
+    keys = {k for block in blocks for k in re.findall(r'"([a-z0-9_.]+)"', block)}
+    assert keys, "no capability keys found in modules.ts"
+    assert keys <= {c.key for c in CAPABILITIES}, sorted(keys - {c.key for c in CAPABILITIES})

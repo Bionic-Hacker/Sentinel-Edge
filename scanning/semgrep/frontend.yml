@@ -1,0 +1,113 @@
+# SentinelEdge-specific Semgrep rules for the React/TypeScript frontend.
+#
+# The frontend's security model: every API call goes through src/lib/api/client.ts (same-origin
+# paths only, no redirects, runtime response validation), the access token lives only in memory,
+# attacker-influenced data is rendered as text, and the CSP forbids inline script and style.
+# ESLint enforces some of these at edit time; these rules enforce them again in the pipeline.
+# Tested by `semgrep --test scanning/semgrep` against frontend.tsx in this directory.
+rules:
+  - id: sentineledge-fetch-outside-api-client
+    message: >-
+      fetch() called outside the API client. Use src/lib/api (apiGet/apiRequest), which allows
+      same-origin paths only, refuses redirects and validates every response at runtime.
+    languages: [typescript]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-20: Improper Input Validation"
+      owasp: "API10:2023 Unsafe Consumption of APIs"
+    paths:
+      exclude:
+        - "**/lib/api/client.ts"
+        - "**/*.test.ts"
+        - "**/*.test.tsx"
+        - "**/src/test/**"
+    pattern-either:
+      - pattern: fetch(...)
+      - pattern: window.fetch(...)
+      - pattern: globalThis.fetch(...)
+      - pattern: new XMLHttpRequest()
+
+  - id: sentineledge-web-storage
+    message: >-
+      Web storage used. Tokens and session data stay in memory only (ADR-0003); anything in
+      localStorage or sessionStorage is readable by any script that runs on the page.
+    languages: [typescript]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-922: Insecure Storage of Sensitive Information"
+    paths:
+      exclude:
+        - "**/*.test.ts"
+        - "**/*.test.tsx"
+    pattern-either:
+      - pattern: localStorage.$M(...)
+      - pattern: sessionStorage.$M(...)
+      - pattern: window.localStorage
+      - pattern: window.sessionStorage
+      - pattern: indexedDB.open(...)
+
+  - id: sentineledge-raw-html
+    message: >-
+      HTML injected into the page. Render text through React (which escapes it); attacker
+      payloads in evidence must never become markup.
+    languages: [typescript]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-79: Cross-site Scripting"
+    pattern-either:
+      - pattern: <$EL dangerouslySetInnerHTML={...} />
+      - pattern: <$EL dangerouslySetInnerHTML={...}>...</$EL>
+      - pattern: $X.innerHTML = $Y
+      - pattern: $X.outerHTML = $Y
+      - pattern: $X.insertAdjacentHTML(...)
+      - pattern: document.write(...)
+
+  - id: sentineledge-dynamic-code
+    message: Code built from strings at runtime. The CSP forbids it (no 'unsafe-eval').
+    languages: [typescript]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-95: Eval Injection"
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+      - pattern: setTimeout("...", ...)
+      - pattern: setInterval("...", ...)
+
+  - id: sentineledge-inline-style
+    message: >-
+      Inline style attribute. The CSP is style-src 'self' without 'unsafe-inline', so the
+      browser drops it; use Tailwind classes, or SVG attributes for chart geometry.
+    languages: [typescript]
+    severity: WARNING
+    metadata:
+      sentineledge-severity: medium
+      cwe: "CWE-1021: Improper Restriction of Rendered UI Layers"
+    pattern-either:
+      - pattern: <$EL style={...} />
+      - pattern: <$EL style={...}>...</$EL>
+
+  - id: sentineledge-navigation-to-variable
+    message: >-
+      Navigation to a computed URL. Navigate with React Router to in-app paths; a URL built from
+      data can send users to another site (open redirect).
+    languages: [typescript]
+    severity: WARNING
+    metadata:
+      sentineledge-severity: medium
+      cwe: "CWE-601: Open Redirect"
+    patterns:
+      - pattern-either:
+          - pattern: window.location.href = $URL
+          - pattern: window.location = $URL
+          - pattern: window.location.assign($URL)
+          - pattern: window.location.replace($URL)
+          - pattern: window.open($URL, ...)
+      - pattern-not: window.location.href = "..."
+      - pattern-not: window.location.assign("...")
+      - pattern-not: window.location.replace("...")
+      - pattern-not: window.open("...", ...)

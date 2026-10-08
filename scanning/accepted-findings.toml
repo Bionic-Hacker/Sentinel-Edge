@@ -1,0 +1,19 @@
+# Accepted risks for the scan gate (ADR-0020).
+#
+# A critical or high finding blocks CI until it is fixed or an entry here covers it. Every entry
+# needs all of: an ID, a justification, a compensating control, an approver and an expiry date.
+# After the expiry date the entry covers nothing and the finding blocks again, which forces a
+# review. Prefer fixing; an acceptance is a decision with an owner, not a way to silence a tool.
+#
+# Match by fingerprint (one specific finding, printed by `make scan`), or by tool and rule,
+# optionally narrowed by a component pattern (fnmatch):
+#
+# [[accepted]]
+# id = "ACC-0001"
+# match = { tool = "trivy", rule = "CVE-2026-12345", component = "libexample@*" }
+# justification = "Only reachable through the image's shell, which the API never invokes."
+# compensating_control = "Read-only root filesystem, no shell in the runtime path, cap_drop ALL."
+# approver = "Bionic-Hacker"
+# expires = 2026-12-31
+#
+# Phase 10 moves this register into the application, with change requests and approvals.

@@ -22,6 +22,9 @@ def grant_to_app(table: str, *privileges: str) -> None:
     wanted = {p.upper() for p in privileges}
     if not wanted or not wanted <= _ALLOWED:
         raise ValueError(f"privileges must be a non-empty subset of {sorted(_ALLOWED)}")
+    # DDL cannot take bind parameters; every identifier above matched _IDENT and the privileges
+    # an allow-list, so nothing caller-controlled reaches the statement unchecked.
+    # nosemgrep: sentineledge-sql-built-from-strings
     op.execute(f"GRANT {', '.join(sorted(wanted))} ON TABLE {SCHEMA}.{table} TO {role}")
 
 
@@ -34,4 +37,6 @@ def grant_columns_to_app(table: str, privilege: str, *columns: str) -> None:
         raise ValueError("column privileges must be SELECT, INSERT or UPDATE")
     if not columns or not all(_IDENT.fullmatch(c) for c in (table, role, *columns)):
         raise ValueError("invalid identifier")
+    # As above: identifiers validated by _IDENT, privilege from an allow-list.
+    # nosemgrep: sentineledge-sql-built-from-strings
     op.execute(f"GRANT {wanted} ({', '.join(columns)}) ON TABLE {SCHEMA}.{table} TO {role}")

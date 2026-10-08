@@ -115,7 +115,7 @@ def test_inventory_lists_every_endpoint_with_the_spec_fields(
     for item in items:
         assert set(item) >= SPEC_FIELDS
         assert item["last_scan"] is None
-        assert "Phase 8" in item["scan_note"]
+        assert "make dast" in item["scan_note"]  # no scan imported yet
     login = _item(body, "POST", "/api/v1/auth/login")
     assert login["authentication"] == "None (public)"
     assert login["authorization"] == "Same-origin request with CSRF header"

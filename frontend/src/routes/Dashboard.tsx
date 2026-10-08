@@ -379,7 +379,16 @@ const CONTROL_STATUS = {
   measured: "border-ok/50 text-ok",
   simulated: "border-prov-sim/60 text-prov-sim",
   planned: "border-line text-ink-muted",
+  not_connected: "border-line text-ink-muted",
 } as const;
+const CONTROL_STATUS_LABEL = {
+  measured: "Measured",
+  simulated: "Simulated",
+  planned: "Planned",
+  not_connected: "No data yet",
+} as const;
+// Controls whose detail lives on their own page.
+const CONTROL_LINKS: Record<string, string> = { api: "/api-security", vulnerabilities: "/vulnerabilities" };
 
 function Controls({ data }: { data: Overview }) {
   return (
@@ -391,8 +400,16 @@ function Controls({ data }: { data: Overview }) {
         {Object.entries(data.controls).map(([key, c]) => (
           <li key={key} className="rounded-md border border-line bg-surface p-4">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium">{CONTROL_NAMES[key] ?? key}</span>
-              <span className={`rounded-sm border px-1.5 py-0.5 text-xs capitalize ${CONTROL_STATUS[c.status]}`}>{c.status}</span>
+              {CONTROL_LINKS[key] ? (
+                <Link to={CONTROL_LINKS[key]} className="text-sm font-medium text-accent hover:underline">
+                  {CONTROL_NAMES[key] ?? key}
+                </Link>
+              ) : (
+                <span className="text-sm font-medium">{CONTROL_NAMES[key] ?? key}</span>
+              )}
+              <span className={`rounded-sm border px-1.5 py-0.5 text-xs ${CONTROL_STATUS[c.status]}`}>
+                {CONTROL_STATUS_LABEL[c.status]}
+              </span>
             </div>
             <p className="mt-2 text-xs text-ink-muted">{c.summary}</p>
           </li>
@@ -426,7 +443,7 @@ const PHASE_NAMES: Record<number, string> = {
 // Local-first order (ADR-0016): everything that runs locally is built first; the AWS phases are
 // grouped near the end so cloud resources exist for as short a time as possible.
 const BUILD_ORDER = [1, 2, 6, 7, 8, 10, 9, 3, 4, 5, 11, 12];
-const COMPLETE = new Set([1, 2, 6, 7]);
+const COMPLETE = new Set([1, 2, 6, 7, 8]);
 const NEXT = BUILD_ORDER.find((n) => !COMPLETE.has(n));
 
 function PlatformStatus() {

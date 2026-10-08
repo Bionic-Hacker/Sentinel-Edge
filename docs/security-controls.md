@@ -103,12 +103,32 @@ or read.
 | C-SO-09 | Attacker-controlled evidence rendered as text only (no markup), under the strict CSP | `EvidenceText`, `ThreatsPage` | `secops.test.tsx`: a `<script>` snippet renders as text; C-WEB-02, C-WEB-03 |
 | C-API-01 | Object-level authorization extended to applications (developers see only their own; 404, audited) | `app/services/applications.py` | `test_developers_see_only_their_own_applications` |
 
+## 2d. Controls implemented in Phase 8
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-CICD-06 | SAST, SCA, secrets, IaC, container scanning, SBOMs and DAST in one pipeline, locally and in CI (ADR-0020) | `scripts/scan.sh`, `make scan`, `make dast`, CI job `security-scans` | CI artifact `security-scans-<run>`; `make scan` output |
+| C-CICD-07 | SentinelEdge Semgrep rules encode the project's own rules, each with annotated tests | `scanning/semgrep/` | `make scan-test` (CI job `semgrep-rules`) |
+| C-CICD-08 | Scan gate: fixable critical/high blocks unless an unexpired accepted risk covers it; awaiting-fix package vulnerabilities reported; fails closed on missing or unreadable reports | `app/scanning/gate.py`, `scanning/accepted-findings.toml` | `test_scanning.py` (gate, expiry, `--expect`, coverage) |
+| C-CICD-09 | Contained scanners: images pinned by tag and digest, read-only repository, no Docker socket, offline Checkov; stale pins reported | `scripts/scan.sh`, `scripts/image-digests.sh` | `make image-digests` |
+| C-CICD-10 | OS security fixes applied at image build on top of the pinned base | `backend/Dockerfile`, `frontend/Dockerfile` | Trivy image reports (CVE-2026-4775 fixed) |
+| C-CICD-11 | Authenticated DAST as a read-only VIEWER with a one-scan session, revoked afterwards; logout excluded; local stack only | `app/cli.py` (`dast-session`, `openapi --server`), `scripts/scan.sh dast` | `test_dast_scanner_session_is_read_only_and_revocable`, `test_openapi_document_lists_every_endpoint` |
+| C-VM-01 | Findings lifecycle: de-duplicated by fingerprint, fixed only by a scan that covers the finding, reopened on return, never fixed by hand | `app/services/vulnerabilities.py`, `app/scanning/findings.py` | `test_vulnerabilities.py` (import, fixed and reopened, partial scans) |
+| C-VM-02 | Remediation SLA from detection (critical 7, high 30, medium 90, low 180 days); past-SLA counted on the dashboard | `SLA`, overview | `test_import_deduplicates_and_records_the_scan`, `test_severity_change_keeps_the_original_sla_clock` |
+| C-VM-03 | Risk acceptance: leads only, justification, compensating control, expiry within the severity limit, immutable decision, one in force, expiry reopens | Migration 0009 (column grants, partial unique index), `accept_risk` | `test_risk_acceptance_lifecycle`, `test_an_expired_acceptance_reopens_its_finding`, `test_the_app_role_cannot_rewrite_the_record` |
+| C-VM-04 | Imports validated and bounded, all-or-nothing, insert-only scan runs; CLI only | `app/schemas/vulnerabilities.py`, `import-scan` | `test_import_is_all_or_nothing`, `test_scanner_text_is_bounded_and_control_characters_replaced`, `test_cli_import` |
+| C-VM-05 | New and reopened critical/high findings become security events (bounded); fixable criticals open incidents | `_report_events` | `test_new_critical_findings_are_security_events_and_fixable_ones_open_an_incident`, `test_events_per_import_are_bounded` |
+| C-VM-06 | SBOMs stored per scan and artifact with SHA-256; components searchable; CycloneDX download as an attachment | `Sbom`, `/api/v1/sboms` | `test_scans_and_sboms`, `appsec.test.tsx` |
+| C-API-01 | Object-level authorization extended to findings, scans and SBOMs (developers: own applications; 404, audited) | `VulnerabilityService` | `test_developers_work_only_on_their_own_applications` |
+| C-API-13 | Backend enumerations and the SPA's validator lists must match | `tests/unit/test_frontend_contract.py` | CI |
+| C-WEB-04 | Cross-origin isolation: COOP `same-origin` and COEP `require-corp` on the SPA and the API | `security-headers.conf`, `security_headers.py` | `make verify-hardening`; ZAP rule 90004 |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
 |---|---|---|---|---|---|
 | SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries + detection | `waf` module; Pydantic schemas; SQLAlchemy ORM only; HTTP analysis and COR-003 | Query-param validation tests; `test_sql_injection_in_a_query_parameter_is_recorded`; `make smoke`; WAF logs (P5) | **P2 (app), P7 (detection)**, P5 |
-| XSS | T-ID-02, T-EDGE-06 | React escaping + strict CSP + lint bans + WAF XSS rules | `security-headers.conf`; `eslint.config.js`; WAF | Lint in CI; header tests; ZAP (P8) | P1, P5, P8 |
+| XSS | T-ID-02, T-EDGE-06 | React escaping + strict CSP + lint bans + Semgrep rules + WAF XSS rules | `security-headers.conf`; `eslint.config.js`; `scanning/semgrep/frontend.yml`; WAF | Lint in CI; header tests; ZAP active XSS rules passed (SCAN-0003) | **P1, P8**, P5 |
 | Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA + detection | WAF module; auth service; `api_policy.LOGIN`; COR-001, COR-007 | `test_account_locks_after_repeated_failures`, `test_login_is_limited_per_ip_with_retry_after`, `test_credential_stuffing_fires_at_threshold_and_not_before`; WAF match counts (P5) | **P2, P6, P7**, P5 |
 | Broken object authorization | T-API-01 | Ownership checks in services; probing detected | `UserService.get_user`, `ApplicationService`; COR-004 | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications` | **P2, P7** |
 | Tampered incident evidence | T-SO-01 | Append-only events, write-once links, timeline digests in the audit chain | ADR-0018 | `test_tampering_with_the_timeline_is_detected`, `test_evidence_links_are_write_once` | **P7** |
@@ -120,7 +140,8 @@ or read.
 | Origin bypass | T-EDGE-03 | Internal ALB + VPC origin | `alb`, `cloudfront` modules | External connection test fails; Checkov | P4–5 |
 | Public database | T-DB-01 | Isolated subnets, SG, `publicly_accessible=false` | `rds`, `vpc` modules | Checkov; plan review | P3–4 |
 | Secret leakage | T-SEC-01 | Gitleaks + Secrets Manager | `.gitleaks.toml`; `secrets-manager` module | Gitleaks report | **P1**, P4 |
-| Supply chain | T-SC-01 | Pinned deps + SCA + SBOM + image scan | Lock files; Syft; Trivy | CI artifacts | **P1**, P8 |
+| Supply chain | T-SC-01 | Pinned deps + SCA + SBOM + image scan + build-time OS fixes | Lock files; Syft; Trivy; Dockerfiles | CI artifact `security-scans-<run>`; Vulnerabilities and SBOM pages | **P1, P8** |
+| Known vulnerabilities shipped | T-VM-03, T-VM-04 | Scan gate, findings lifecycle, SLA, risk acceptance | ADR-0020, ADR-0021 | `test_scanning.py`, `test_vulnerabilities.py`; [runbook](runbooks/vulnerability-remediation.md) | **P8** |
 | Audit tampering | T-AUD-01 | Hash chain + grants + triggers + Object Lock | ADR-0005 | `test_audit_log.py`, `make verify-audit` | **P2**, P4 |
 | Prompt injection | T-AI-01, T-AI-02 | Delimiting, scoring, schema-bound output | `app/ai/guardrails` | Injection corpus tests | P9 |
 | Excessive AI agency | T-AI-05 | Proposals + human approval | `ai_action_proposals` | Approval workflow tests; audit | P9 |
@@ -139,5 +160,5 @@ defenses · C-ID-07 secure reset · C-API-01 object authz · C-API-02 function a
 rate limiting · C-DB-01 least-privilege roles · C-DB-02 encryption · C-DB-03 TLS required ·
 C-DB-04 backups · C-IAM-01 per-function roles · C-IAM-02 no static keys · C-IAM-03 permission
 documentation · C-AUD-01 hash chain · C-AUD-02 INSERT-only grants · C-AUD-03 Object Lock archive ·
-C-MON-01 alarms · C-SO-01..09 security operations (Phase 7, section 2c) · C-VM-01 findings lifecycle · C-AI-01..06 per ADR-0007 · C-GOV-03 change
+C-MON-01 alarms · C-SO-01..09 security operations (Phase 7, section 2c) · C-CICD-06..11, C-VM-01..06, C-WEB-04 application security (Phase 8, section 2d) · C-AI-01..06 per ADR-0007 · C-GOV-03 change
 management.

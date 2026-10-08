@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.4 (Phase 7: security operations)
+- **Version:** 0.5 (Phase 8: application security scanning and vulnerability management)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Full PASTA
   treatment and in-app modelling arrive in Phase 10.
@@ -24,6 +24,8 @@ tested), **Planned (Pn)**, or **Accepted (interim)** with an expiry.
 | A9 | Terraform state | May contain sensitive values and resource details |
 | A10 | Incident records and timelines | The evidence trail of an attack and of the response to it |
 | A11 | Simulated WAF configuration | Changes what simulations show; must never be mistaken for real edge state |
+| A12 | Vulnerability records, risk acceptances and SBOMs | A map of known weaknesses; an altered acceptance hides a risk someone decided to carry |
+| A13 | Scanner images and the scan gate | A compromised scanner or a silently failed scan lets vulnerable code ship |
 
 ## 2. Trust boundaries and data flows
 
@@ -125,6 +127,19 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-SO-08 | E | Attack simulator abused to attack another system | 1×3 | No network I/O and no target input; RFC 5737 addresses and `.example` names; leads only; every run audited and rate limited (ADR-0019) | **Mitigated (P7, tested)** |
 | T-SO-09 | I | Passwords, tokens or codes captured in event evidence | 2×3 | Snippets from sensitive fields replaced with `[REDACTED]`; bounded snippets; incident free text excluded from inspection | **Mitigated (P7, tested)** |
 
+### Application security threats added in Phase 8
+
+| ID | STRIDE | Threat | L×I | Control(s) | Status |
+|---|---|---|---|---|---|
+| T-VM-01 | T | Scanner output (package metadata, rule messages, URLs) carries markup or terminal escapes into the UI or logs | 2×2 | Every imported string bounded and control characters replaced; rendered as text only; links only for `https:` references | **Mitigated (P8, tested)** |
+| T-VM-02 | R | A risk acceptance used to silence a finding indefinitely, or rewritten after approval | 2×3 | Leads only; justification, compensating control and expiry within the severity limit; decision immutable (column grants); one in force per finding; expiry reopens the finding; audited | **Mitigated (P8, tested)** |
+| T-VM-03 | T | A finding marked fixed without a fix (by hand, or by a partial scan) | 2×3 | "Fixed" only from a scan that ran every report able to produce the finding; no API move to fixed; a returning finding reopens | **Mitigated (P8, tested)** |
+| T-VM-04 | E | The scan gate passes because a scanner crashed or wrote nothing | 2×3 | Gate fails closed: every expected report required (`--expect`), unreadable reports and an empty scan exit 2 | **Mitigated (P8, tested)** |
+| T-VM-05 | T | A compromised or swapped scanner image | 1×3 | Images pinned by tag and digest; run as the calling user, repository read-only, no Docker socket; Checkov offline, Semgrep metrics off | **Mitigated (P8)** |
+| T-VM-06 | T | Authenticated DAST changes or destroys platform data | 2×2 | Scanner account is a VIEWER without a usable password; one 60-minute session per scan, revoked at the end; logout excluded from the target document; local stack only | **Mitigated (P8, tested)** |
+| T-VM-07 | I | Developers read other teams' findings (a map of their weaknesses) | 2×2 | Object-level filter on findings, scans and SBOMs; other IDs 404 and audited | **Mitigated (P8, tested)** |
+| T-VM-08 | D | A large or hostile import exhausts the API or floods the event store | 1×2 | 64 MB stdin cap, 20,000 findings and components per import, at most 50 events per import, CLI-only (no upload endpoint) | **Mitigated (P8)** |
+
 ### TB4 — API → Database
 
 | ID | STRIDE | Threat | L×I | Control(s) | Status |
@@ -151,7 +166,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 |---|---|---|---|---|---|
 | T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | GitHub OIDC, no stored keys (ADR-0010) | Planned (P11); no keys exist in P1 |
 | T-CICD-02 | T | Malicious or hijacked third-party action | 1×3 | SHA-pinned actions, read-only token, Dependabot | **Mitigated (P1)** |
-| T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts` | **Mitigated (P1)**; SBOM + Trivy P8 |
+| T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images | **Mitigated (P1, P8)** |
 | T-SEC-01 | I | Secret committed to git | 2×3 | Gitleaks pre-commit + CI (full history), `.gitignore` | **Mitigated (P1)** |
 | T-IAC-01 | T | Dev change applied to production | 1×3 | Per-env roots, `allowed_account_ids` (ADR-0014) | Planned (P3) |
 | T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | Planned (P3) |
@@ -172,7 +187,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
    output is schema-bound and advisory, proposals need approval, and real WAF changes need a
    Terraform PR with review.
 
-## 5. Residual risk (after Phase 7)
+## 5. Residual risk (after Phase 8)
 
 - Single-maintainer project: separation of duties is enforced by role checks, not by different
   people. Accepted for a portfolio.
@@ -194,3 +209,12 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   the edge; parameterised queries and validation remain the protection, and detection records it.
 - On one machine every request comes from one address, so local detections group into a single
   incident. Expected; not a weakness of the deployed design.
+- The Debian 13 base of the API image carries high OS package vulnerabilities with no fix
+  published (44 at the end of Phase 8). They are reported on every scan and block as soon as a
+  fix exists; most are in packages the service never executes. A minimal base image (distroless
+  or Alpine) is planned with Phase 12 hardening.
+- Accepted risks exist in two places until Phase 10: the gate's file register
+  (`scanning/accepted-findings.toml`) and the in-application acceptances.
+- Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when
+  someone imports the CI artifact, until a deployed API can receive them (Phase 11).
+- DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).

@@ -1,0 +1,125 @@
+# SentinelEdge-specific Semgrep rules for the Python backend.
+#
+# These encode this project's own conventions, which generic rulesets do not know about. Each
+# rule's metadata.sentineledge-severity is the severity the findings gate uses (critical and
+# high block CI); the Semgrep severity is kept consistent with it for other tools.
+# Tested by `semgrep --test scanning/semgrep` against python.py in this directory.
+rules:
+  - id: sentineledge-sql-built-from-strings
+    message: >-
+      SQL text built from a formatted string. Every query must use the ORM or bound parameters
+      (sqlalchemy.text with :name placeholders and a parameters mapping), never string building.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: critical
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A03:2021 Injection; API8:2023"
+    # Migrations issue DDL (functions, triggers, grants), which cannot take bound parameters.
+    # They interpolate only module constants (the schema name) and the configured role name,
+    # never request data, and run once, offline, as the migrator role. Everything else is in
+    # scope, including the migration helpers, whose exceptions are annotated line by line.
+    paths:
+      exclude:
+        - "backend/alembic/versions/"
+    pattern-either:
+      - pattern: sqlalchemy.text(f"...")
+      - pattern: sqlalchemy.text("..." + $X)
+      - pattern: sqlalchemy.text($X + "...")
+      - pattern: sqlalchemy.text("...".format(...))
+      - pattern: sqlalchemy.text("..." % $X)
+      - pattern: $DB.execute(f"...", ...)
+      - pattern: $DB.execute("..." + $X, ...)
+      - pattern: $DB.execute("...".format(...), ...)
+      - pattern: $DB.execute("..." % $X, ...)
+
+  - id: sentineledge-outbound-http-without-egress-guard
+    message: >-
+      Outbound HTTP call made directly. Every outbound request must be approved by
+      app.security.egress (HTTPS, allow-list, public addresses only) to prevent SSRF.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-918: Server-Side Request Forgery"
+      owasp: "API7:2023 Server Side Request Forgery"
+    paths:
+      exclude:
+        - "**/app/security/egress.py"
+        - "**/tests/**"
+        - "**/scripts/**"
+    pattern-either:
+      - pattern: httpx.$METHOD(...)
+      - pattern: httpx.Client(...)
+      - pattern: httpx.AsyncClient(...)
+      - pattern: requests.$METHOD(...)
+      - pattern: urllib.request.urlopen(...)
+      - pattern: aiohttp.ClientSession(...)
+
+  - id: sentineledge-unsafe-deserialization
+    message: >-
+      Deserialization that can execute code. Parse untrusted data with json, or yaml.safe_load.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+    pattern-either:
+      - pattern: pickle.loads(...)
+      - pattern: pickle.load(...)
+      - pattern: marshal.loads(...)
+      - pattern: yaml.unsafe_load(...)
+      - patterns:
+          - pattern: yaml.load(...)
+          - pattern-not: yaml.load(..., Loader=yaml.SafeLoader, ...)
+          - pattern-not: yaml.load(..., Loader=yaml.CSafeLoader, ...)
+
+  - id: sentineledge-jwt-without-verification
+    message: >-
+      JWT decoded without signature verification or without a pinned algorithm list. Tokens must
+      be verified with the configured key and an explicit algorithms=[...] (ADR-0003).
+    languages: [python]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: critical
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+    pattern-either:
+      - pattern: 'jwt.decode(..., options={..., "verify_signature": False, ...}, ...)'
+      - patterns:
+          - pattern: jwt.decode($TOKEN, $KEY, ...)
+          - pattern-not: jwt.decode($TOKEN, $KEY, ..., algorithms=$ALGS, ...)
+
+  - id: sentineledge-shell-command
+    message: >-
+      Command run through a shell. Pass an argument list without shell=True, so input can never
+      be interpreted by a shell.
+    languages: [python]
+    severity: ERROR
+    metadata:
+      sentineledge-severity: high
+      cwe: "CWE-78: OS Command Injection"
+    pattern-either:
+      - pattern: subprocess.$FUNC(..., shell=True, ...)
+      - pattern: os.system(...)
+      - pattern: os.popen(...)
+
+  - id: sentineledge-secret-in-log
+    message: >-
+      A value that looks like a credential is passed to a logger. Log identifiers and outcomes,
+      never passwords, tokens, codes or secrets (redaction is a safety net, not a licence).
+    languages: [python]
+    severity: WARNING
+    metadata:
+      sentineledge-severity: medium
+      cwe: "CWE-532: Insertion of Sensitive Information into Log File"
+    patterns:
+      - pattern-inside: $LOGGER.$METHOD(...)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(debug|info|warning|error|exception|critical)$
+      - metavariable-regex:
+          metavariable: $LOGGER
+          regex: (?i).*log.*
+      # A variable or attribute whose name says it holds a credential; message text is ignored.
+      - pattern-regex: (?i)\b[a-z0-9_.]*(password|passwd|secret|api_key|token|totp|recovery_code)[a-z0-9_]*\b
+      - pattern-not-inside: '"..."'

@@ -3,10 +3,12 @@
 # - Multi-stage: build tooling never reaches the runtime image.
 # - Hash-pinned dependencies (pip --require-hashes).
 # - Non-root UID, no shell needed at runtime, read-only root FS compatible.
-# Base image digest pinning + Trivy scanning are added in Phase 8 (container security gate).
+# - Scanned by Trivy on every CI run (scripts/scan.sh, ADR-0020). Debian 13 (trixie), the
+#   current stable release: Debian 12 is oldstable and receives fewer security fixes.
 
-ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+ARG PYTHON_IMAGE=python:3.12-slim-trixie@sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9226b6800b0d6f
 
+# checkov:skip=CKV_DOCKER_7: the base image is a build argument whose default above is pinned
 FROM ${PYTHON_IMAGE} AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /build
@@ -15,6 +17,11 @@ RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --require-hashes --no-deps -r requirements.txt
 
 FROM ${PYTHON_IMAGE} AS runtime
+# OS security fixes published since the pinned base image was built (the scan gate blocks on a
+# fixable high or critical package vulnerability, ADR-0020).
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

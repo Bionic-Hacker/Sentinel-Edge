@@ -4,16 +4,17 @@
 
 ## The layers
 
-| Layer | Count (v0.4.0) | Runs against | Proves |
+| Layer | Count (v0.5.0) | Runs against | Proves |
 |---|---|---|---|
-| Backend unit | part of 668 | Pure functions | Config refusals, logging redaction, token and password primitives, egress guard, capability rules, HTTP attack rules and their timing |
-| Backend API and integration | part of 668 | **Real PostgreSQL** (throwaway container, real roles) | Auth flows, lockout, MFA, sessions, audit chain, grants, rate limiting under concurrency, security events, correlation, incident workflow and integrity, dashboard, applications, simulator |
-| Backend security sweeps | part of 668 | The live route table | Every route declares access; every role is checked; every body forbids extras; every JSON route has a response model |
-| Frontend | 75 | jsdom + mocked API | Token stays in memory; refresh is single-flight; client refuses cross-origin; role-aware rendering; response validation; pages render the server's permissions; attack snippets render as text |
-| Smoke | 48 checks | The running Docker stack through nginx | The whole user journey, end to end, including live detection and the simulated WAF |
-| Hardening | 17 checks | Running containers and networks | Non-root, read-only, no capabilities, isolated database, localhost binding, headers |
+| Backend unit | part of 765 | Pure functions | Config refusals, logging redaction, token and password primitives, egress guard, capability rules, HTTP attack rules and their timing, report parsers, backend/SPA enumeration parity |
+| Backend API and integration | part of 765 | **Real PostgreSQL** (throwaway container, real roles) | Auth flows, lockout, MFA, sessions, audit chain, grants, rate limiting under concurrency, security events, correlation, incident workflow and integrity, dashboard, applications, simulator, scan gate, scan import, finding lifecycle, risk acceptance, SBOMs |
+| Backend security sweeps | part of 765 | The live route table | Every route declares access; every role is checked; every body forbids extras; every JSON route has a response model |
+| Frontend | 91 | jsdom + mocked API | Token stays in memory; refresh is single-flight; client refuses cross-origin; role-aware rendering; response validation; pages render the server's permissions; attack snippets and scanner text render as text |
+| Smoke | 56 checks | The running Docker stack through nginx | The whole user journey, end to end, including live detection, the simulated WAF and vulnerability management |
+| Scanner rules | `make scan-test` | Annotated examples | Every SentinelEdge Semgrep rule matches what it must and nothing it must not |
+| Hardening | 18 checks | Running containers and networks | Non-root, read-only, no capabilities, isolated database, localhost binding, headers, cross-origin isolation |
 
-Backend coverage is 98.6%, against a CI floor of 90%. Database tests deliberately do **not** use SQLite or mocks. The grants, triggers, advisory locks and upsert semantics being tested exist only in PostgreSQL, and the test database is bootstrapped by the same role script used everywhere else.
+Backend coverage is 98.4%, against a CI floor of 90%. Database tests deliberately do **not** use SQLite or mocks. The grants, triggers, advisory locks and upsert semantics being tested exist only in PostgreSQL, and the test database is bootstrapped by the same role script used everywhere else.
 
 ## Negative tests that matter
 
@@ -36,6 +37,11 @@ Backend coverage is 98.6%, against a CI floor of 90%. Database tests deliberatel
 - **Workflow bypass.** Analysts cannot work someone else's incident, close it, or change its severity; viewers cannot write; a stale write is refused with 409.
 - **Simulator abuse.** A run request carrying a target URL or address is rejected.
 - **Stored XSS.** A `<script>` snippet in event evidence renders as text in the browser.
+- **Silent scanners.** The gate exits 2 when any expected report is missing or unreadable, so a crashed scanner cannot pass the build.
+- **Fixed without a fix.** A scan that did not run the producing scanner cannot mark a finding fixed; a returning finding reopens with a new SLA clock.
+- **Risk acceptance abuse.** Non-leads cannot accept; expiries beyond the severity limit are refused; the app role cannot rewrite an acceptance; an expired one reopens its finding.
+- **Hostile scanner output.** Over-long strings are bounded and control characters replaced on import.
+- **DAST blast radius.** The scanner session is a viewer whose writes are refused, and it stops working once revoked.
 
 ## Tests that test the tests
 
@@ -49,4 +55,4 @@ Several tests exist to stop the evidence going stale:
 
 ## Continuous integration
 
-GitHub Actions runs three jobs on every push and pull request: secret scanning (Gitleaks over full history); the backend (Ruff, mypy strict, Bandit, pip-audit, the role bootstrap, tests with the coverage gate, and an `alembic check` schema-drift gate); and the frontend (`npm ci --ignore-scripts`, ESLint, TypeScript, Vitest, production build, `npm audit`). The token is read-only, and every action is pinned by SHA.
+GitHub Actions runs on every push and pull request. Besides the security scans (Chapter 10) and the Semgrep rule tests, three jobs run: secret scanning (Gitleaks over full history); the backend (Ruff, mypy strict, Bandit, pip-audit, the role bootstrap, tests with the coverage gate, and an `alembic check` schema-drift gate); and the frontend (`npm ci --ignore-scripts`, ESLint, TypeScript, Vitest, production build, `npm audit`). The token is read-only, and every action is pinned by SHA.
