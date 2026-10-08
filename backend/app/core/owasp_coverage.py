@@ -40,6 +40,10 @@ T_SESS = "tests/integration/test_auth_sessions.py"
 T_MFA = "tests/integration/test_auth_mfa.py"
 T_RL = "tests/integration/test_rate_limiting.py"
 T_SWEEP = "tests/security/test_api_protections.py"
+T_APPS = "tests/integration/test_applications.py"
+T_INC = "tests/integration/test_incidents.py"
+T_EVENTS = "tests/integration/test_security_events.py"
+T_COR = "tests/integration/test_correlation.py"
 
 COVERAGE: tuple[Coverage, ...] = (
     Coverage(
@@ -49,10 +53,14 @@ COVERAGE: tuple[Coverage, ...] = (
             "Object-level checks in the service layer for every record addressed by ID",
             "Other users' records return the same 404 as missing ones (no ID probing)",
             "Every object-level denial is audited (authz.denied)",
+            "Developers see only the applications they own; analysts change only their incidents",
+            "Repeated object-level denials from one account raise a detection (COR-004)",
         ),
         (
             f"{T_USERS}::test_users_can_read_only_their_own_record",
             f"{T_USERS}::test_denials_record_the_full_endpoint_template",
+            f"{T_APPS}::test_developers_see_only_their_own_applications",
+            f"{T_INC}::test_analysts_cannot_work_someone_elses_incident",
         ),
     ),
     Coverage(
@@ -63,12 +71,14 @@ COVERAGE: tuple[Coverage, ...] = (
             "15-minute access tokens checked against a live session on every request",
             "Rotating refresh tokens with reuse (theft) detection",
             "Account lockout; enumeration-resistant errors; per-IP sign-in rate limits",
+            "Credential stuffing and sign-ins from a stuffing source are detected (COR-001, 007)",
         ),
         (
             f"{T_LOGIN}::test_account_locks_after_repeated_failures",
             f"{T_SESS}::test_reused_refresh_token_revokes_the_whole_session",
             f"{T_MFA}::test_totp_code_cannot_be_replayed",
             f"{T_RL}::test_login_is_limited_per_ip_with_retry_after",
+            f"{T_COR}::test_sign_in_from_a_stuffing_source_is_detected",
         ),
     ),
     Coverage(
@@ -93,8 +103,10 @@ COVERAGE: tuple[Coverage, ...] = (
             "Token-bucket rate limits on every endpoint, per IP and per account",
             "Page-size caps on list endpoints; 1 MB request body limit at the proxy",
             "15-second database statement timeout for the API role",
+            "Security-event recording is throttled per source, so floods cannot fill the store",
         ),
         (
+            f"{T_EVENTS}::test_recording_is_throttled_per_source_ip",
             f"{T_RL}::test_concurrent_requests_never_overspend_a_bucket",
             f"{T_RL}::test_user_limit_follows_the_account_across_ip_addresses",
             f"{T_USERS}::test_audit_query_parameters_validated",
@@ -112,6 +124,7 @@ COVERAGE: tuple[Coverage, ...] = (
         (
             f"{T_AUTHZ}::test_every_route_declares_exactly_its_expected_access",
             f"{T_USERS}::test_only_admins_can_delete_users",
+            f"{T_INC}::test_viewers_read_but_never_write",
         ),
     ),
     Coverage(

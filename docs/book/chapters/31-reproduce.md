@@ -87,7 +87,7 @@ Each check below demonstrates a control from the threat model on your own machin
 
 ```
 make check              # every CI gate: lint, types, tests, SAST, SCA, secret scan
-make smoke              # 34 end-to-end checks against the running stack
+make smoke              # 48 end-to-end checks against the running stack
 make verify-hardening   # 17 container and network checks
 make verify-audit       # walk the audit hash chain; prints the head hash
 ```
@@ -105,6 +105,28 @@ end; echo
 
 Expected: up to twenty `401` responses, then `429`. Under **Audit Logs**, filter by `ratelimit.exceeded`. There is one record for the whole burst, naming your real address (172.30.86.x), not 6.6.6.6. Then open **/apis**: the login row shows *Elevated* with the throttled count. Signed in as the analyst, the same page explains that the inventory is restricted, and no request for it is made.
 
+Watch detection and the incident workflow (Phase 7). Send one SQL injection probe to a public
+endpoint through the edge:
+
+```
+curl -s -o /dev/null -w "%{http_code}\n" "http://localhost:8080/api/v1/health?q=1'%20OR%20'1'='1'%20--"
+```
+
+Expected: `200`, because detection never blocks. On the **Threats** page (live view) a new
+*SQL injection* event appears from your own address, raised to *Critical* because the request was
+served; select it to see the HTTP analysis and what matched. Then, as an admin:
+
+1. **Automation** → *SQL injection* → **Run simulation**. The result shows the requests blocked at
+   the edge and no incident (COR-003 is lowered when nothing got through).
+2. **WAF** → set the SQL injection rules to *Count only*, then run the scenario again. Now the
+   payloads reach the application and COR-003 fires at HIGH, opening an incident (or adding
+   evidence to the open simulated one, since a detection is raised once per source in ten
+   minutes).
+3. **Dashboard** → *Simulated*: the amber banner, the simulated incident and traffic. *Live* shows
+   none of it.
+4. Open the incident, **Move to Triaged**, add a note, and check **Evidence integrity** reads
+   *Verified*. Set the WAF rules back to *Block*.
+
 Container hardening by hand:
 
 ```
@@ -116,7 +138,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: evil.example' http://localhos
 
 ## Step 8 — Ship a phase the way this project does
 
-This is the release workflow from Chapter 2. The commands are the ones used for v0.1.0 through v0.3.0, shown here for the next release (Phase 7, v0.4.0). The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
+This is the release workflow from Chapter 2, with the exact commands used for v0.4.0 (Phase 7); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
 
 ```
 git switch -c phase/7-security-ops                      # one branch per phase

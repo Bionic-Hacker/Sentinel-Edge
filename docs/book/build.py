@@ -28,9 +28,9 @@ from weasyprint import HTML
 ROOT = Path(__file__).parent
 DEFAULT_OUTPUT = ROOT / "SentinelEdge-Engineering-Blueprint.pdf"
 EDITION = {
-    "number": 1,
-    "version": "v0.3.0",
-    "phases": "Phases 1, 2 and 6",
+    "number": 2,
+    "version": "v0.4.0",
+    "phases": "Phases 1, 2, 6 and 7",
     "date": "October 7, 2026",
 }
 MD_EXT = ["tables", "fenced_code", "attr_list", "md_in_html", "sane_lists", "smarty"]
@@ -42,8 +42,8 @@ FLOWS: dict[str, list[tuple[str, str, str, str]]] = {
         ("P1", "Architecture", "v0.1.0", "done"),
         ("P2", "App foundation", "v0.2.0", "done"),
         ("P6", "API security", "v0.3.0", "done"),
-        ("P7", "Security ops", "next", "next"),
-        ("P8", "AppSec scanning", "", "plan"),
+        ("P7", "Security ops", "v0.4.0", "done"),
+        ("P8", "AppSec scanning", "next", "next"),
         ("P10", "Threat model & governance", "", "plan"),
         ("P9", "AI security", "Bedrock", "plan"),
         ("P3·4·5", "AWS window", "deploy · demo · destroy", "aws"),

@@ -101,9 +101,10 @@ Primary keys are UUIDs, so record IDs are not enumerable. Timestamps are UTC. Ev
 | Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed), password_reset_tokens (hashed), outbox_messages | 2 ✓ |
 | Audit | audit_log (hash-chained, append-only by grant and trigger) | 2 ✓ |
 | API security | rate_limit_buckets, api_endpoint_stats (hourly, route templates only) | 6 ✓ |
-| Inventory | applications | 7 |
-| Telemetry and operations | security_events, incidents, incident_timeline, analyst_notes | 7 |
-| Edge and WAF | waf_rules (mirror), waf_exceptions, ip_lists | 5–7 |
+| Inventory | applications | 7 ✓ |
+| Telemetry and operations | security_events (append-only, write-once incident link), incidents, incident_timeline (notes are timeline entries) | 7 ✓ |
+| Simulation | simulation_runs, simulated_waf_rules | 7 ✓ |
+| Edge and WAF | waf_rules (mirror of AWS), waf_exceptions, ip_lists | 5 |
 | Vulnerabilities and supply chain | vulnerabilities, scan_runs, sbom_documents, sbom_components | 8 |
 | Certificates | certificates | 5 |
 | AI | ai_analyses, ai_action_proposals | 9 |

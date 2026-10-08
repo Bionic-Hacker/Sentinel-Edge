@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.3 (Phase 6: API security)
+- **Version:** 0.4 (Phase 7: security operations)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Full PASTA
   treatment and in-app modelling arrive in Phase 10.
@@ -22,6 +22,8 @@ tested), **Planned (Pn)**, or **Accepted (interim)** with an expiry.
 | A7 | Source, pipeline, container images | Supply-chain compromise |
 | A8 | AI prompts and outputs | Manipulated analysis, data leakage |
 | A9 | Terraform state | May contain sensitive values and resource details |
+| A10 | Incident records and timelines | The evidence trail of an attack and of the response to it |
+| A11 | Simulated WAF configuration | Changes what simulations show; must never be mistaken for real edge state |
 
 ## 2. Trust boundaries and data flows
 
@@ -50,6 +52,8 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | F5 | WAF logs → worker | Attacker-controlled request data | TB1→TB5 (indirect) |
 | F6 | GitHub Actions → AWS | Images, Terraform plans | TB6 |
 | F7 | Developer → GitHub | Code, configuration | TB8 |
+| F8 | API → security events → correlation → incidents | Attacker-controlled request data (bounded, redacted) | TB3→TB4 |
+| F9 | Attack simulator → security events | Synthetic requests in memory, labelled SIMULATED | TB4 (no network) |
 
 ## 3. Threats
 
@@ -76,18 +80,18 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | OWASP | L×I | Control(s) | Status |
 |---|---|---|---|---|---|---|
-| T-ID-01 | S | Credential stuffing / brute force | API2, A07 | 3×3 | WAF rate rule, app limiter, lockout, MFA | **Mitigated (P2, P6)**: lockout, MFA, uniform errors, per-IP sign-in limits; WAF rate rule P5 |
+| T-ID-01 | S | Credential stuffing / brute force | API2, A07 | 3×3 | WAF rate rule, app limiter, lockout, MFA, detection | **Mitigated (P2, P6) and detected (P7)**: lockout, MFA, uniform errors, per-IP sign-in limits; COR-001, COR-002 and COR-007 open incidents; WAF rate rule P5 |
 | T-ID-02 | S | Access-token theft via XSS | A03 | 2×3 | Memory-only token, strict CSP, React escaping, ESLint bans | **Mitigated (P2)**: token in memory only, refresh cookie HttpOnly (verified in Chromium) |
-| T-ID-03 | S | Refresh-token replay | API2 | 2×3 | Rotation with family revocation (ADR-0003) | **Mitigated (P2)**: reuse revokes the session and is audited |
+| T-ID-03 | S | Refresh-token replay | API2 | 2×3 | Rotation with family revocation (ADR-0003) | **Mitigated (P2)**: reuse revokes the session and is audited; opens a token-theft incident (P7) |
 | T-ID-04 | T | CSRF on cookie-authenticated refresh | A01 | 2×2 | SameSite=Strict, Origin check, custom header | **Mitigated (P2)** |
 | T-ID-05 | I | Account enumeration | API2 | 3×1 | Generic auth errors, uniform timing | **Mitigated (P2)**: identical responses, dummy hash for unknown accounts, generic reset response |
-| T-API-01 | E | BOLA (object-level authorization) | API1 | 3×3 | Service-level ownership checks, UUID IDs | **Mitigated for user records (P2)**; new resources P6+ |
+| T-API-01 | E | BOLA (object-level authorization) | API1 | 3×3 | Service-level ownership checks, UUID IDs | **Mitigated (P2, P7)**: user records; applications (developers see only their own, others 404 and audited); repeated denials raise COR-004 |
 | T-API-02 | E | BFLA (function-level authorization) | API5 | 2×3 | Role dependencies on every route; route-table test | **Mitigated (P2)**: declared matrix + enforcement sweep |
 | T-API-03 | T | Mass assignment | API3 | 2×3 | `extra="forbid"` request models | **Mitigated (P2)**: all request models; tested on login and user admin |
 | T-API-04 | D | Unrestricted resource consumption | API4 | 3×2 | WAF rate rules, app limits, body size limit, pagination caps | **Mitigated in app (P6)**: token buckets per IP and account, page caps, body limit, statement timeout; WAF rate rules P5 |
 | T-API-05 | I | Excessive data exposure | API3 | 2×3 | Explicit response models (ADR-0012) | **Mitigated (P2)**: user responses checked against an exact field allow-list |
 | T-API-06 | I | Unauthenticated capability endpoint discloses roadmap | API9 | 1×1 | Moved behind authentication | **Closed (P2)** |
-| T-API-07 | T | Injection (SQL, command) | API8, A03 | 2×3 | ORM parameterisation, validation, WAF SQLi rules | **Mitigated in app (P2)**: ORM only, validated query params; WAF P5 |
+| T-API-07 | T | Injection (SQL, command) | API8, A03 | 2×3 | ORM parameterisation, validation, WAF SQLi rules, detection | **Mitigated in app (P2), detected (P7)**: ORM only, validated query params; 17 detect-only HTTP rules and COR-003; WAF P5 (simulated WAF in P7) |
 | T-API-08 | I | SSRF via user-supplied URLs | API7 | 1×3 | No server-side fetch of user URLs; egress guard (HTTPS, allow-list, public addresses only) | **Not exposed; guard ready and tested (P6)** |
 | T-API-09 | I | Error messages leak stack traces, SQL, paths, secrets | API8 | 2×2 | Generic envelope, no input echo, internal logging | **Mitigated (P1, tested)** |
 | T-API-10 | R | Requests untraceable during investigation | — | 2×2 | Correlation IDs, structured logs | **Mitigated (P1)** |
@@ -106,6 +110,20 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-ID-10 | D | Attacker locks out a known account by failing logins | 2×1 | Lockout is temporary; WAF/IP limits will throttle the attacker | **Accepted (interim)** until P5/P6 |
 | T-INP-01 | D | Non-ASCII digits pass `\d` validation and crash a comparison (500) | 2×1 | ASCII-only `[0-9]`; regression test | **Mitigated (P2)** — found by the test suite |
 | T-AZ-01 | E | Role compared by identity (`is`) against a string from the DB, silently failing open or closed | 2×3 | Enum-typed column; `==` comparisons; authorization sweep | **Mitigated (P2)** — found by the test suite |
+
+### Security operations threats added in Phase 7
+
+| ID | STRIDE | Threat | L×I | Control(s) | Status |
+|---|---|---|---|---|---|
+| T-SO-01 | T/R | Incident evidence or timeline altered to hide an intrusion or a mishandled response | 2×3 | Events append-only for the app role; `incident_id` write-once (trigger); timeline append-only with each entry's SHA-256 in the audit chain, verified on every read; incidents never deleted (ADR-0018) | **Mitigated (P7, tested)** |
+| T-SO-02 | T | Simulated activity mixed into real detections, incidents or dashboards | 2×3 | Provenance on every record; correlation partitioned by provenance; live and simulated views never combined; simulated banner (ADR-0009, ADR-0019) | **Mitigated (P7, tested)** |
+| T-SO-03 | D | Attacker floods security events to bury real detections or load the database | 2×2 | Events only from security signals, not every request; HTTP-analysis recording throttled to 30 events a minute per source; a detection at most once per rule, key and window; bounded evidence; one open incident per source; rate limits | **Mitigated (P7)**; retention policy P12 |
+| T-SO-04 | D | ReDoS: crafted input makes HTTP analysis patterns backtrack | 2×2 | Linear-time patterns, bounded input sizes, adversarial timing test | **Mitigated (P7, tested)** |
+| T-SO-05 | T | Stored XSS: attack payloads in evidence rendered as markup in the dashboard | 2×3 | Evidence rendered as text only, strict CSP (no inline script or style), test with a `<script>` snippet | **Mitigated (P7, tested)** |
+| T-SO-06 | E | Analyst bypasses the incident workflow (closes, reopens, reassigns beyond their role) | 2×2 | Workflow and role rules enforced on the server; UI renders `available_moves` and `permissions` only; authorization matrix tests | **Mitigated (P7, tested)** |
+| T-SO-07 | T | Lost update: two responders overwrite each other's changes | 2×1 | Optimistic concurrency (`version`); stale writes get 409 and a reload prompt | **Mitigated (P7, tested)** |
+| T-SO-08 | E | Attack simulator abused to attack another system | 1×3 | No network I/O and no target input; RFC 5737 addresses and `.example` names; leads only; every run audited and rate limited (ADR-0019) | **Mitigated (P7, tested)** |
+| T-SO-09 | I | Passwords, tokens or codes captured in event evidence | 2×3 | Snippets from sensitive fields replaced with `[REDACTED]`; bounded snippets; incident free text excluded from inspection | **Mitigated (P7, tested)** |
 
 ### TB4 — API → Database
 
@@ -148,12 +166,13 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
    would block. Broken by ADR-0001 (no public origin) and by app-layer validation and
    parameterisation, which hold even without WAF.
 2. **Credential stuffing → session theft → data access.** Broken at the WAF rate rule, app lockout,
-   MFA, short-lived tokens, and RBAC/object checks; detectable through failed-login telemetry.
+   MFA, short-lived tokens, and RBAC/object checks; detected by COR-001 (stuffing), COR-007 (a
+   sign-in from the stuffing source) and token-replay incidents (Phase 7).
 3. **Poisoned log line → AI recommends harmful change → operator applies it.** Broken because AI
    output is schema-bound and advisory, proposals need approval, and real WAF changes need a
    Terraform PR with review.
 
-## 5. Residual risk (after Phase 6)
+## 5. Residual risk (after Phase 7)
 
 - Single-maintainer project: separation of duties is enforced by role checks, not by different
   people. Accepted for a portfolio.
@@ -167,3 +186,11 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.
 - Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.
 - Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).
+- Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that
+  produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP
+  analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.
+- Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.
+- HTTP analysis is detect-only. Until AWS WAF (Phase 5), nothing blocks an injection payload at
+  the edge; parameterised queries and validation remain the protection, and detection records it.
+- On one machine every request comes from one address, so local detections group into a single
+  incident. Expected; not a weakness of the deployed design.

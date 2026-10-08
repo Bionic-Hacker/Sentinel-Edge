@@ -14,7 +14,7 @@ from it in either direction.
 | ANALYST | Incident investigation | No |
 | VIEWER | Read-only | No |
 
-## Endpoint matrix (Phase 6)
+## Endpoint matrix (Phase 7)
 
 ✓ = allowed. "Setup" = any signed-in user, even before finishing forced setup.
 
@@ -31,12 +31,51 @@ from it in either direction.
 | `PATCH /users/{id}`, `POST /users/{id}/mfa/reset`, `DELETE /users/{id}` | | | ✓³ | | | | |
 | `GET /audit-logs`, `GET /audit-logs/verify` | | | ✓ | ✓ | | | |
 | `GET /api-security/inventory`, `GET /api-security/owasp` | | | ✓ | ✓ | ✓ | | |
+| `GET /security-events`, `GET /security-events/{id}` | | | ✓ | ✓ | | ✓ | ✓ |
+| `GET /security/overview` | | | ✓ | ✓ | | ✓ | ✓ |
+| `GET /incidents`, `GET /incidents/{id}` | | | ✓ | ✓ | | ✓ | ✓ |
+| `POST /incidents`, `GET /incidents/assignees` | | | ✓ | ✓ | | ✓ | |
+| `PATCH /incidents/{id}`, `POST /incidents/{id}/transitions`, `/assignment`, `/notes`, `/events` | | | ✓ | ✓ | | ✓⁴ | |
+| `GET /applications`, `GET /applications/{id}` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
+| `POST /applications`, `PATCH /applications/{id}`, `GET /applications/owners` | | | ✓ | ✓ | | | |
+| `GET /simulator/scenarios`, `/simulator/runs`, `/simulator/waf-rules` | | | ✓ | ✓ | | ✓ | |
+| `POST /simulator/runs`, `PUT /simulator/waf-rules/{rule_id}` | | | ✓ | ✓ | | | |
 
 1. Same-origin only: requires an allowed `Origin` and the `X-SentinelEdge-CSRF` header.
 2. Object-level check (OWASP API1): any other ID returns the same 404 as a non-existent one, and
    the attempt is audited as `authz.denied`.
 3. An admin cannot demote, deactivate, delete or reset MFA on themselves, and the last active
    admin can't be removed.
+4. Object-level workflow rules apply on top of the role check; see the incident matrix below.
+5. Developers see only the applications they own. Any other ID returns 404, audited as
+   `authz.denied`.
+
+## Incident permission matrix (Phase 7)
+
+The role check above admits investigators to the write endpoints; the incident service then
+decides what each person may do to each incident. Every incident response carries the result as
+`available_moves` and `permissions`, and the UI renders only those (ADR-0018).
+
+| Action | Leads (ADMIN, SECURITY_ENGINEER) | ANALYST | VIEWER |
+|---|---|---|---|
+| Read incidents, timeline and evidence | ✓ | ✓ | ✓ |
+| Open an incident (manually or from an event) | ✓ | ✓ (becomes the owner) | |
+| Triage an unassigned DETECTED incident | ✓ | ✓ (assigned to them) | |
+| Advance the workflow one step, or fail validation | ✓ | ✓ own | |
+| Close (with a resolution) or close as not an incident | ✓ | | |
+| Reopen a closed incident | ✓ | | |
+| Edit title, summary, remediation | ✓ | ✓ own | |
+| Change severity | ✓ | | |
+| Assign to someone else, or unassign | ✓ | | |
+| Take an unassigned open incident | (assign it instead) | ✓ | |
+| Add a note | ✓ | ✓ | |
+| Link more events as evidence | ✓ | ✓ own | |
+
+None of the write actions apply to a closed incident except reopening (leads) and adding notes.
+Moves that end or reverse work need a note (close, close as not an incident, validation failed,
+reopen); closing needs a resolution. Every write names the `version` it read and gets 409
+`stale_version` if someone else changed the incident first. Notes, assignments and status changes
+are timeline entries, committed to the audit chain and never edited.
 
 ## How it is enforced
 

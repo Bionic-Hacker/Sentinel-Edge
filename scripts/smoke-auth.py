@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""End-to-end smoke test of authentication, authorization, auditing and API security, run
-against the live local stack through the nginx edge exactly as a browser would use it.
+"""End-to-end smoke test of authentication, authorization, auditing, API security and security
+operations, run against the live local stack through the nginx edge exactly as a browser would.
 
     make smoke            # stack must be running (make dev)
 
 Each run creates its own uniquely named admin and analyst (synthetic @example.com addresses) via
 the API container's CLI, so it can be repeated. It deliberately locks the analyst account it
 created, and exhausts this machine's readiness-probe rate limit, which refills within a minute.
-Nothing else is modified.
+It also runs two attack-simulator scenarios (synthetic, in memory, labelled simulated) and switches
+the simulated WAF's SQL injection rules to count and back. Nothing else is modified.
+
+All requests come from this one machine, so the smoke run's deliberate token replay, lockout and
+injection probe fold into a single open live incident for this address. That is expected.
 
 Note on cookies: browsers send `Secure` cookies to http://localhost; this HTTP client does not,
 so the script carries the refresh cookie explicitly. That reproduces browser behaviour; it does
@@ -31,6 +35,8 @@ BASE = os.environ.get("SMOKE_BASE_URL", "http://localhost:8080")
 CLI = shlex.split(os.environ.get("SMOKE_CLI", "docker compose exec -T api python -m app.cli"))
 HEADERS = {"Origin": BASE, "X-SentinelEdge-CSRF": "1"}
 COOKIE = "__Host-sentinel_refresh"
+# RFC 5737 documentation ranges: the only addresses the attack simulator ever uses.
+DOC_RANGES = ("192.0.2.", "198.51.100.", "203.0.113.")
 # The probe policy allows a burst of 120 and refills 2 per second; 400 is far beyond what any
 # working limiter needs, and well under the 600-per-minute global ceiling.
 PROBE_BURST_CAP = 400
@@ -265,7 +271,116 @@ def main() -> None:
     ready = next(i for i in after if i["method"] == "GET" and i["path"] == "/api/v1/ready")
     check("inventory counts the throttled probes", ready["metrics"]["throttled"] > 0)
 
+    security_operations(client, token)
+
     print(f"\nAll {passed} checks passed.")
+
+
+def security_operations(client: httpx.Client, token: str) -> None:
+    """Phase 7: detection, the attack simulator and its WAF, the dashboard and provenance."""
+    auth = bearer(token)
+
+    def simulate_sql_injection() -> tuple[int, dict[str, int]]:
+        response = client.post(
+            "/api/v1/simulator/runs", headers=auth, json={"scenario": "sql_injection"}
+        )
+        if response.status_code != 201:
+            return response.status_code, {}
+        return 201, response.json().get("summary", {}).get("requests", {})
+
+    def set_mode(rule: str, mode: str) -> int:
+        url = f"/api/v1/simulator/waf-rules/{rule}"
+        return client.put(url, headers=auth, json={"mode": mode}).status_code
+
+    print("\nSecurity operations (Phase 7)")
+    # A request carrying a SQL injection pattern is served (detect-only) and recorded as a LOCAL
+    # event by the HTTP analysis rules.
+    probe = {"q": "1' OR '1'='1' --"}
+    response = client.get("/api/v1/platform/capabilities", headers=auth, params=probe)
+    check(
+        "a request carrying SQL injection is served (detection only)", response.status_code == 200
+    )
+    events = client.get(
+        "/api/v1/security-events",
+        headers=auth,
+        params={"view": "live", "source": "http_analysis", "limit": 5},
+    ).json()["items"]
+    check(
+        "HTTP analysis recorded it as a live event under a SQLI rule",
+        any((e["rule_id"] or "").startswith("SQLI") and e["provenance"] == "LOCAL" for e in events),
+    )
+
+    scenarios = client.get("/api/v1/simulator/scenarios", headers=auth).json()["items"]
+    check(f"the attack simulator lists its scenarios ({len(scenarios)})", len(scenarios) == 11)
+    status_code, blocking = simulate_sql_injection()
+    check("a SQL injection simulation runs", status_code == 201)
+    check(
+        "the simulated WAF blocks injections at the edge by default",
+        blocking.get("blocked_by_waf", 0) > 0,
+    )
+
+    rules = client.get("/api/v1/simulator/waf-rules", headers=auth).json()["items"]
+    sqli = [
+        r["rule_id"] for r in rules if r["category"] == "sql_injection" and r["mode"] == "block"
+    ]
+    try:
+        switched = [set_mode(rule, "count") for rule in sqli]
+        check(
+            f"SQL injection WAF rules switch to count mode ({len(sqli)} rules)",
+            bool(sqli) and all(code == 200 for code in switched),
+        )
+        _, counting = simulate_sql_injection()
+        check(
+            "in count mode the requests reach the application and are detected there",
+            counting.get("blocked_by_waf") == 0 and counting.get("reached_app", 0) > 0,
+        )
+    finally:
+        # Always leave the simulated WAF as it was found, even when a check above fails.
+        restored = [set_mode(rule, "block") for rule in sqli]
+    check("the WAF rules are restored to block", all(code == 200 for code in restored))
+
+    simulated = client.get(
+        "/api/v1/security/overview", headers=auth, params={"view": "simulated", "hours": 24}
+    ).json()
+    check(
+        "the simulated dashboard counts simulated events and simulator traffic",
+        simulated["events"]["total"] > 0
+        and simulated["traffic"]["source"] == "simulator"
+        and simulated["traffic"]["requests"] > 0,
+    )
+    live = client.get(
+        "/api/v1/security/overview", headers=auth, params={"view": "live", "hours": 24}
+    ).json()
+    check(
+        "the live dashboard uses API metrics and no simulated addresses",
+        live["traffic"]["source"] == "api_metrics"
+        and not any(s["source_ip"].startswith(DOC_RANGES) for s in live["top_sources"]),
+    )
+    incidents = {
+        view: client.get(
+            "/api/v1/incidents", headers=auth, params={"view": view, "state": "all"}
+        ).json()["items"]
+        for view in ("simulated", "live")
+    }
+    check(
+        "simulated incidents exist and are labelled simulated",
+        bool(incidents["simulated"])
+        and all(i["provenance"] in ("SIMULATED", "DEMO") for i in incidents["simulated"]),
+    )
+    check(
+        "live incidents contain no simulated data",
+        all(i["provenance"] in ("LOCAL", "REAL_AWS") for i in incidents["live"]),
+    )
+    apps = client.get("/api/v1/applications", headers=auth).json()["items"]
+    check(
+        "the application inventory lists the platform itself",
+        any(a["slug"] == "sentineledge" and a["is_platform"] for a in apps),
+    )
+    chain = client.get("/api/v1/audit-logs/verify", headers=auth).json()
+    check(
+        f"audit chain intact after the simulations ({chain['records_checked']} records)",
+        chain["intact"],
+    )
 
 
 if __name__ == "__main__":

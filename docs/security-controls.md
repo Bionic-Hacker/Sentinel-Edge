@@ -21,7 +21,7 @@ or read.
 | 11 | IAM | Least privilege per function, no static keys | C-IAM-01..03 | P3, P11 |
 | 12 | Secrets management | Secrets never in code, images, Terraform, or CI config | C-SEC-01..02 | P1 (scan), P4 |
 | 13 | Logging | Traceability and forensics | C-LOG-01..03, C-AUD-01..03 | P1 (app), P2 (audit) |
-| 14 | Monitoring | Detects abuse and failures | C-MON-01 | P4, P7 |
+| 14 | Monitoring and detection | Detects abuse and failures; turns signals into incidents | C-MON-01, C-SO-01..09 | **P7 (detection, incidents)**, P4 (alarms) |
 | 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01 | P8 |
 | 16 | CI/CD security | Prevents vulnerable or secret-bearing code from shipping | C-CICD-01..04 | P1 (baseline), P8, P11 |
 | 17 | AI security | Contains prompt injection and AI agency | C-AI-01..06 | P9 |
@@ -88,14 +88,31 @@ or read.
 | C-NET-03 | Client IP from `X-Forwarded-For` only via trusted proxy networks, chain walked right to left | `app/core/client_ip.py`, pinned edge subnet, nginx overwrite | `test_client_ip.py`, `make smoke` |
 | C-GOV-05 | OWASP API Top 10 coverage with cited test evidence that must exist | `app/core/owasp_coverage.py` | `test_owasp_coverage.py` |
 
+## 2c. Controls implemented in Phase 7
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-SO-01 | Append-only security events; `incident_id` write-once (trigger) | Migrations 0006 and 0007, `app/models/security_event.py` | `test_app_role_cannot_alter_or_remove_events`, `test_evidence_links_are_write_once` |
+| C-SO-02 | Detect-only HTTP analysis: 17 rules, double decoding, bounded input, sensitive snippets redacted, incident free text excluded | `app/security/http_analysis.py`, `app/core/http_inspection.py` | `test_http_analysis.py`, `test_sensitive_query_parameters_are_redacted`, `test_inspection_exclusions_name_real_routes_and_fields` |
+| C-SO-03 | ReDoS-safe patterns | Linear-time rules, input bounds | `test_rules_are_linear_on_adversarial_input` |
+| C-SO-04 | Synchronous correlation under the audit lock: exactly-once detections, partitioned by provenance (ADR-0018) | `app/services/correlation.py` | `test_concurrent_failures_raise_exactly_one_detection_and_incident` (30 threads), `test_detections_never_cross_provenance` |
+| C-SO-05 | Incident workflow and role rules enforced on the server; UI renders `available_moves` and `permissions` | `app/services/incidents.py` | `test_incidents.py` (workflow table, analysts and viewers), `secops.test.tsx` |
+| C-SO-06 | Timeline integrity: each entry's SHA-256 committed to the audit chain and verified on read; incidents never deleted | `verify_timeline`, migration 0007 | `test_tampering_with_the_timeline_is_detected`, `test_deleting_a_timeline_entry_is_detected`, `test_app_role_cannot_rewrite_incident_records` |
+| C-SO-07 | Optimistic concurrency on incidents and applications (409 `stale_version`) | `version` columns | `test_stale_writes_are_refused`; UI reload prompt in `secops.test.tsx` |
+| C-SO-08 | Attack simulator safe by construction: no network I/O, no target input, RFC 5737 addresses, SIMULATED provenance, leads only, audited (ADR-0019) | `app/services/simulator.py` | `test_a_simulation_cannot_be_given_a_target`, `test_every_scenario_produces_only_simulated_activity`, `test_simulations_never_appear_in_the_live_view` |
+| C-SO-09 | Attacker-controlled evidence rendered as text only (no markup), under the strict CSP | `EvidenceText`, `ThreatsPage` | `secops.test.tsx`: a `<script>` snippet renders as text; C-WEB-02, C-WEB-03 |
+| C-API-01 | Object-level authorization extended to applications (developers see only their own; 404, audited) | `app/services/applications.py` | `test_developers_see_only_their_own_applications` |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
 |---|---|---|---|---|---|
-| SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries | `waf` module; Pydantic schemas; SQLAlchemy ORM only | Query-param validation tests; WAF logs (P5) | **P2 (app)**, P5 |
+| SQL injection | T-API-07 | AWS WAF SQLi rules + validation + parameterised queries + detection | `waf` module; Pydantic schemas; SQLAlchemy ORM only; HTTP analysis and COR-003 | Query-param validation tests; `test_sql_injection_in_a_query_parameter_is_recorded`; `make smoke`; WAF logs (P5) | **P2 (app), P7 (detection)**, P5 |
 | XSS | T-ID-02, T-EDGE-06 | React escaping + strict CSP + lint bans + WAF XSS rules | `security-headers.conf`; `eslint.config.js`; WAF | Lint in CI; header tests; ZAP (P8) | P1, P5, P8 |
-| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA | WAF module; auth service; `api_policy.LOGIN` | `test_account_locks_after_repeated_failures`, `test_login_is_limited_per_ip_with_retry_after`; WAF match counts (P5) | **P2, P6**, P5 |
-| Broken object authorization | T-API-01 | Ownership checks in services | `UserService.get_user` | `test_users_can_read_only_their_own_record` | **P2**, P6 |
+| Credential stuffing | T-ID-01 | WAF rate rule + app limiter + lockout + MFA + detection | WAF module; auth service; `api_policy.LOGIN`; COR-001, COR-007 | `test_account_locks_after_repeated_failures`, `test_login_is_limited_per_ip_with_retry_after`, `test_credential_stuffing_fires_at_threshold_and_not_before`; WAF match counts (P5) | **P2, P6, P7**, P5 |
+| Broken object authorization | T-API-01 | Ownership checks in services; probing detected | `UserService.get_user`, `ApplicationService`; COR-004 | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications` | **P2, P7** |
+| Tampered incident evidence | T-SO-01 | Append-only events, write-once links, timeline digests in the audit chain | ADR-0018 | `test_tampering_with_the_timeline_is_detected`, `test_evidence_links_are_write_once` | **P7** |
+| Simulated data mistaken for real | T-SO-02 | Provenance partitioning, separate views, banner | ADR-0009, ADR-0019 | `test_simulations_never_appear_in_the_live_view`, `make smoke` | **P7** |
 | Broken function authorization | T-API-02 | Role dependency on every route | `core/authz.py` | `test_authz_matrix.py` | **P2** |
 | Mass assignment | T-API-03 | `extra="forbid"` | Request schemas | `test_every_request_body_rejects_unknown_fields` (sweep) | **P1, P6** |
 | Excessive data exposure | T-API-05 | Explicit response models | ADR-0012 | `test_every_json_route_declares_a_response_model`, `test_no_response_model_exposes_secret_fields` | **P1, P6** |
@@ -122,5 +139,5 @@ defenses · C-ID-07 secure reset · C-API-01 object authz · C-API-02 function a
 rate limiting · C-DB-01 least-privilege roles · C-DB-02 encryption · C-DB-03 TLS required ·
 C-DB-04 backups · C-IAM-01 per-function roles · C-IAM-02 no static keys · C-IAM-03 permission
 documentation · C-AUD-01 hash chain · C-AUD-02 INSERT-only grants · C-AUD-03 Object Lock archive ·
-C-MON-01 alarms · C-VM-01 findings lifecycle · C-AI-01..06 per ADR-0007 · C-GOV-03 change
+C-MON-01 alarms · C-SO-01..09 security operations (Phase 7, section 2c) · C-VM-01 findings lifecycle · C-AI-01..06 per ADR-0007 · C-GOV-03 change
 management.

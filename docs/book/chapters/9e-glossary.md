@@ -28,5 +28,6 @@
 | Edition | Date | Release | Changes |
 |---|---|---|---|
 | 1 | October 7, 2026 | v0.3.0 | First edition. Phases 1, 2 and 6 as built; remaining phases as designed; reproduction guide. |
+| 2 | October 7, 2026 | v0.4.0 | Phase 7 (security operations) rewritten as built, with the detection pipeline and incident workflow figures; request pipeline updated for HTTP analysis; ADR-0018 and ADR-0019; nine new threats and controls; 45-endpoint inventory; Phase 7 reproduction steps; new lessons. |
 
 Each new phase release produces a new edition. The completed phase's chapter moves from Part III to Part II and is rewritten as built, and the status tables, figures, appendices and lessons are updated.

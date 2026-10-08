@@ -5,10 +5,10 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1, 2 and 6 complete (v0.3.0) — API security.**
+> **Current status: Phases 1, 2, 6 and 7 complete (v0.4.0): security operations.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
-> and an API Security Center with a live endpoint inventory and OWASP API Top 10 coverage run
-> locally. **No AWS resources exist yet**: AWS phases are deliberately grouped late
+> an API Security Center, and now attack detection, correlation, an incident workflow with
+> tamper-evident evidence, a security dashboard and a labelled attack simulator run locally. **No AWS resources exist yet**: AWS phases are deliberately grouped late
 > to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
 > capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
 > and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
@@ -28,7 +28,7 @@ SentinelEdge is its own first protected workload. Every control it reports on al
 | Threat modeling | STRIDE per trust boundary today; PASTA and in-app modeling later | 1, 10 |
 | Security testing | Negative tests for every control; SAST, SCA, secrets, IaC, container, DAST in CI | 1, 8 |
 | Certificates | ACM lifecycle, expiry monitoring and alerting | 5 |
-| Incident response | DETECTED → CLOSED workflow with evidence and AI-assisted analysis | 7 |
+| Detection and incident response | Detect-only HTTP attack analysis, correlation rules, DETECTED → CLOSED workflow with tamper-evident evidence; AI-assisted analysis later | 7, 9 |
 | AI security | Amazon Bedrock analysis with prompt-injection defenses and human approval | 9 |
 | Governance | Control matrix, exceptions with expiry, change management, audit trail | 2, 10 |
 | Automation | Security CLI tools, GitHub Actions gates, Terraform | 3, 11 |
@@ -79,7 +79,23 @@ Seventeen defense-in-depth layers, from DNS to AI security, each with a stated r
 requirement → threat → control → implementation → evidence in
 [docs/security-controls.md](docs/security-controls.md).
 
-**In place after Phase 6 (LOCAL):**
+**In place after Phase 7 (LOCAL, plus labelled SIMULATED):**
+
+- **Security events and detection:** append-only events from authentication, authorization,
+  rate limiting and 17 detect-only HTTP attack rules; seven correlation rules (credential
+  stuffing, password guessing, injection campaigns, authorization probing, API abuse, scanning,
+  sign-in from a stuffing source) run synchronously and exactly once
+  ([ADR-0018](docs/adr/0018-security-event-pipeline-and-incidents.md)).
+- **Incidents:** DETECTED → TRIAGED → INVESTIGATING → CONTAINMENT → REMEDIATION → VALIDATION →
+  CLOSED, with role rules enforced on the server, write-once evidence links, and every timeline
+  entry's digest committed to the audit chain and verified on read.
+- **Security dashboard:** incidents, events, top sources and traffic, in a live view and a
+  simulated view that are never mixed. Application inventory with owners and criticality.
+- **Attack simulator (SIMULATED):** 11 scenarios built in memory, with no network traffic and no
+  target input, through the real detection rules and a simulated WAF with AWS block and count
+  semantics ([ADR-0019](docs/adr/0019-attack-simulator-and-simulated-waf.md)).
+
+**In place since Phase 6 (LOCAL):**
 
 - **Rate limiting:** PostgreSQL token buckets per IP (before authentication) and per account
   (after), 429 with Retry-After, first denial audited ([ADR-0017](docs/adr/0017-rate-limiting-and-client-ip.md)).
@@ -131,7 +147,7 @@ make env                                  # .env with random local secrets (mode
 make dev                                  # web on http://localhost:8080
 make create-admin EMAIL=you@example.com   # one-time password; you'll set your own + MFA
 make check                                # lint, types, tests, SAST, SCA — the CI gates
-make smoke                                # end-to-end auth, authz, audit and API security test (34 checks)
+make smoke                                # end-to-end test of the running stack (48 checks)
 ```
 
 More in [docs/local-development.md](docs/local-development.md).
@@ -152,6 +168,11 @@ More in [docs/local-development.md](docs/local-development.md).
 | `backend/tests/integration/test_auth_mfa.py` | TOTP replay, brute force, encrypted secrets, single-use recovery codes |
 | `backend/tests/integration/test_audit_log.py` | Grants and triggers block edits; tampering detected at the exact record |
 | `backend/tests/integration/test_database_roles.py` | The app role has exactly its intended privileges |
+| `backend/tests/integration/test_correlation.py` | Detections fire at threshold, once, never across provenance (30 concurrent writers) |
+| `backend/tests/integration/test_incidents.py` | Workflow and role rules, stale writes refused, timeline tampering detected |
+| `backend/tests/integration/test_simulator.py` | Simulations take no target, stay SIMULATED, and never reach the live view |
+| `backend/tests/unit/test_http_analysis_performance.py` | Detection patterns stay linear on adversarial input (no ReDoS) |
+| `frontend/src/features/secops/secops.test.tsx` | Pages render the server's permissions; attack snippets render as text, never markup |
 | `frontend/src/lib/auth/session.test.ts` | Token stays in memory; one refresh and one retry; concurrent refreshes share one call |
 | `frontend/src/lib/api/client.test.ts` | Client refuses cross-origin paths and redirects, and validates responses |
 | `scripts/smoke-auth.py` (`make smoke`) | The whole journey against the running stack |
@@ -171,8 +192,8 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 1 | Architecture, repository, ADRs, local environment, CI baseline | **Complete** (v0.1.0) |
 | 2 | Secure application foundation: auth, MFA, RBAC, audit logging | **Complete** (v0.2.0) |
 | 6 | API security: inventory, OWASP API mapping, rate limiting | **Complete** (v0.3.0) |
-| 7 | Security operations: events, dashboard, incidents, simulator, application inventory | Next |
-| 8 | Application security scanning and SBOM | Planned |
+| 7 | Security operations: events, dashboard, incidents, simulator, application inventory | **Complete** (v0.4.0) |
+| 8 | Application security scanning and SBOM | Next |
 | 10 | Threat modeling and governance | Planned |
 | 9 | AI security engine on Amazon Bedrock | Planned |
 | 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Planned |

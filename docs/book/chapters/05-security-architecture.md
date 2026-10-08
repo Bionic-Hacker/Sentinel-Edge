@@ -85,7 +85,7 @@ The specification forbids presenting simulated functionality as a real AWS contr
 | **SIMULATED** | Safe simulation of an attack or control, against SentinelEdge only | Simulated (amber) |
 | **DEMO** | Synthetic seed data for demonstrations | Demo data (violet) |
 
-A capability register (`app/core/capabilities.py`) is served at `GET /api/v1/platform/capabilities` and rendered on every module page. Tests enforce the rules. Nothing can be marked implemented REAL_AWS before an AWS phase ships it. Simulator and demo entries can never be REAL_AWS. An implemented entry cannot come from a future phase. Wording follows suit: a real control says "Blocked by AWS WAF rule AWSManagedRulesSQLiRuleSet", and a simulated one says "Simulated block — no AWS resource was changed". After three phases there are, correctly, zero REAL_AWS capabilities.
+A capability register (`app/core/capabilities.py`) is served at `GET /api/v1/platform/capabilities` and rendered on every module page. Tests enforce the rules. Nothing can be marked implemented REAL_AWS before an AWS phase ships it. Simulator and demo entries can never be REAL_AWS. An implemented entry cannot come from a future phase. Wording follows suit: a real control says "Blocked by AWS WAF rule AWSManagedRulesSQLiRuleSet", and a simulated one says "Simulated block — no AWS resource was changed". After four phases there are, correctly, zero REAL_AWS capabilities, and the first SIMULATED ones (the attack simulator and its WAF) are labelled at every layer.
 
 ## Governed exceptions
 

@@ -52,7 +52,7 @@ verify-audit: ## Verify the audit log hash chain
 prune-rate-limits: ## Delete rate-limit buckets idle for over a day
 	docker compose exec api python -m app.cli prune-rate-limits
 
-smoke: ## End-to-end auth/authz/audit smoke test against the running stack
+smoke: ## End-to-end smoke test of the running stack (auth, audit, API security, security operations)
 	backend/.venv/bin/python scripts/smoke-auth.py 2>/dev/null || python scripts/smoke-auth.py
 
 migrate: ## Apply new database migrations to the running stack

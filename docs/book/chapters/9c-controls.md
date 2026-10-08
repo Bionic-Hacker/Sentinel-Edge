@@ -7,7 +7,7 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-WEB-01 | API security headers on every response, including errors | `test_security_headers.py` (200, 400, 404, 500) |
 | C-WEB-02 | SPA strict CSP, no `unsafe-inline` / `unsafe-eval` | No inline code in build output; hardening check |
 | C-WEB-03 | XSS-prone patterns banned at lint time | ESLint in CI |
-| C-API-01 | Object-level authorization (404, audited) | `test_users_can_read_only_their_own_record` |
+| C-API-01 | Object-level authorization (404, audited): users, applications, incidents | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications` |
 | C-API-02 | Function-level authorization on every route | `test_authz_matrix.py` (with mutation check) |
 | C-API-03 | Token-bucket rate limiting per IP and per account | `test_rate_limiting.py` (40-thread), `make smoke` |
 | C-API-04 | Unknown request fields rejected | `test_every_request_body_rejects_unknown_fields` |
@@ -42,3 +42,12 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-GOV-02 | Code-owner review on sensitive paths | CODEOWNERS, branch protection |
 | C-GOV-04 | Exceptions with justification, compensation and expiry | EXC-0001, EXC-0002 |
 | C-GOV-05 | OWASP API coverage with evidence that must exist | `test_owasp_coverage.py` |
+| C-SO-01 | Append-only security events; write-once incident links | `test_app_role_cannot_alter_or_remove_events`, `test_evidence_links_are_write_once` |
+| C-SO-02 | Detect-only HTTP analysis, redaction, inspection exclusions | `test_http_analysis.py`, `test_inspection_exclusions_name_real_routes_and_fields` |
+| C-SO-03 | ReDoS-safe detection patterns | `test_rules_are_linear_on_adversarial_input` |
+| C-SO-04 | Exactly-once correlation under the audit lock, partitioned by provenance | `test_concurrent_failures_raise_exactly_one_detection_and_incident` (30-thread) |
+| C-SO-05 | Incident workflow and role rules on the server | `test_incidents.py`, `secops.test.tsx` |
+| C-SO-06 | Timeline digests in the audit chain, verified on read | `test_tampering_with_the_timeline_is_detected` |
+| C-SO-07 | Optimistic concurrency (409 `stale_version`) | `test_stale_writes_are_refused` |
+| C-SO-08 | Simulator safe by construction (no target, SIMULATED only) | `test_a_simulation_cannot_be_given_a_target`, `test_simulations_never_appear_in_the_live_view` |
+| C-SO-09 | Attacker data rendered as text only | `secops.test.tsx` (`<script>` snippet) |

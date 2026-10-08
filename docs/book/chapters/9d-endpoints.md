@@ -1,6 +1,6 @@
 # API Endpoint Inventory
 
-All 23 endpoints at v0.3.0, generated from the endpoint policy registry. *Public¹* means same-origin only (allowed `Origin` plus the `X-SentinelEdge-CSRF` header). *Setup* means any signed-in user, even before forced setup is complete. *Own²* means non-admins may read only their own record; others get 404 and the attempt is audited.
+All 45 endpoints at v0.4.0, generated from the endpoint policy registry and the authorization matrix. *Public¹* means same-origin only (allowed `Origin` plus the `X-SentinelEdge-CSRF` header). *Setup* means any signed-in user, even before forced setup is complete. *Own²* means non-admins may read only their own record; others get 404 and the attempt is audited.
 
 | Endpoint | Access | Risk | Rate limit | OWASP |
 |---|---|---|---|---|
@@ -27,5 +27,27 @@ All 23 endpoints at v0.3.0, generated from the endpoint policy registry. *Public
 | `GET /audit-logs/verify` | ADMIN, SEC_ENG | medium | 6 / min per user | API4, API5 |
 | `GET /api-security/inventory` | ADMIN, SEC_ENG, DEVELOPER | medium | 120 / min per user | API5, API9 |
 | `GET /api-security/owasp` | ADMIN, SEC_ENG, DEVELOPER | low | 120 / min per user | API5, API9 |
+| `GET /security-events` | ADMIN, SEC_ENG, ANALYST, VIEWER | medium | 120 / min per user | API3, API5 |
+| `GET /security-events/{id}` | ADMIN, SEC_ENG, ANALYST, VIEWER | medium | 120 / min per user | API3, API5 |
+| `GET /incidents` | ADMIN, SEC_ENG, ANALYST, VIEWER | medium | 120 / min per user | API3, API5 |
+| `POST /incidents` | ADMIN, SEC_ENG, ANALYST³ | medium | 60 / min per user | API3, API5, API6 |
+| `GET /incidents/assignees` | ADMIN, SEC_ENG, ANALYST | low | 120 / min per user | API3, API5 |
+| `GET /incidents/{id}` | ADMIN, SEC_ENG, ANALYST, VIEWER | medium | 120 / min per user | API3, API5 |
+| `PATCH /incidents/{id}` | ADMIN, SEC_ENG, ANALYST³ | high | 60 / min per user | API1, API3, API5 |
+| `POST /incidents/{id}/transitions` | ADMIN, SEC_ENG, ANALYST³ | high | 60 / min per user | API1, API5, API6 |
+| `POST /incidents/{id}/assignment` | ADMIN, SEC_ENG, ANALYST³ | medium | 60 / min per user | API1, API5 |
+| `POST /incidents/{id}/notes` | ADMIN, SEC_ENG, ANALYST | low | 60 / min per user | API3, API4 |
+| `POST /incidents/{id}/events` | ADMIN, SEC_ENG, ANALYST³ | medium | 60 / min per user | API1, API3 |
+| `GET /security/overview` | ADMIN, SEC_ENG, ANALYST, VIEWER | medium | 120 / min per user | API3, API5 |
+| `GET /applications` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `POST /applications` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API3, API5 |
+| `GET /applications/owners` | ADMIN, SEC_ENG | low | 120 / min per user | API3, API5 |
+| `GET /applications/{id}` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `PATCH /applications/{id}` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API1, API3, API5 |
+| `GET /simulator/scenarios` | ADMIN, SEC_ENG, ANALYST | low | 120 / min per user | API5 |
+| `GET /simulator/runs` | ADMIN, SEC_ENG, ANALYST | low | 120 / min per user | API5 |
+| `POST /simulator/runs` | ADMIN, SEC_ENG | medium | 6 / min per user | API4, API5, API6 |
+| `GET /simulator/waf-rules` | ADMIN, SEC_ENG, ANALYST | low | 120 / min per user | API5 |
+| `PUT /simulator/waf-rules/{rule_id}` | ADMIN, SEC_ENG | medium | 30 / min per user | API5 |
 
-All paths are under `/api/v1`. Every route is also subject to the global ceiling of 600 requests per minute per IP. Admins cannot demote, deactivate, delete or reset MFA on themselves, and the last active admin cannot be removed.
+All paths are under `/api/v1`. Every route is also subject to the global ceiling of 600 requests per minute per IP. Admins cannot demote, deactivate, delete or reset MFA on themselves, and the last active admin cannot be removed. ³ An object-level rule applies on top of the role: analysts change only incidents they own (closing, reopening, re-rating and assigning others are lead-only), developers see only applications they own, and SentinelEdge itself cannot be retired. Incident work uses the `investigation` limit (60 per minute per user).

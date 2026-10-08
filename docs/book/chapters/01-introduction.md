@@ -52,8 +52,9 @@ The project is built to support conversations for these roles:
 | 1 | Architecture, repository, ADRs, local environment, CI baseline | <span class="status done">Complete · v0.1.0</span> |
 | 2 | Secure application foundation: auth, MFA, RBAC, audit logging | <span class="status done">Complete · v0.2.0</span> |
 | 6 | API security: inventory, OWASP API mapping, rate limiting | <span class="status done">Complete · v0.3.0</span> |
-| 7 | Security operations: events, dashboard, incidents, simulator | <span class="status next">Next</span> |
-| 8, 10, 9 | AppSec scanning · threat modeling and governance · AI security | <span class="status plan">Planned</span> |
+| 7 | Security operations: events, dashboard, incidents, simulator | <span class="status done">Complete · v0.4.0</span> |
+| 8 | Application security scanning and SBOM | <span class="status next">Next</span> |
+| 10, 9 | Threat modeling and governance · AI security | <span class="status plan">Planned</span> |
 | 3, 4, 5 | AWS foundation, deployment, CloudFront + WAF + TLS | <span class="status plan">Planned</span> |
 | 11, 12 | Automation pipeline · hardening and final review | <span class="status plan">Planned</span> |
 

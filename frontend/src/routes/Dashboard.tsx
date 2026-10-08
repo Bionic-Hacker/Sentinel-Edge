@@ -426,7 +426,7 @@ const PHASE_NAMES: Record<number, string> = {
 // Local-first order (ADR-0016): everything that runs locally is built first; the AWS phases are
 // grouped near the end so cloud resources exist for as short a time as possible.
 const BUILD_ORDER = [1, 2, 6, 7, 8, 10, 9, 3, 4, 5, 11, 12];
-const COMPLETE = new Set([1, 2, 6]);
+const COMPLETE = new Set([1, 2, 6, 7]);
 const NEXT = BUILD_ORDER.find((n) => !COMPLETE.has(n));
 
 function PlatformStatus() {
