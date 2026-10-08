@@ -1,0 +1,45 @@
+{
+ "errors": [],
+ "results": [
+  {
+   "code": "61     # ruleid: sentineledge-shell-command\n62     subprocess.run(f\"ls {path}\", shell=True)\n63     # ruleid: sentineledge-shell-command\n",
+   "col_offset": 4,
+   "end_col_offset": 44,
+   "filename": "/src/backend/app/example.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 78,
+    "link": "https://cwe.mitre.org/data/definitions/78.html"
+   },
+   "issue_severity": "HIGH",
+   "issue_text": "subprocess call with shell=True identified, security issue.",
+   "line_number": 62,
+   "line_range": [
+    62
+   ],
+   "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b602_subprocess_popen_with_shell_equals_true.html",
+   "test_id": "B602",
+   "test_name": "subprocess_popen_with_shell_equals_true"
+  },
+  {
+   "code": "4 import os\n5 import pickle\n6 import subprocess\n",
+   "col_offset": 0,
+   "end_col_offset": 13,
+   "filename": "/src/backend/app/example.py",
+   "issue_confidence": "HIGH",
+   "issue_cwe": {
+    "id": 502,
+    "link": "https://cwe.mitre.org/data/definitions/502.html"
+   },
+   "issue_severity": "LOW",
+   "issue_text": "Consider possible security implications associated with pickle module.",
+   "line_number": 5,
+   "line_range": [
+    5
+   ],
+   "more_info": "https://bandit.readthedocs.io/en/1.9.4/blacklists/blacklist_imports.html#b403-import-pickle",
+   "test_id": "B403",
+   "test_name": "blacklist"
+  }
+ ]
+}

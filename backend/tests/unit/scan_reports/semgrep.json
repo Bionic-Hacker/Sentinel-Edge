@@ -1,0 +1,88 @@
+{
+ "version": "1.180.0",
+ "results": [
+  {
+   "check_id": "home.claude.sentineledge.scanning.semgrep.sentineledge-sql-built-from-strings",
+   "path": "/src/backend/app/example.py",
+   "start": {
+    "line": 19,
+    "col": 5,
+    "offset": 352
+   },
+   "end": {
+    "line": 19,
+    "col": 66,
+    "offset": 413
+   },
+   "extra": {
+    "message": "SQL text built from a formatted string. Every query must use the ORM or bound parameters (sqlalchemy.text with :name placeholders and a parameters mapping), never string building.",
+    "metadata": {
+     "sentineledge-severity": "critical",
+     "cwe": "CWE-89: SQL Injection",
+     "owasp": "A03:2021 Injection; API8:2023"
+    },
+    "severity": "ERROR",
+    "fingerprint": "requires login",
+    "lines": "requires login",
+    "validation_state": "NO_VALIDATOR",
+    "engine_kind": "OSS"
+   }
+  },
+  {
+   "check_id": "home.claude.sentineledge.scanning.semgrep.sentineledge-secret-in-log",
+   "path": "/src/backend/app/example.py",
+   "start": {
+    "line": 71,
+    "col": 49,
+    "offset": 2255
+   },
+   "end": {
+    "line": 71,
+    "col": 57,
+    "offset": 2263
+   },
+   "extra": {
+    "message": "A value that looks like a credential is passed to a logger. Log identifiers and outcomes, never passwords, tokens, codes or secrets (redaction is a safety net, not a licence).",
+    "metadata": {
+     "sentineledge-severity": "medium",
+     "cwe": "CWE-532: Insertion of Sensitive Information into Log File"
+    },
+    "severity": "WARNING",
+    "fingerprint": "requires login",
+    "lines": "requires login",
+    "validation_state": "NO_VALIDATOR",
+    "engine_kind": "OSS"
+   }
+  },
+  {
+   "check_id": "home.claude.sentineledge.scanning.semgrep.sentineledge-shell-command",
+   "path": "/src/backend/app/example.py",
+   "start": {
+    "line": 62,
+    "col": 5,
+    "offset": 1922
+   },
+   "end": {
+    "line": 62,
+    "col": 45,
+    "offset": 1962
+   },
+   "extra": {
+    "message": "Command run through a shell. Pass an argument list without shell=True, so input can never be interpreted by a shell.",
+    "metadata": {
+     "sentineledge-severity": "high",
+     "cwe": "CWE-78: OS Command Injection"
+    },
+    "severity": "ERROR",
+    "fingerprint": "requires login",
+    "lines": "requires login",
+    "validation_state": "NO_VALIDATOR",
+    "engine_kind": "OSS"
+   }
+  }
+ ],
+ "errors": [],
+ "paths": {
+  "scanned": []
+ }
+}

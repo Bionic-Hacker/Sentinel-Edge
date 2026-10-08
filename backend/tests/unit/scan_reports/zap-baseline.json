@@ -1,0 +1,39 @@
+{
+  "@programName": "ZAP",
+  "@version": "2.17.0",
+  "site": [
+    {
+      "@name": "http://web:8080",
+      "@host": "web",
+      "@port": "8080",
+      "@ssl": "false",
+      "alerts": [
+        {
+          "pluginid": "10038",
+          "alertRef": "10038-1",
+          "alert": "Content Security Policy (CSP) Header Not Set",
+          "name": "Content Security Policy (CSP) Header Not Set",
+          "riskcode": "2",
+          "confidence": "3",
+          "riskdesc": "Medium (High)",
+          "solution": "<p>Ensure that your web server sets the Content-Security-Policy header.</p>",
+          "cweid": "693",
+          "instances": [
+            {"uri": "http://web:8080/robots.txt", "method": "GET", "param": "", "evidence": ""},
+            {"uri": "http://web:8080/sitemap.xml", "method": "GET", "param": "", "evidence": ""}
+          ],
+          "count": "2"
+        },
+        {
+          "pluginid": "10049",
+          "alert": "Storable and Cacheable Content",
+          "riskcode": "0",
+          "confidence": "2",
+          "solution": "",
+          "cweid": "524",
+          "instances": [{"uri": "http://web:8080/", "method": "GET"}]
+        }
+      ]
+    }
+  ]
+}

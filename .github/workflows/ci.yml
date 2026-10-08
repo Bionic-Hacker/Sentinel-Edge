@@ -1,6 +1,7 @@
-# Phase 1 CI skeleton: secrets scanning, lint, type checks, tests, SAST (Bandit), SCA.
-# The full pipeline from spec §31 (Semgrep, Checkov, Trivy, SBOM, ZAP, Terraform, deploy)
-# is built in Phases 8 and 11. Nothing here touches AWS; no cloud credentials exist.
+# CI: secrets scanning, lint, type checks, tests, and (Phase 8) the application security scans
+# and gate: Semgrep, Bandit, Trivy, Gitleaks, Checkov, Syft SBOMs and a ZAP baseline against
+# the stack started in the runner. Terraform and deployment arrive in Phase 11.
+# Nothing here touches AWS; no cloud credentials exist.
 name: ci
 
 on:
@@ -125,3 +126,55 @@ jobs:
         run: npm run build
       - name: npm audit (SCA)
         run: npm audit --audit-level=high
+
+  semgrep-rules:
+    name: Semgrep rule tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Each SentinelEdge rule must flag every `ruleid:` example and none of the `ok:` ones.
+      - name: Test the SentinelEdge Semgrep rules
+        run: make scan-test
+
+  security-scans:
+    name: Security scans and gate (SAST, SCA, secrets, IaC, containers, SBOM, DAST)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Gitleaks scans the full history
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install hash-pinned backend tooling (Bandit, the gate)
+        run: python -m pip install --require-hashes -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: SAST, SCA, secrets, IaC, container images and SBOMs
+        run: ./scripts/scan.sh sast sca secrets iac container sbom
+      - name: Start the stack for DAST
+        run: |
+          make env
+          docker compose up --build -d
+          for _ in $(seq 60); do
+            curl -fsS -o /dev/null http://localhost:8080/api/v1/health && exit 0
+            sleep 3
+          done
+          docker compose ps; docker compose logs --tail 50
+          exit 1
+      - name: DAST (ZAP baseline) and the gate
+        run: ./scripts/scan.sh dast gate
+      - name: Upload scan reports, findings and SBOMs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-scans-${{ github.run_id }}
+          path: reports/scan/
+          retention-days: 30
+          if-no-files-found: error
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

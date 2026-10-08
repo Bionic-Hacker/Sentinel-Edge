@@ -6,6 +6,7 @@
 ARG NODE_IMAGE=node:22-alpine
 ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:stable-alpine
 
+# checkov:skip=CKV_DOCKER_7: the base image is a build argument whose default above is pinned
 FROM ${NODE_IMAGE} AS build
 WORKDIR /build
 COPY package.json package-lock.json ./

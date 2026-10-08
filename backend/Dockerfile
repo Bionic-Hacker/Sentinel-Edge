@@ -7,6 +7,7 @@
 
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 
+# checkov:skip=CKV_DOCKER_7: the base image is a build argument whose default above is pinned
 FROM ${PYTHON_IMAGE} AS builder
 ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
 WORKDIR /build

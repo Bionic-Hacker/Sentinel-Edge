@@ -5,7 +5,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate smoke
+        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -99,6 +99,23 @@ lock-backend: ## Re-resolve hash-pinned backend lock files
 book: ## Rebuild the engineering book PDF (docs/book/SentinelEdge-Engineering-Blueprint.pdf)
 	python -m pip install -q --require-hashes -r docs/book/requirements.txt
 	python docs/book/build.py
+
+scan: ## Application security scans (SAST, SCA, secrets, IaC, containers, SBOM), then the gate
+	./scripts/scan.sh
+
+scan-test: ## Test the SentinelEdge Semgrep rules against their annotated examples
+	docker run --rm -u "$$(id -u):$$(id -g)" -e HOME=/tmp -v "$$PWD:/src:ro" -w /src \
+	  $$(grep -m1 -o 'semgrep/semgrep:[^}"]*' scripts/scan.sh) \
+	  semgrep --metrics=off --disable-version-check --test scanning/semgrep
+
+sbom: ## CycloneDX SBOMs for the API image, the web image and the source tree
+	./scripts/scan.sh sbom
+
+dast: ## ZAP baseline against the running local stack (make dev first), then the gate
+	./scripts/scan.sh dast gate
+
+scan-gate: ## Re-apply the gate to the existing reports (after editing accepted-findings.toml)
+	./scripts/scan.sh gate
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install
