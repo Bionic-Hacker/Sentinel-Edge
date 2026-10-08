@@ -59,6 +59,10 @@ class AuditAction(StrEnum):
     INCIDENT_ASSIGNED = "incident.assigned"
     INCIDENT_NOTE_ADDED = "incident.note_added"
     INCIDENT_EVENTS_LINKED = "incident.events_linked"
+    SIMULATION_RUN = "simulator.run"
+    SIMULATED_WAF_RULE_CHANGED = "simulator.waf_rule_changed"
+    APPLICATION_CREATED = "application.created"
+    APPLICATION_UPDATED = "application.updated"
 
 
 @dataclass(frozen=True)

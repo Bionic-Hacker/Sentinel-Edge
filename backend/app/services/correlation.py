@@ -71,6 +71,9 @@ class CorrelationRule:
     min_distinct_actors: int = 0
     # Raise severity one level if any matching request got a success response.
     escalate_when_allowed: bool = False
+    # Lower severity one level if every matching request was blocked at the edge (WAF): the
+    # attack is real, but nothing reached the application.
+    lower_when_all_blocked: bool = False
 
     @property
     def window_minutes(self) -> int:
@@ -111,6 +114,7 @@ RULES: tuple[CorrelationRule, ...] = (
         window=timedelta(minutes=10),
         severity=Severity.HIGH,
         escalate_when_allowed=True,
+        lower_when_all_blocked=True,
     ),
     CorrelationRule(
         "COR-004",
@@ -237,8 +241,11 @@ def _raise_detection(
     category = rule.category or categories.most_common(1)[0][0]
     severity = rule.severity
     allowed = any(m.outcome is Outcome.ALLOWED for m in matches)
+    all_blocked = all(m.outcome is Outcome.BLOCKED for m in matches)
     if rule.escalate_when_allowed and allowed:
         severity = severity.raised()
+    elif rule.lower_when_all_blocked and all_blocked:
+        severity = severity.lowered()
     ip_rule = rule.group_by is GroupBy.SOURCE_IP
     evidence: dict[str, Any] = {
         "rule": rule.rule_id,
@@ -252,6 +259,7 @@ def _raise_detection(
         "first_seen": min(m.occurred_at for m in matches).isoformat(),
         "last_seen": max(m.occurred_at for m in matches).isoformat(),
         "any_allowed": allowed,
+        "all_blocked_at_edge": all_blocked,
         "contributing_event_ids": [str(m.id) for m in matches],
     }
     return security_events.record_event(

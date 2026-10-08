@@ -34,6 +34,9 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "security_events": {"SELECT", "INSERT"},  # evidence: append-only (0006)
     "incidents": {"SELECT", "INSERT", "UPDATE"},  # closed, never deleted (0007)
     "incident_timeline": {"SELECT", "INSERT"},  # append-only (0007)
+    "applications": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0008)
+    "simulation_runs": {"SELECT", "INSERT"},  # a record of what was simulated (0008)
+    "simulated_waf_rules": {"SELECT", "INSERT", "UPDATE"},  # simulated WAF modes (0008)
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.

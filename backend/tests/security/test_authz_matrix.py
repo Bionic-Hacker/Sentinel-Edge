@@ -70,6 +70,16 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("POST", "/api/v1/incidents/{incident_id}/assignment"): INVESTIGATORS,
     ("POST", "/api/v1/incidents/{incident_id}/notes"): INVESTIGATORS,
     ("POST", "/api/v1/incidents/{incident_id}/events"): INVESTIGATORS,
+    ("GET", "/api/v1/security/overview"): SECOPS_READ,
+    ("GET", "/api/v1/applications"): ALL,  # plus an object-level filter (developers: own apps)
+    ("POST", "/api/v1/applications"): AUDITORS,
+    ("GET", "/api/v1/applications/{application_id}"): ALL,  # plus an object-level check
+    ("PATCH", "/api/v1/applications/{application_id}"): AUDITORS,
+    ("GET", "/api/v1/simulator/scenarios"): INVESTIGATORS,
+    ("GET", "/api/v1/simulator/runs"): INVESTIGATORS,
+    ("POST", "/api/v1/simulator/runs"): AUDITORS,
+    ("GET", "/api/v1/simulator/waf-rules"): INVESTIGATORS,
+    ("PUT", "/api/v1/simulator/waf-rules/{rule_id}"): AUDITORS,
 }
 
 
@@ -129,6 +139,7 @@ def test_table_is_not_empty(app: FastAPI) -> None:
 
 
 def _url(path: str) -> str:
+    path = path.replace("{rule_id}", "XSS-999")  # a well-formed but unknown simulated rule
     return re.sub(r"\{\w+_id\}", lambda _: str(uuid.uuid4()), path)
 
 

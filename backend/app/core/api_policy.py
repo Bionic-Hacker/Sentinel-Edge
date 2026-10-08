@@ -324,6 +324,68 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         "Evidence links (write-once)",
         object_rule="Own incidents only (analysts); one provenance; an event joins one incident",
     ),
+    ("GET", "/api/v1/security/overview"): EndpointPolicy(
+        "Security dashboard: incidents, threats and traffic for one view",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Aggregated security telemetry, top source IPs",
+    ),
+    ("GET", "/api/v1/applications"): EndpointPolicy(
+        "List protected applications",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Application inventory, owners",
+        object_rule="Developers see only the applications they own",
+    ),
+    ("POST", "/api/v1/applications"): EndpointPolicy(
+        "Register a protected application",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API3, A.API5),
+        "Application inventory",
+        object_rule="Owner must be an active admin, security engineer or developer",
+    ),
+    ("GET", "/api/v1/applications/{application_id}"): EndpointPolicy(
+        "Read one protected application",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Application inventory, owner",
+        object_rule="Developers: own applications only; other IDs return 404 (audited)",
+    ),
+    ("PATCH", "/api/v1/applications/{application_id}"): EndpointPolicy(
+        "Change an application's owner, criticality, domain or status",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API1, A.API3, A.API5),
+        "Application inventory",
+        object_rule="SentinelEdge itself cannot be retired; version must match",
+    ),
+    ("GET", "/api/v1/simulator/scenarios"): EndpointPolicy(
+        "Attack simulation scenarios", Risk.LOW, READ, (A.API5,), "Scenario catalogue"
+    ),
+    ("GET", "/api/v1/simulator/runs"): EndpointPolicy(
+        "Recent simulation runs", Risk.LOW, READ, (A.API5,), "Simulation records"
+    ),
+    ("POST", "/api/v1/simulator/runs"): EndpointPolicy(
+        "Run an attack simulation against SentinelEdge (SIMULATED events only)",
+        Risk.MEDIUM,
+        EXPENSIVE,
+        (A.API4, A.API5, A.API6),
+        "Simulated events; no network traffic, no target input",
+    ),
+    ("GET", "/api/v1/simulator/waf-rules"): EndpointPolicy(
+        "Simulated WAF rules and their modes", Risk.LOW, READ, (A.API5,), "Simulated WAF state"
+    ),
+    ("PUT", "/api/v1/simulator/waf-rules/{rule_id}"): EndpointPolicy(
+        "Switch a simulated WAF rule between block, count and off",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API5,),
+        "Simulated WAF state (no AWS resource is changed)",
+    ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",
         Risk.MEDIUM,

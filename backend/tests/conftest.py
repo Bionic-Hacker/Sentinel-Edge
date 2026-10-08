@@ -113,6 +113,15 @@ def migrator_engine() -> Iterator[Engine]:
     engine.dispose()
 
 
+PLATFORM_APP_SQL = """
+INSERT INTO sentinel.applications (id, slug, name, description, owner_id, environment,
+    criticality, domain, status, is_platform, created_at, updated_at, version)
+VALUES ('5e7e1ed6-0000-4000-8000-000000000001', 'sentineledge', 'SentinelEdge',
+    'This platform: the first protected workload.', NULL, 'local', 'high', 'localhost',
+    'active', true, now(), now(), 1)
+"""
+
+
 def _truncate_all(engine: Engine) -> None:
     """Reset between tests. The audit log's append-only trigger also blocks the table owner, so
     the owner must disable it explicitly — the same deliberate, visible step an attacker with
@@ -122,6 +131,8 @@ def _truncate_all(engine: Engine) -> None:
         conn.execute(text("ALTER TABLE sentinel.audit_log DISABLE TRIGGER audit_log_no_truncate"))
         conn.execute(text(f"TRUNCATE {tables} RESTART IDENTITY CASCADE"))
         conn.execute(text("ALTER TABLE sentinel.audit_log ENABLE TRIGGER audit_log_no_truncate"))
+        # The platform application is seeded by migration 0008; restore it for the next test.
+        conn.execute(text(PLATFORM_APP_SQL))
 
 
 @pytest.fixture

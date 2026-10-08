@@ -305,6 +305,7 @@ def record_http_analysis(
     source: EventSource = EventSource.HTTP_ANALYSIS,
     outcome: Outcome | None = None,
     extra_evidence: dict[str, Any] | None = None,
+    occurred_at: datetime | None = None,
 ) -> SecurityEvent:
     status = ctx.status_code or 0
     top = analysis.findings[0]
@@ -338,4 +339,5 @@ def record_http_analysis(
         evidence=evidence,
         ctx=ctx,
         provenance=provenance,
+        occurred_at=occurred_at,
     )

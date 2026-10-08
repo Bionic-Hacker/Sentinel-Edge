@@ -4,12 +4,15 @@ from fastapi import APIRouter
 
 from app.api.v1 import (
     api_security,
+    applications,
     audit_logs,
     auth,
     health,
     incidents,
     platform,
     security_events,
+    security_overview,
+    simulator,
     users,
 )
 
@@ -22,3 +25,6 @@ api_v1.include_router(audit_logs.router)
 api_v1.include_router(api_security.router)
 api_v1.include_router(security_events.router)
 api_v1.include_router(incidents.router)
+api_v1.include_router(security_overview.router)
+api_v1.include_router(applications.router)
+api_v1.include_router(simulator.router)

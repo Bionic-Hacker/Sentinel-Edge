@@ -89,6 +89,9 @@ class Severity(StrEnum):
         order = list(Severity)
         return order[min(len(order) - 1, self.rank + steps)]
 
+    def lowered(self, steps: int = 1) -> Severity:
+        return list(Severity)[max(0, self.rank - steps)]
+
 
 class Outcome(StrEnum):
     """What happened to the request or action that produced the event."""
