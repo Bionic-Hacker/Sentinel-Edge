@@ -354,6 +354,15 @@ CAPABILITIES: tuple[Capability, ...] = (
         "Private subnets only; database never publicly accessible.",
     ),
     _c(
+        "aws.observability",
+        "CloudWatch logs, metrics and alarms",
+        "Audit Logs",
+        R,
+        PLAN,
+        4,
+        "Structured API and audit logs shipped to CloudWatch, with alarms on security signals.",
+    ),
+    _c(
         "aws.waf",
         "AWS WAF on CloudFront",
         "WAF",

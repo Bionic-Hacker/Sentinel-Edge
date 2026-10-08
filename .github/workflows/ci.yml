@@ -6,7 +6,10 @@ name: ci
 on:
   pull_request:
   push:
-    branches: [main]
+    # main, and every phase branch: each delivered part is checked by CI when it is pushed,
+    # not only when the phase's pull request opens.
+    branches: [main, "phase/**"]
+  workflow_dispatch:
 
 # Least privilege for the GITHUB_TOKEN: read-only. Jobs request more only if they need it.
 permissions:
