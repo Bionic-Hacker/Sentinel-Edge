@@ -101,7 +101,8 @@ def test_trivy_image_scan_is_a_container_finding() -> None:
     unfixed = findings["CVE-2099-1000"]
     assert (unfixed.category, unfixed.severity) == ("container", "critical")
     assert not unfixed.fixable
-    assert unfixed.location.startswith("sentineledge-api:latest")
+    # Scanned from a tarball: the location names the image, not /cache/api.tar.
+    assert unfixed.location == "sentineledge-api:scan (debian 12.13)"
     assert findings["CVE-2099-1001"].fixable
 
 

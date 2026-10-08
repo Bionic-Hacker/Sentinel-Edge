@@ -1,10 +1,19 @@
 {
   "SchemaVersion": 2,
-  "ArtifactName": "sentineledge-api:latest",
+  "ArtifactName": "/cache/api.tar",
   "ArtifactType": "container_image",
+  "Metadata": {
+    "OS": {
+      "Family": "debian",
+      "Name": "12.13"
+    },
+    "RepoTags": [
+      "sentineledge-api:scan"
+    ]
+  },
   "Results": [
     {
-      "Target": "sentineledge-api:latest (debian 12.13)",
+      "Target": "/cache/api.tar (debian 12.13)",
       "Class": "os-pkgs",
       "Type": "debian",
       "Vulnerabilities": [
@@ -15,7 +24,11 @@
           "FixedVersion": "",
           "Severity": "CRITICAL",
           "Title": "libsynthetic3: no fix published yet",
-          "CVSS": {"nvd": {"V3Score": 9.8}}
+          "CVSS": {
+            "nvd": {
+              "V3Score": 9.8
+            }
+          }
         },
         {
           "VulnerabilityID": "CVE-2099-1001",

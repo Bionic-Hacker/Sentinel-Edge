@@ -111,15 +111,23 @@ container() {
 
 sbom() {
   build_images
+  # Syft's image is FROM scratch and its /tmp is not writable by an unprivileged user; it
+  # unpacks image layers there, so give it a scratch directory of our own.
+  local SYFT_TMP="$CACHE/syft-tmp"
+  local SYFT_ENV=(-e SYFT_CHECK_FOR_APP_UPDATE=false)
+  rm -rf "$SYFT_TMP" && mkdir -p "$SYFT_TMP"
   for name in api web; do
     log "SBOM: Syft ($name image, CycloneDX)"
-    docker run --rm "${USER_FLAGS[@]}" -v "$CACHE:/cache:ro" "${OUTV[@]}" "$SYFT_IMAGE" \
-      scan "docker-archive:/cache/$name.tar" -q -o "cyclonedx-json=/out/sbom-$name.cdx.json"
+    docker run --rm "${USER_FLAGS[@]}" "${SYFT_ENV[@]}" -v "$CACHE:/cache:ro" "${OUTV[@]}" \
+      -v "$SYFT_TMP:/tmp" "$SYFT_IMAGE" \
+      scan "docker-archive:/cache/$name.tar" -o "cyclonedx-json=/out/sbom-$name.cdx.json"
   done
   log "SBOM: Syft (source tree, CycloneDX)"
-  docker run --rm "${USER_FLAGS[@]}" "${SRC[@]}" "${OUTV[@]}" "$SYFT_IMAGE" \
-    scan dir:/src -q --exclude './frontend/node_modules' --exclude './backend/.venv' --exclude './.venv' \
+  docker run --rm "${USER_FLAGS[@]}" "${SYFT_ENV[@]}" "${SRC[@]}" "${OUTV[@]}" \
+    -v "$SYFT_TMP:/tmp" "$SYFT_IMAGE" \
+    scan dir:/src --exclude './frontend/node_modules' --exclude './backend/.venv' --exclude './.venv' \
       --exclude './reports' -o "cyclonedx-json=/out/sbom-source.cdx.json"
+  rm -rf "$SYFT_TMP"
 }
 
 dast() {

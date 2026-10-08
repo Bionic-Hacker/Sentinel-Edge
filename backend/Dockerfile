@@ -3,9 +3,10 @@
 # - Multi-stage: build tooling never reaches the runtime image.
 # - Hash-pinned dependencies (pip --require-hashes).
 # - Non-root UID, no shell needed at runtime, read-only root FS compatible.
-# Base image digest pinning + Trivy scanning are added in Phase 8 (container security gate).
+# - Scanned by Trivy on every CI run (scripts/scan.sh, ADR-0020). Debian 13 (trixie), the
+#   current stable release: Debian 12 is oldstable and receives fewer security fixes.
 
-ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+ARG PYTHON_IMAGE=python:3.12-slim-trixie
 
 # checkov:skip=CKV_DOCKER_7: the base image is a build argument whose default above is pinned
 FROM ${PYTHON_IMAGE} AS builder

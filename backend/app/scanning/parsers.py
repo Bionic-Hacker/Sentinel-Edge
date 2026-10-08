@@ -151,11 +151,17 @@ def parse_trivy(doc: dict[str, Any], root: Path | None = None) -> list[Finding]:
     image's OS packages and libraries (container)."""
     category = "container" if doc.get("ArtifactType") == "container_image" else "sca"
     artifact = str(doc.get("ArtifactName", ""))
+    # Images are scanned from `docker save` tarballs, so ArtifactName is a file path; the tags
+    # recorded in the image metadata name the image itself.
+    tags = (doc.get("Metadata") or {}).get("RepoTags") or []
+    image = str(tags[0]) if tags else artifact
     findings = []
     for result in doc.get("Results", []) or []:
         target = str(result.get("Target", ""))
         if category == "sca":
             target = relative_path(target, root)
+        elif target.startswith(artifact):
+            target = image + target[len(artifact) :]
         for v in result.get("Vulnerabilities", []) or []:
             pkg = v.get("PkgName", "?")
             installed = v.get("InstalledVersion", "?")
@@ -168,13 +174,13 @@ def parse_trivy(doc: dict[str, Any], root: Path | None = None) -> list[Finding]:
                     title=v.get("Title") or v["VulnerabilityID"],
                     severity=_TRIVY_LEVEL.get(v.get("Severity", "UNKNOWN"), "medium"),
                     component=component,
-                    location=f"{artifact} {target}".strip() if category == "container" else target,
+                    location=target,
                     fingerprint=fingerprint(
                         "trivy",
                         v["VulnerabilityID"],
                         pkg,
                         installed,
-                        artifact.split(":")[0] if category == "container" else target,
+                        image.split(":")[0] if category == "container" else target,
                     ),
                     cve=v["VulnerabilityID"],
                     cvss=_cvss_score(v),
