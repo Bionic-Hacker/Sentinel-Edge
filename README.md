@@ -5,10 +5,12 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1, 2, 6 and 7 complete (v0.4.0): security operations.**
+> **Current status: Phases 1, 2, 6, 7 and 8 complete (v0.5.0): application security scanning.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
-> an API Security Center, and now attack detection, correlation, an incident workflow with
-> tamper-evident evidence, a security dashboard and a labelled attack simulator run locally. **No AWS resources exist yet**: AWS phases are deliberately grouped late
+> an API Security Center, attack detection, correlation, an incident workflow with tamper-evident
+> evidence, a security dashboard and a labelled attack simulator run locally, and now SAST, SCA,
+> secrets, IaC, container and authenticated DAST scanning behind a fail-closed gate, SBOMs, and
+> vulnerability management with SLAs and risk acceptance. **No AWS resources exist yet**: AWS phases are deliberately grouped late
 > to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
 > capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
 > and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
@@ -172,7 +174,13 @@ More in [docs/local-development.md](docs/local-development.md).
 | `backend/tests/integration/test_incidents.py` | Workflow and role rules, stale writes refused, timeline tampering detected |
 | `backend/tests/integration/test_simulator.py` | Simulations take no target, stay SIMULATED, and never reach the live view |
 | `backend/tests/unit/test_http_analysis_performance.py` | Detection patterns stay linear on adversarial input (no ReDoS) |
+| `backend/tests/unit/test_scanning.py` | The gate blocks fixable critical/high, honours unexpired acceptances, and fails closed on missing reports |
+| `backend/tests/integration/test_vulnerabilities.py` | Findings de-duplicate, are fixed only by covering scans, reopen; acceptances expire; developers see only their own; the record cannot be rewritten |
+| `backend/tests/unit/test_frontend_contract.py` | The SPA's allowed values match every backend enumeration |
+| `scanning/semgrep/` (`make scan-test`) | Each SentinelEdge Semgrep rule flags its bad examples and none of the good ones |
+| `make scan`, `make dast` | Semgrep, Bandit, Trivy, Gitleaks, Checkov, Syft and authenticated ZAP behind the gate |
 | `frontend/src/features/secops/secops.test.tsx` | Pages render the server's permissions; attack snippets render as text, never markup |
+| `frontend/src/features/appsec/appsec.test.tsx` | Scanner text renders as text; only https references are links; the server's allowed moves only |
 | `frontend/src/lib/auth/session.test.ts` | Token stays in memory; one refresh and one retry; concurrent refreshes share one call |
 | `frontend/src/lib/api/client.test.ts` | Client refuses cross-origin paths and redirects, and validates responses |
 | `scripts/smoke-auth.py` (`make smoke`) | The whole journey against the running stack |
@@ -180,7 +188,8 @@ More in [docs/local-development.md](docs/local-development.md).
 The test suites found and fixed two real bugs during Phase 2: Unicode digits slipping past MFA
 code validation, and a role comparison that could never match. Both have regression tests.
 
-Attack simulations (Phase 7) target only SentinelEdge itself, never external systems.
+Attack simulations (Phase 7) and DAST scans (Phase 8) target only SentinelEdge itself, never
+external systems.
 
 ## Roadmap
 
@@ -193,8 +202,8 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 2 | Secure application foundation: auth, MFA, RBAC, audit logging | **Complete** (v0.2.0) |
 | 6 | API security: inventory, OWASP API mapping, rate limiting | **Complete** (v0.3.0) |
 | 7 | Security operations: events, dashboard, incidents, simulator, application inventory | **Complete** (v0.4.0) |
-| 8 | Application security scanning and SBOM | Next |
-| 10 | Threat modeling and governance | Planned |
+| 8 | Application security scanning, SBOM, vulnerability management | **Complete** (v0.5.0) |
+| 10 | Threat modeling and governance | Next |
 | 9 | AI security engine on Amazon Bedrock | Planned |
 | 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Planned |
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Planned |

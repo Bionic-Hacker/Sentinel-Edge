@@ -43,6 +43,37 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.4.0 (Phase 7) to v0.5.0 (Phase 8)
+
+Your data is kept. `make dev` rebuilds the images and applies one migration:
+
+```bash
+make dev
+docker compose logs migrate | grep "Running upgrade"   # 0008 -> 0009
+```
+
+| Migration | Adds |
+|---|---|
+| `0009_vulnerability_management` | Scan runs, findings, risk acceptances and SBOMs (nothing deletable by the app role; an acceptance's decision is immutable); the `appsec` event source and the `code_weakness` and `exposed_secret` categories |
+
+Then scan and import, so the Vulnerabilities, SBOM and dashboard views have data:
+
+```bash
+make scan          # SAST, SCA, secrets, IaC, containers, SBOMs, then the gate
+make dast          # ZAP baseline + authenticated API scan of the running stack, then the gate
+make scan-import   # store the results in SentinelEdge
+```
+
+The scanner images are pinned by digest and downloaded on first use (a few GB in all). `make dast`
+takes up to about 20 minutes. Its attack payloads reach only your local stack, and HTTP analysis
+detects them like any other attack: expect live injection events and possibly an incident for the
+Docker gateway address. It signs in as `dast-scanner@example.com`, a read-only account whose
+session exists only while the scan runs.
+
+To import a CI run's scan instead: download its artifact
+(`gh run download <run-id> -n security-scans-<run-id> -D ci-scan`), then
+`make scan-import FROM=ci-scan SOURCE=ci COMMIT=<sha>`.
+
 ## Upgrading from v0.3.0 (Phase 6) to v0.4.0 (Phase 7)
 
 Your data is kept. `make dev` rebuilds the images and the `migrate` container applies the three
@@ -135,4 +166,7 @@ make create-admin EMAIL=you@example.com
 | API returns 400 for every request | Host not in `SENTINEL_TRUSTED_HOSTS` | Add the host to `.env` and restart |
 | Error shows a reference ID | Expected: errors are generic | Search API logs for that `correlation_id` |
 | A "likely token theft" or "credential-stuffing source" incident appears | `make smoke` triggers them on purpose from your own address | Expected; see "Upgrading from v0.3.0" |
+| `make scan` stops with `missing reports: ...` | A scanner failed (often a network error downloading its image or database) | Fix the cause and rerun; the gate never passes on a partial scan |
+| `make scan` blocks on a package vulnerability you did not change | A fix was published upstream since the image was built | `make scan` rebuilds with OS updates; for a Python or npm package, bump it (runbook: vulnerability remediation) |
+| `Unexpected Content-Type` and `Private IP Disclosure` from ZAP | The SPA answers unknown paths with its page; the dashboard shows source addresses by design | Mark as false positives with that note |
 | "This incident changed since you loaded it" | Someone (or another tab) changed it first | Select Reload, then repeat the action |

@@ -28,10 +28,10 @@ from weasyprint import HTML
 ROOT = Path(__file__).parent
 DEFAULT_OUTPUT = ROOT / "SentinelEdge-Engineering-Blueprint.pdf"
 EDITION = {
-    "number": 2,
-    "version": "v0.4.0",
-    "phases": "Phases 1, 2, 6 and 7",
-    "date": "October 7, 2026",
+    "number": 3,
+    "version": "v0.5.0",
+    "phases": "Phases 1, 2, 6, 7 and 8",
+    "date": "October 8, 2026",
 }
 MD_EXT = ["tables", "fenced_code", "attr_list", "md_in_html", "sane_lists", "smarty"]
 SHORT_TABLE_ROWS = 9  # tables up to this many rows are kept on one page
@@ -43,8 +43,8 @@ FLOWS: dict[str, list[tuple[str, str, str, str]]] = {
         ("P2", "App foundation", "v0.2.0", "done"),
         ("P6", "API security", "v0.3.0", "done"),
         ("P7", "Security ops", "v0.4.0", "done"),
-        ("P8", "AppSec scanning", "next", "next"),
-        ("P10", "Threat model & governance", "", "plan"),
+        ("P8", "AppSec scanning", "v0.5.0", "done"),
+        ("P10", "Threat model & governance", "next", "next"),
         ("P9", "AI security", "Bedrock", "plan"),
         ("P3·4·5", "AWS window", "deploy · demo · destroy", "aws"),
         ("P11", "Pipeline", "", "plan"),

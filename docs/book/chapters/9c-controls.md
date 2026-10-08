@@ -7,7 +7,8 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-WEB-01 | API security headers on every response, including errors | `test_security_headers.py` (200, 400, 404, 500) |
 | C-WEB-02 | SPA strict CSP, no `unsafe-inline` / `unsafe-eval` | No inline code in build output; hardening check |
 | C-WEB-03 | XSS-prone patterns banned at lint time | ESLint in CI |
-| C-API-01 | Object-level authorization (404, audited): users, applications, incidents | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications` |
+| C-WEB-04 | Cross-origin isolation: COOP `same-origin`, COEP `require-corp` | `make verify-hardening`; ZAP rule 90004 |
+| C-API-01 | Object-level authorization (404, audited): users, applications, incidents, findings, scans, SBOMs | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications`, `test_developers_work_only_on_their_own_applications` |
 | C-API-02 | Function-level authorization on every route | `test_authz_matrix.py` (with mutation check) |
 | C-API-03 | Token-bucket rate limiting per IP and per account | `test_rate_limiting.py` (40-thread), `make smoke` |
 | C-API-04 | Unknown request fields rejected | `test_every_request_body_rejects_unknown_fields` |
@@ -19,6 +20,7 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-API-10 | API inventory with privacy-preserving metrics | `test_api_inventory.py` |
 | C-API-11 | Route-table sweeps (bodies, response models, sensitive fields) | `test_api_protections.py` |
 | C-API-12 | Outbound request (SSRF) guard | `test_egress.py` |
+| C-API-13 | Backend enumerations and the SPA's validator lists must match | `test_frontend_contract.py` |
 | C-ID-01 | Argon2id; deployed minimum enforced; rehash on login | `test_security_primitives.py` |
 | C-ID-02 | 15-min JWT, algorithm pinned, session checked per request | `test_forged_or_invalid_tokens_rejected` |
 | C-ID-03 | Rotating refresh tokens in `__Host-` cookie; reuse revokes | `test_auth_sessions.py` |
@@ -38,6 +40,12 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-CNT-01 | Non-root, read-only, no capabilities, no-new-privileges | `make verify-hardening` |
 | C-SEC-01..03 | Secret scanning; generated secrets; per-container scoping | Gitleaks; compose review |
 | C-CICD-01..05 | SAST, SCA, least-privilege CI, coverage floor, schema drift gate | CI jobs |
+| C-CICD-06 | One scan pipeline (SAST, SCA, secrets, IaC, containers, SBOM, DAST), locally and in CI | `make scan`, CI job `security-scans` |
+| C-CICD-07 | SentinelEdge Semgrep rules with annotated tests | `make scan-test` |
+| C-CICD-08 | Scan gate: fixable critical/high blocks unless accepted; fails closed | `test_scanning.py` |
+| C-CICD-09 | Contained scanners: digest-pinned, read-only repository, no Docker socket | `make image-digests` |
+| C-CICD-10 | OS security fixes applied at image build | Trivy image reports |
+| C-CICD-11 | Authenticated DAST as a read-only viewer with a one-scan session | `test_dast_scanner_session_is_read_only_and_revocable` |
 | C-GOV-01 | Provenance register with enforcement tests | `test_capabilities.py` |
 | C-GOV-02 | Code-owner review on sensitive paths | CODEOWNERS, branch protection |
 | C-GOV-04 | Exceptions with justification, compensation and expiry | EXC-0001, EXC-0002 |
@@ -51,3 +59,9 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-SO-07 | Optimistic concurrency (409 `stale_version`) | `test_stale_writes_are_refused` |
 | C-SO-08 | Simulator safe by construction (no target, SIMULATED only) | `test_a_simulation_cannot_be_given_a_target`, `test_simulations_never_appear_in_the_live_view` |
 | C-SO-09 | Attacker data rendered as text only | `secops.test.tsx` (`<script>` snippet) |
+| C-VM-01 | Findings de-duplicated, fixed only by a covering scan, reopened on return | `test_vulnerabilities.py` |
+| C-VM-02 | Remediation SLA from detection; past-SLA on the dashboard | `test_severity_change_keeps_the_original_sla_clock` |
+| C-VM-03 | Risk acceptance: leads only, bounded expiry, immutable decision, expiry reopens | `test_risk_acceptance_lifecycle`, `test_an_expired_acceptance_reopens_its_finding` |
+| C-VM-04 | Imports validated, bounded, all-or-nothing; CLI only | `test_import_is_all_or_nothing` |
+| C-VM-05 | New critical/high findings become events; fixable criticals open incidents | `test_events_per_import_are_bounded` |
+| C-VM-06 | SBOMs per scan and artifact with SHA-256; CycloneDX download | `test_scans_and_sboms` |

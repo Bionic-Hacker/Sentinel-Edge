@@ -87,8 +87,8 @@ Each check below demonstrates a control from the threat model on your own machin
 
 ```
 make check              # every CI gate: lint, types, tests, SAST, SCA, secret scan
-make smoke              # 48 end-to-end checks against the running stack
-make verify-hardening   # 17 container and network checks
+make smoke              # 56 end-to-end checks against the running stack
+make verify-hardening   # 18 container and network checks
 make verify-audit       # walk the audit hash chain; prints the head hash
 ```
 
@@ -127,6 +127,27 @@ served; select it to see the HTTP analysis and what matched. Then, as an admin:
 4. Open the incident, **Move to Triaged**, add a note, and check **Evidence integrity** reads
    *Verified*. Set the WAF rules back to *Block*.
 
+Scan the build and track what it finds (Phase 8). The scanners run in digest-pinned images, so the
+first run pulls them; later runs take a few minutes. `make dast` needs the stack from Step 5.
+
+```
+make scan               # SAST, dependencies, secrets, IaC, images, SBOMs, then the gate
+make dast               # ZAP baseline + authenticated API scan, then the gate over everything
+make scan-import        # record the scan in vulnerability management
+make image-digests      # any pinned image whose tag has moved
+```
+
+Expected: each scan ends with `PASS` (or `FAIL` naming the blocking findings), and the import
+prints a line such as `Imported SCAN-0003 for sentineledge: 178 findings (8 new, …); … gate passed.` Then, in the browser:
+
+1. **Vulnerabilities**: open findings by severity, past SLA, awaiting a fix, and the last scan with
+   its gate result. Filter by tool *ZAP* to see the DAST alerts.
+2. Open a finding: where it was found, the fix, the deadline, and only the moves your role allows.
+   As a lead, mark an expected DAST alert *False positive* with a note; it stays one on later scans.
+3. **SBOM**: search for a component and download the CycloneDX document.
+4. **Dashboard**: the Vulnerabilities control now shows measured values; **API Security** shows each
+   endpoint's last authenticated scan.
+
 Container hardening by hand:
 
 ```
@@ -138,24 +159,24 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: evil.example' http://localhos
 
 ## Step 8 — Ship a phase the way this project does
 
-This is the release workflow from Chapter 2, with the exact commands used for v0.4.0 (Phase 7); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
+This is the release workflow from Chapter 2, with the exact commands used for v0.5.0 (Phase 8); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
 
 ```
-git switch -c phase/7-security-ops                      # one branch per phase
+git switch -c phase/8-appsec-scanning                      # one branch per phase
 # … milestone commits; make check && make smoke && make verify-hardening …
-git push -u origin phase/7-security-ops                 # password prompt: paste the token
+git push -u origin phase/8-appsec-scanning                 # password prompt: paste the token
 
 read -s -g -x -P "GitHub token: " GH_TOKEN              # fish: hidden prompt, exported for gh
-gh pr create --repo Bionic-Hacker/Sentinel-Edge --base main --head phase/7-security-ops \
-    --title "Phase 7: security operations" --body-file docs/releases/v0.4.0.md
-gh pr checks phase/7-security-ops --repo Bionic-Hacker/Sentinel-Edge --watch
-gh pr merge  phase/7-security-ops --repo Bionic-Hacker/Sentinel-Edge --merge
+gh pr create --repo Bionic-Hacker/Sentinel-Edge --base main --head phase/8-appsec-scanning \
+    --title "Phase 8: application security scanning" --body-file docs/releases/v0.5.0.md
+gh pr checks phase/8-appsec-scanning --repo Bionic-Hacker/Sentinel-Edge --watch
+gh pr merge  phase/8-appsec-scanning --repo Bionic-Hacker/Sentinel-Edge --merge
 
 git switch main && git pull --ff-only
-git tag -a v0.4.0 -m "Phase 7: security operations"     # SSH-signed (tag.gpgsign true)
-git push origin v0.4.0
-gh release create v0.4.0 --repo Bionic-Hacker/Sentinel-Edge \
-    --title "v0.4.0 - Phase 7: security operations" --notes-file docs/releases/v0.4.0.md
+git tag -a v0.5.0 -m "Phase 8: application security scanning"     # SSH-signed (tag.gpgsign true)
+git push origin v0.5.0
+gh release create v0.5.0 --repo Bionic-Hacker/Sentinel-Edge \
+    --title "v0.5.0 - Phase 8: application security scanning" --notes-file docs/releases/v0.5.0.md
 set -e GH_TOKEN                                         # fish: forget the token
 ```
 
@@ -181,6 +202,9 @@ git config --global tag.gpgsign true
 | Follow logs | `make logs` |
 | Delete idle rate-limit buckets | `make prune-rate-limits` |
 | Stop, keeping data | `docker compose down` |
+| Re-apply the gate after editing accepted risks | `make scan-gate` |
+| Import a CI scan artifact | `make scan-import FROM=<dir> SOURCE=ci` |
+| Test the SentinelEdge Semgrep rules | `make scan-test` |
 | Reset everything, including the database | `make clean` |
 
 ## Troubleshooting
@@ -193,3 +217,6 @@ git config --global tag.gpgsign true
 | API returns 400 for everything | Host not in `SENTINEL_TRUSTED_HOSTS` | Add it in `.env` and restart |
 | `make smoke` reports 429s early | Your browser shares this machine's sign-in allowance | Wait two minutes and rerun |
 | Error shows a reference ID | Expected: errors are generic | Search API logs for that `correlation_id` |
+| `docker pull` of a scanner fails with *Temporary failure in name resolution* | A DNS hiccup during the first pull | `docker pull` that image by hand, then rerun |
+| `scan-gate: missing reports: …` | A scanner failed; its error is above the verdict | Fix the scanner's error and rerun; the gate never passes without every report |
+| `make scan-import`: *No reports* | No scan has run in this checkout | `make scan` (and `make dast`) first |

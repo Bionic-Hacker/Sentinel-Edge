@@ -14,6 +14,7 @@ Tests assert the API headers on 200, 400, 404, 405, and 500 responses (ADR-0011)
 | Permissions-Policy | camera, microphone, geolocation, payment, USB, sensors disabled | same | Removes powerful browser features the platform never needs, limiting abuse after an XSS. |
 | Cross-Origin-Opener-Policy | `same-origin` | same | Isolates the browsing context from cross-origin windows (tab-nabbing, XS-Leaks). |
 | Cross-Origin-Resource-Policy | `same-origin` | same | Prevents other origins from embedding SentinelEdge responses. |
+| Cross-Origin-Embedder-Policy | `require-corp` | same | With COOP, makes the page cross-origin isolated: it can load only resources that opt in, which closes Spectre-style cross-origin reads. Everything SentinelEdge loads is same-origin. Added in Phase 8 after the ZAP baseline (rule 90004) flagged its absence. |
 | Cache-Control | `no-store` | `no-cache` (HTML), `immutable` (hashed assets) | Security data must never sit in shared or browser caches. Hashed assets are safe to cache forever. |
 | Server | removed | `server_tokens off` | Do not advertise implementation or version. |
 

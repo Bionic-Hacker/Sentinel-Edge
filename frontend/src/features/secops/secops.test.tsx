@@ -38,7 +38,7 @@ async function renderAs(role: Role, path: string, routes: Record<string, Handler
   const calls: Call[] = [];
   const api = mockApi({
     "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(profile({ role, mfa_enabled: true }))),
-    "/api/v1/health": () => jsonResponse({ status: "ok", version: "0.4.0" }),
+    "/api/v1/health": () => jsonResponse({ status: "ok", version: "0.5.0" }),
     "/api/v1/platform/capabilities": () => jsonResponse({ items: CAPS }),
     ...routes,
   });

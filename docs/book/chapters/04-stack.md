@@ -44,7 +44,7 @@ ElastiCache would add roughly $12 or more per month and another service to secur
 | Docker Compose | Local topology with hardened containers and isolated networks | 1 |
 | GitHub Actions | CI gates, read-only token, SHA-pinned actions | 1 (baseline), 8, 11 |
 | Gitleaks, Ruff (S rules), Bandit, mypy, pip-audit, npm audit | Shift-left gates in pre-commit and CI | 1 |
-| Semgrep, Checkov, Trivy, Syft, OWASP ZAP | Full scanning and SBOM | 8 |
+| Semgrep, Checkov, Trivy, Syft, OWASP ZAP | Full scanning, SBOMs and authenticated DAST, each in a digest-pinned image | 8 ✓ |
 | Terraform ≥ 1.10 | All AWS infrastructure; S3 state with native locking | 3 |
 | AWS: CloudFront, WAF, ACM, Route 53, ECS Fargate, ALB, RDS, Secrets Manager, KMS, CloudWatch, CloudTrail | Production architecture | 3–5 |
 | Amazon Bedrock | AI analysis via IAM task role | 9 |

@@ -10,7 +10,7 @@ from app.core.provenance import Provenance, Status
 
 # Phases are built out of numerical order to defer AWS cost (ADR-0016): 1, 2, 6, 7, 8, 10, 9,
 # then 3, 4, 5, 11, 12. The rule is completion, not phase number.
-COMPLETED_PHASES = frozenset({1, 2, 6, 7})
+COMPLETED_PHASES = frozenset({1, 2, 6, 7, 8})
 
 
 def test_keys_are_unique() -> None:

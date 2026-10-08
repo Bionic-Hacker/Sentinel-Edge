@@ -23,3 +23,5 @@ All ADRs live in `docs/adr/`. Each records context, decision, security impact, a
 | 0017 | Rate-limit implementation, endpoint policy registry, client-IP trust | Implemented | 6 |
 | 0018 | Security event pipeline: detect-only HTTP analysis, synchronous correlation under the audit lock, incidents with write-once evidence and timeline digests in the audit chain | Implemented | 7 |
 | 0019 | Attack simulator and simulated WAF: no network I/O, no target input, RFC 5737 addresses, AWS block/count semantics | Implemented | 7 |
+| 0020 | Application security scanning and the scan gate: one pipeline locally and in CI, fixable critical/high blocks, fails closed, contained scanners, authenticated read-only DAST | Implemented | 8 |
+| 0021 | Vulnerability management: CLI import, de-duplication, fixed only by a covering scan, SLAs, immutable risk acceptance, findings as security events | Implemented | 8 |

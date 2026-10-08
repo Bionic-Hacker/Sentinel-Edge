@@ -6,9 +6,10 @@ Top 10 (2023) is addressed. Everything here is **LOCAL**: no AWS resources are i
 ## The API Security Center
 
 `/apis` in the app (ADMIN, SECURITY_ENGINEER, DEVELOPER), backed by the endpoints below. At
-v0.4.0 the inventory lists **45 endpoints**: 23 from Phases 1 to 6 and 22 for security operations
+v0.5.0 the inventory lists **56 endpoints**: 23 from Phases 1 to 6, 22 for security operations
 (Phase 7: security events, incidents, the dashboard overview, applications and the attack
-simulator). Their roles are in [authorization.md](authorization.md).
+simulator) and 11 for vulnerability management (Phase 8: findings, risk acceptances, scans and
+SBOMs). Their roles are in [authorization.md](authorization.md).
 
 | Endpoint | Returns |
 |---|---|
@@ -25,7 +26,7 @@ For every endpoint (spec §14):
 | Rate limit | Policy registry; enforced by the same entry ([ADR-0017](adr/0017-rate-limiting-and-client-ip.md)) |
 | Request count, error rate | Hourly counters: requests, and (4xx + 5xx) / requests |
 | Attack count | Security rejections: 401 + 403 + 429 responses. A signal, not a verdict. Classified attacks (injection, scanning, stuffing) are on the Threats page from HTTP analysis (Phase 7); WAF logs join them in Phase 5 |
-| Last scan | Not scanned yet: authenticated DAST runs arrive in Phase 8 |
+| Last scan | The latest imported scan that included the authenticated ZAP API scan, which covers every endpoint in the OpenAPI document (Phase 8). Until one is imported, the note says to run `make dast` and `make scan-import` |
 | Security status | `protected`; `elevated` when requests were throttled or there were 5+ forbidden responses in 24 hours; `review` when there were server errors |
 
 The overview also counts **requests to unknown paths**, a sign of someone probing for

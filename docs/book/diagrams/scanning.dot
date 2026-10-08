@@ -1,0 +1,24 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.18, ranksep=0.4, bgcolor="transparent", pad=0.1];
+  node  [fontname="Inter", fontsize=11, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#1f3a68", margin="0.08,0.05"];
+  edge  [color="#5b6b80", arrowsize=0.6, fontname="Inter", fontsize=10, fontcolor="#5b6b80"];
+  subgraph cluster_s {
+    label="Scanners (digest-pinned images, repository read-only)"; fontname="Inter"; fontsize=10.5; fontcolor="#5b6b80"; color="#c9d3df"; style="rounded,dashed";
+    sast [label="Semgrep · Bandit\nSAST"]; sca [label="Trivy fs\nlock files"]; sec [label="Gitleaks\nsecrets"];
+    iac [label="Checkov\nIaC"]; img [label="Trivy image\nAPI · web"]; sbom [label="Syft\nCycloneDX SBOMs"];
+    dast [label="ZAP baseline +\nauthenticated API scan", style="rounded,filled,dashed"];
+  }
+  rep [label="reports/scan/*.json", shape=folder];
+  gate [label="Gate\nnormalise · de-duplicate\ndecide", fillcolor="#fff6e5", color="#b54708"];
+  pass [label="PASS", fillcolor="#e6f4f5", color="#0e7c86"];
+  fail [label="FAIL (exit 1)\nfixable critical/high", fillcolor="#fdecec", color="#b42318"];
+  err  [label="ERROR (exit 2)\nreport missing or unreadable", fillcolor="#fdecec", color="#b42318"];
+  vm [label="make scan-import\nvulnerability management", fillcolor="#eef2f8"];
+  {sast sca sec iac img sbom dast} -> rep;
+  acc [label="accepted-findings.toml\n(reviewed, expiring)", shape=note];
+  { rank=same; gate; acc; }
+  rep -> gate; acc -> gate [style=dashed];
+  { rank=same; pass; fail; err; vm; }
+  gate -> pass; gate -> fail; gate -> err;
+  rep -> vm [style=dashed, label="findings.json\n+ SBOMs"];
+}

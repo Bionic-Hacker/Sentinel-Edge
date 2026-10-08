@@ -24,6 +24,7 @@ API_SECURITY_HEADERS: dict[str, str] = {
     ),
     "Cross-Origin-Opener-Policy": "same-origin",
     "Cross-Origin-Resource-Policy": "same-origin",
+    "Cross-Origin-Embedder-Policy": "require-corp",
     # Security data must never be cached by browsers or shared caches.
     "Cache-Control": "no-store",
 }
