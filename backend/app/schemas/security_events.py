@@ -28,6 +28,8 @@ class EventSummary(BaseModel):
     endpoint: str | None
     status_code: int | None
     actor_label: str | None
+    # The incident this event is evidence for, if any.
+    incident_id: uuid.UUID | None
 
 
 class EventDetail(EventSummary):

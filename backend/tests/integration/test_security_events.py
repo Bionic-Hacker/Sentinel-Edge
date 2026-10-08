@@ -359,6 +359,9 @@ def test_events_are_listed_newest_first_with_keyset_pages(
         ({"source": "auth"}, 7),
         ({"source_ip": "198.51.100.1"}, 3),
         ({"provenance": "SIMULATED"}, 0),
+        ({"view": "live"}, 7),
+        ({"view": "simulated"}, 0),
+        ({"since": "2000-01-01T00:00:00Z", "until": "2999-01-01T00:00:00Z"}, 7),
     ],
 )
 def test_events_can_be_filtered(

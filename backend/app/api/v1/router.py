@@ -7,6 +7,7 @@ from app.api.v1 import (
     audit_logs,
     auth,
     health,
+    incidents,
     platform,
     security_events,
     users,
@@ -20,3 +21,4 @@ api_v1.include_router(users.router)
 api_v1.include_router(audit_logs.router)
 api_v1.include_router(api_security.router)
 api_v1.include_router(security_events.router)
+api_v1.include_router(incidents.router)

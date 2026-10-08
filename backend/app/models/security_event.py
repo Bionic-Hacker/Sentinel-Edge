@@ -5,8 +5,9 @@ an attack pattern found in a request, or a correlated detection built from sever
 Each carries its provenance (ADR-0009), so simulated activity can never pass as real.
 
 Events are evidence. The application's database role may INSERT them and may UPDATE exactly
-one column, `incident_id`, to link an event to an incident; it cannot edit or delete them
-(migrations 0006-0007, test_database_roles.py).
+one column, `incident_id`, to link an event to an incident. A trigger makes that link
+write-once, so evidence can be attached to an incident but never moved or detached; nothing
+else about an event can be edited or deleted (migrations 0006-0007, test_database_roles.py).
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from sqlalchemy import (
     BigInteger,
     CheckConstraint,
     DateTime,
+    ForeignKey,
     Identity,
     Index,
     SmallInteger,
@@ -67,6 +69,7 @@ class EventCategory(StrEnum):
     RATE_LIMIT = "rate_limit"
     API_ABUSE = "api_abuse"
     AUDIT_TAMPERING = "audit_tampering"
+    SUSPICIOUS_AUTH = "suspicious_auth"  # e.g. a sign-in from an address stuffing other accounts
     CERTIFICATE = "certificate"
     VULNERABLE_DEPENDENCY = "vulnerable_dependency"
 
@@ -113,6 +116,8 @@ class SecurityEvent(Base):
         Index("ix_security_events_occurred_at", "occurred_at"),
         Index("ix_security_events_source_ip_occurred", "source_ip", "occurred_at"),
         Index("ix_security_events_category_occurred", "category", "occurred_at"),
+        Index("ix_security_events_actor_occurred", "actor_label", "occurred_at"),
+        Index("ix_security_events_rule_occurred", "rule_id", "occurred_at"),
     )
 
     # `seq` orders and paginates; `id` is the public, non-enumerable identifier.
@@ -140,3 +145,7 @@ class SecurityEvent(Base):
     correlation_id: Mapped[str | None] = mapped_column(String(64))
     # Bounded, redacted, control-character-free evidence. Rendered as text, never as markup.
     evidence: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    # The incident this event is evidence for (write-once; see the module docstring).
+    incident_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("incidents.id"), index=True
+    )

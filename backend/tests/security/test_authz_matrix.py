@@ -31,6 +31,7 @@ ADMIN = frozenset({Role.ADMIN})
 AUDITORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
 API_SECURITY = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 SECOPS_READ = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
+INVESTIGATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -58,6 +59,17 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/api-security/owasp"): API_SECURITY,
     ("GET", "/api/v1/security-events"): SECOPS_READ,
     ("GET", "/api/v1/security-events/{event_id}"): SECOPS_READ,
+    ("GET", "/api/v1/incidents"): SECOPS_READ,
+    ("POST", "/api/v1/incidents"): INVESTIGATORS,
+    ("GET", "/api/v1/incidents/assignees"): INVESTIGATORS,
+    ("GET", "/api/v1/incidents/{incident_id}"): SECOPS_READ,
+    # Plus object-level rules: analysts change only incidents assigned to them, and closing,
+    # reopening, re-rating and assigning others are lead-only (test_incidents.py).
+    ("PATCH", "/api/v1/incidents/{incident_id}"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/transitions"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/assignment"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/notes"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/events"): INVESTIGATORS,
 }
 
 

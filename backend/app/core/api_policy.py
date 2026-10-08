@@ -92,6 +92,8 @@ CREDENTIAL_CHANGE = RateLimitPolicy("credential_change", 10, 300, LimitScope.USE
 READ = RateLimitPolicy("read", 120, 60, LimitScope.USER)
 ADMIN_WRITE = RateLimitPolicy("admin_write", 30, 60, LimitScope.USER)
 EXPENSIVE = RateLimitPolicy("expensive", 6, 60, LimitScope.USER)
+# Incident work: notes, transitions, assignment and evidence links by an investigator.
+INVESTIGATION = RateLimitPolicy("investigation", 60, 60, LimitScope.USER)
 # Not an endpoint policy: bounds how many attack-detection events one source IP can create, so a
 # flood of malicious requests cannot flood the event store (app.core.http_inspection).
 DETECTION_EVENTS = RateLimitPolicy("detection_events", 30, 60, LimitScope.IP)
@@ -108,6 +110,7 @@ ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     READ,
     ADMIN_WRITE,
     EXPENSIVE,
+    INVESTIGATION,
     DETECTION_EVENTS,
 )
 
@@ -252,6 +255,74 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         READ,
         (A.API3, A.API5),
         "Security evidence (bounded, redacted)",
+    ),
+    ("GET", "/api/v1/incidents"): EndpointPolicy(
+        "List incidents",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Incident records: source IPs, account names",
+    ),
+    ("POST", "/api/v1/incidents"): EndpointPolicy(
+        "Open an incident from events",
+        Risk.MEDIUM,
+        INVESTIGATION,
+        (A.API3, A.API5, A.API6),
+        "Incident records, evidence links",
+        object_rule="Evidence must share one provenance and not belong to another incident",
+    ),
+    ("GET", "/api/v1/incidents/assignees"): EndpointPolicy(
+        "People an incident can be assigned to",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API5),
+        "Names and roles of investigators",
+    ),
+    ("GET", "/api/v1/incidents/{incident_id}"): EndpointPolicy(
+        "Read an incident with timeline, evidence and integrity check",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Security evidence, analyst notes",
+    ),
+    ("PATCH", "/api/v1/incidents/{incident_id}"): EndpointPolicy(
+        "Edit an incident's title, summary, remediation or severity",
+        Risk.HIGH,
+        INVESTIGATION,
+        (A.API1, A.API3, A.API5),
+        "Incident records",
+        object_rule="Analysts edit only incidents assigned to them; severity is lead-only",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/transitions"): EndpointPolicy(
+        "Move an incident through the workflow",
+        Risk.HIGH,
+        INVESTIGATION,
+        (A.API1, A.API5, A.API6),
+        "Incident state",
+        object_rule="Analysts move only their own incidents; closing and reopening are lead-only",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/assignment"): EndpointPolicy(
+        "Assign or take an incident",
+        Risk.MEDIUM,
+        INVESTIGATION,
+        (A.API1, A.API5),
+        "Incident ownership",
+        object_rule="Analysts may only take an unassigned incident; leads assign anyone",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/notes"): EndpointPolicy(
+        "Add an analyst note to the timeline",
+        Risk.LOW,
+        INVESTIGATION,
+        (A.API3, A.API4),
+        "Analyst notes (append-only)",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/events"): EndpointPolicy(
+        "Attach security events as evidence",
+        Risk.MEDIUM,
+        INVESTIGATION,
+        (A.API1, A.API3),
+        "Evidence links (write-once)",
+        object_rule="Own incidents only (analysts); one provenance; an event joins one incident",
     ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",

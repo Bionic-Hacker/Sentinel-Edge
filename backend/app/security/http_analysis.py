@@ -72,7 +72,10 @@ def _rx(pattern: str) -> re.Pattern[str]:
     return re.compile(pattern, re.IGNORECASE | re.DOTALL)
 
 
-_SQL_GAP = r"(?:\s|/\*.*?\*/|\+)+"
+# Whitespace, "+" or a complete /* comment */ between SQL keywords. The comment pattern cannot
+# overlap itself and the quantifier is possessive (Python 3.11+): no catastrophic backtracking
+# on inputs like "union /**/ /**/ ... x" (tests/unit/test_http_analysis_performance.py).
+_SQL_GAP = r"(?:\s|/\*[^*]*\*+(?:[^/*][^*]*\*+)*/|\+)++"
 
 RULES: tuple[Rule, ...] = (
     # --- SQL injection ------------------------------------------------------------------------
@@ -95,7 +98,7 @@ RULES: tuple[Rule, ...] = (
         EventCategory.SQL_INJECTION,
         Severity.HIGH,
         "Quote followed by a comment that truncates the query (admin'--)",
-        _rx(r"['\"`]\s*\)?\s*;?\s*(?:--|#|/\*)(?:\s|$)"),
+        _rx(r"['\"`]\s*+\)?\s*+;?\s*+(?:--|#|/\*)(?:\s|$)"),
     ),
     Rule(
         "SQLI-004",
@@ -127,7 +130,8 @@ RULES: tuple[Rule, ...] = (
         EventCategory.XSS,
         Severity.MEDIUM,
         "HTML tag with an event handler (onerror=, onload=)",
-        _rx(r"<[a-z][^>]*\bon[a-z]{3,20}\s*="),
+        # Bounded tag length: unbounded [^>]* is quadratic over many "<" characters.
+        _rx(r"<[a-z][^>]{0,256}?\bon[a-z]{3,20}\s*+="),
     ),
     Rule(
         "XSS-003",

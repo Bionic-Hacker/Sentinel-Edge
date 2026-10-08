@@ -53,6 +53,12 @@ class AuditAction(StrEnum):
     AUDIT_VERIFIED = "audit.verified"
     ACCESS_DENIED = "authz.denied"
     RATE_LIMITED = "ratelimit.exceeded"
+    INCIDENT_CREATED = "incident.created"
+    INCIDENT_UPDATED = "incident.updated"
+    INCIDENT_STATUS_CHANGED = "incident.status_changed"
+    INCIDENT_ASSIGNED = "incident.assigned"
+    INCIDENT_NOTE_ADDED = "incident.note_added"
+    INCIDENT_EVENTS_LINKED = "incident.events_linked"
 
 
 @dataclass(frozen=True)

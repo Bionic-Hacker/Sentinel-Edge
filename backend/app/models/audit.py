@@ -15,7 +15,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, Identity, String, Uuid
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, Identity, Index, String, Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -38,6 +38,8 @@ class AuditLog(Base):
         ),
         CheckConstraint("record_hash ~ '^[0-9a-f]{64}$'", name="record_hash_format"),
         CheckConstraint("prev_hash ~ '^[0-9a-f]{64}$'", name="prev_hash_format"),
+        # Incident evidence is verified against the audit records of one resource (0007).
+        Index("ix_audit_log_resource", "resource_type", "resource_id"),
     )
 
     seq: Mapped[int] = mapped_column(

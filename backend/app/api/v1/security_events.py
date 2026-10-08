@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
@@ -22,6 +22,7 @@ from app.models.security_event import (
 )
 from app.models.user import Role
 from app.schemas.security_events import EventDetail, EventPage, EventSummary
+from app.services.incidents import view_provenances
 
 router = APIRouter(prefix="/security-events", tags=["security-operations"])
 # Security operations data: investigators and read-only viewers; not developers (spec §28).
@@ -38,6 +39,8 @@ def list_events(
     category: EventCategory | None = None,
     source: EventSource | None = None,
     provenance: Provenance | None = None,
+    # "live" = LOCAL and REAL_AWS; "simulated" = SIMULATED and DEMO. Never mixed by default.
+    view: Literal["live", "simulated", "all"] = "all",
     source_ip: Annotated[str | None, Query(max_length=45, pattern=r"^[0-9a-fA-F:.]+$")] = None,
     since: datetime | None = None,
     until: datetime | None = None,
@@ -55,6 +58,8 @@ def list_events(
         query = query.where(SecurityEvent.source == source)
     if provenance is not None:
         query = query.where(SecurityEvent.provenance == provenance)
+    if view != "all":
+        query = query.where(SecurityEvent.provenance.in_(view_provenances(view)))
     if source_ip is not None:
         query = query.where(SecurityEvent.source_ip == source_ip)
     if since is not None:

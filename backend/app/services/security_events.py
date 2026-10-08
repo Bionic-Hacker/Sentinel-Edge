@@ -8,16 +8,16 @@ Two feeds write here:
   `app.services.audit.record`, so no feature can audit an attack without also reporting it.
 * `record_http_analysis`: attack patterns found in a request by app.security.http_analysis.
 
-Every event then passes through correlation (app.services.correlation), which can raise a
-detection and open or update an incident.
+Every event then passes through correlation (app.services.correlation), in the same
+transaction, which can raise a detection and open or update an incident.
 """
 
 from __future__ import annotations
 
 import re
 import uuid
-from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
@@ -35,15 +35,6 @@ MAX_EVIDENCE_STRING = 256
 MAX_EVIDENCE_ITEMS = 20
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _PRIVILEGED_ROLES = frozenset({"ADMIN", "SECURITY_ENGINEER"})
-
-# Called after an event is stored; correlation registers itself here (avoids an import cycle).
-EventHook = Callable[[Session, SecurityEvent], None]
-_hooks: list[EventHook] = []
-
-
-def register_hook(hook: EventHook) -> None:
-    if hook not in _hooks:
-        _hooks.append(hook)
 
 
 def bounded(value: Any, depth: int = 0) -> Any:
@@ -91,12 +82,14 @@ def record_event(
     provenance: Provenance = Provenance.LOCAL,
     rule_id: str | None = None,
     evidence: dict[str, Any] | None = None,
-    run_hooks: bool = True,
+    occurred_at: datetime | None = None,
+    correlate: bool = True,
 ) -> SecurityEvent:
-    """Add one event in the caller's transaction and run correlation on it."""
+    """Add one event in the caller's transaction and correlate it (unless it is itself a
+    detection, which correlation records with `correlate=False`)."""
     event = SecurityEvent(
         id=uuid.uuid4(),
-        occurred_at=utcnow(),
+        occurred_at=occurred_at or utcnow(),
         provenance=provenance,
         source=source,
         category=category,
@@ -116,13 +109,21 @@ def record_event(
     )
     db.add(event)
     db.flush()
-    if run_hooks:
-        for hook in _hooks:
-            hook(db, event)
+    if correlate:
+        # Deferred import: correlation opens incidents, which audit, which feeds this module.
+        from app.services import correlation
+
+        correlation.on_event(db, event)
     return event
 
 
 # --- Audit feed -------------------------------------------------------------------------------
+
+
+_BOLA_TITLES = {
+    "user": "Attempt to read another user's record",
+    "incident": "Attempt to act on an incident assigned to someone else",
+}
 
 
 @dataclass(frozen=True)
@@ -184,7 +185,7 @@ def _map_audit(entry: AuditLog) -> _Mapping | None:
             EventCategory.BOLA,
             Severity.MEDIUM,
             Outcome.REJECTED,
-            "Attempt to read another user's record",
+            _BOLA_TITLES.get(entry.resource_type or "", "Attempt to act on another user's object"),
         )
     if action == "ratelimit.exceeded":
         return _Mapping(
@@ -224,6 +225,15 @@ def _map_audit(entry: AuditLog) -> _Mapping | None:
     return None
 
 
+def _establishes_session(entry: AuditLog) -> bool:
+    """A successful sign-in that produced a session (after MFA, when the account has it)."""
+    if str(entry.result) != "success":
+        return False
+    if entry.action == "auth.login_mfa":
+        return True
+    return entry.action == "auth.login" and (entry.details or {}).get("stage") == "complete"
+
+
 def from_audit(
     db: Session,
     entry: AuditLog,
@@ -232,6 +242,20 @@ def from_audit(
     method: str | None,
     endpoint: str | None,
 ) -> SecurityEvent | None:
+    if _establishes_session(entry):
+        from app.services import correlation
+
+        return correlation.on_sign_in(
+            db,
+            provenance=Provenance.LOCAL,
+            source_ip=entry.source_ip,
+            account=entry.actor_label,
+            actor_id=entry.actor_id,
+            occurred_at=entry.occurred_at,
+            user_agent=user_agent,
+            endpoint=endpoint,
+            correlation_id=entry.correlation_id,
+        )
     mapping = _map_audit(entry)
     if mapping is None:
         return None
