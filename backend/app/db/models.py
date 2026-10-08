@@ -3,6 +3,15 @@
 from app.models.api_metrics import ApiEndpointStat
 from app.models.application import Application
 from app.models.audit import AuditLog
+from app.models.governance import (
+    Control,
+    ModelElement,
+    Requirement,
+    RequirementThreat,
+    Threat,
+    ThreatControl,
+    ThreatModel,
+)
 from app.models.incident import Incident, IncidentTimelineEntry
 from app.models.outbox import OutboxMessage
 from app.models.rate_limit import RateLimitBucket
@@ -17,19 +26,26 @@ __all__ = [
     "Application",
     "AuditLog",
     "AuthSession",
+    "Control",
     "Incident",
     "IncidentTimelineEntry",
     "MfaRecoveryCode",
+    "ModelElement",
     "OutboxMessage",
     "PasswordResetToken",
     "RateLimitBucket",
     "RefreshToken",
+    "Requirement",
+    "RequirementThreat",
     "RiskAcceptance",
     "Sbom",
     "ScanRun",
     "SecurityEvent",
     "SimulatedWafRule",
     "SimulationRun",
+    "Threat",
+    "ThreatControl",
+    "ThreatModel",
     "User",
     "Vulnerability",
 ]

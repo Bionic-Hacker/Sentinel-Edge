@@ -1,0 +1,3910 @@
+{
+ "controls": [
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-01",
+   "status": "planned",
+   "title": "Untrusted data delimited, never concatenated into instructions; input validation and prompt-risk scoring (ADR-0007)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-02",
+   "status": "planned",
+   "title": "Schema-bound AI output separating observed evidence from inference; non-conforming output rejected"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-03",
+   "status": "planned",
+   "title": "AI text rendered as text only, never executed or used to build queries"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-04",
+   "status": "planned",
+   "title": "Redaction and minimisation before data reaches the model"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-05",
+   "status": "planned",
+   "title": "No state-changing AI tools; proposals need human approval (audited)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-06",
+   "status": "planned",
+   "title": "Per-user AI quotas and token caps"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_users_can_read_only_their_own_record"
+    }
+   ],
+   "evidence_text": "`test_users_can_read_only_their_own_record`",
+   "extensions": [
+    {
+     "evidence": [
+      {
+       "kind": "test",
+       "ref": "test_developers_see_only_their_own_applications"
+      }
+     ],
+     "evidence_text": "`test_developers_see_only_their_own_applications`",
+     "implementation": "`app/services/applications.py`",
+     "phase": 7,
+     "title": "Object-level authorization extended to applications (developers see only their own; 404, audited)"
+    },
+    {
+     "evidence": [
+      {
+       "kind": "test",
+       "ref": "test_developers_work_only_on_their_own_applications"
+      }
+     ],
+     "evidence_text": "`test_developers_work_only_on_their_own_applications`",
+     "implementation": "`VulnerabilityService`",
+     "phase": 8,
+     "title": "Object-level authorization extended to findings, scans and SBOMs (developers: own applications; 404, audited)"
+    }
+   ],
+   "family": "API",
+   "implementation": "`UserService.get_user`",
+   "layer": "API authorization",
+   "phase": 2,
+   "ref": "C-API-01",
+   "status": "implemented",
+   "title": "Object-level authorization on user records (404, audited)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_authz_matrix.py"
+    }
+   ],
+   "evidence_text": "`tests/security/test_authz_matrix.py` (incl. mutation check); [authorization.md](authorization.md)",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`require_roles`, `public_endpoint`, `authenticated_setup`",
+   "layer": "API authorization",
+   "phase": 2,
+   "ref": "C-API-02",
+   "status": "implemented",
+   "title": "Function-level authorization declared on every route and enforced"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_rate_limiting.py"
+    },
+    {
+     "kind": "command",
+     "ref": "make smoke"
+    }
+   ],
+   "evidence_text": "`test_rate_limiting.py` (incl. 40-thread concurrency), `make smoke`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`app/security/rate_limit.py`, `app/core/rate_limiting.py`, ADR-0017",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-API-03",
+   "status": "implemented",
+   "title": "Token-bucket rate limiting per IP (before authentication) and per account (after); 429 with Retry-After; first denial audited; cannot be disabled when deployed"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_mass_assignment_style_extra_field_rejected"
+    }
+   ],
+   "evidence_text": "`test_mass_assignment_style_extra_field_rejected`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "Pydantic `extra=\"forbid\"` pattern",
+   "layer": "Application validation",
+   "phase": 1,
+   "ref": "C-API-04",
+   "status": "implemented",
+   "title": "Unknown fields rejected (mass assignment)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "frontend_test",
+     "ref": "client.test.ts"
+    }
+   ],
+   "evidence_text": "`client.test.ts`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`frontend/src/lib/api/client.ts`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-API-05",
+   "status": "implemented",
+   "title": "Same-origin API client; refuses absolute URLs, redirects; validates responses"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_error_handling.py"
+    }
+   ],
+   "evidence_text": "`tests/security/test_error_handling.py`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`backend/app/core/errors.py`",
+   "layer": "Application validation",
+   "phase": 1,
+   "ref": "C-API-06",
+   "status": "implemented",
+   "title": "Secure error handling, no input echo"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_trusted_host.py"
+    },
+    {
+     "kind": "test_file",
+     "ref": "test_config.py"
+    }
+   ],
+   "evidence_text": "`test_trusted_host.py`, `test_config.py`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`TrustedHostMiddleware`, config validator",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-API-07",
+   "status": "implemented",
+   "title": "Host header allow-list, wildcards rejected"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_api_docs_forced_off_when_deployed"
+    }
+   ],
+   "evidence_text": "`test_api_docs_forced_off_when_deployed`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`Settings._enforce_secure_defaults`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-API-08",
+   "status": "implemented",
+   "title": "Interactive API docs disabled when deployed"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_registry_matches_the_route_table"
+    }
+   ],
+   "evidence_text": "`test_registry_matches_the_route_table`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`app/core/api_policy.py`",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-API-09",
+   "status": "implemented",
+   "title": "Endpoint policy registry: risk, rate limit, OWASP exposure for every route; must equal the route table"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_api_inventory.py"
+    }
+   ],
+   "evidence_text": "`test_api_inventory.py`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`app/services/api_inventory.py`, `app/core/api_metrics.py`",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-API-10",
+   "status": "implemented",
+   "title": "API inventory with live per-endpoint metrics (templates only, no personal data) and computed status"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_api_protections.py"
+    }
+   ],
+   "evidence_text": "`test_api_protections.py`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "—",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-API-11",
+   "status": "implemented",
+   "title": "Route-table sweeps: request bodies forbid unknown fields; JSON routes declare response models; sensitive-looking response fields need approval"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_egress.py"
+    }
+   ],
+   "evidence_text": "`test_egress.py`",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`app/security/egress.py`",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-API-12",
+   "status": "implemented",
+   "title": "Outbound request (SSRF) guard: HTTPS, allow-list, every resolved address public"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "CI",
+   "extensions": [],
+   "family": "API",
+   "implementation": "`tests/unit/test_frontend_contract.py`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-API-13",
+   "status": "implemented",
+   "title": "Backend enumerations and the SPA's validator lists must match"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_audit_log.py"
+    }
+   ],
+   "evidence_text": "`test_audit_log.py` (tamper detection, 8 concurrent writers)",
+   "extensions": [],
+   "family": "AUD",
+   "implementation": "`app/services/audit.py`",
+   "layer": "Logging",
+   "phase": 2,
+   "ref": "C-AUD-01",
+   "status": "implemented",
+   "title": "Hash-chained audit log, concurrency-safe, verifiable"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_app_role_cannot_alter_audit_history"
+    },
+    {
+     "kind": "test",
+     "ref": "test_trigger_blocks_even_the_table_owner"
+    }
+   ],
+   "evidence_text": "`test_app_role_cannot_alter_audit_history`, `test_trigger_blocks_even_the_table_owner`",
+   "extensions": [],
+   "family": "AUD",
+   "implementation": "Migration 0002",
+   "layer": "Logging",
+   "phase": 2,
+   "ref": "C-AUD-02",
+   "status": "implemented",
+   "title": "Append-only: grants (SELECT/INSERT) and triggers that block even the owner"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "AUD",
+   "implementation": "",
+   "layer": "Logging",
+   "phase": 4,
+   "ref": "C-AUD-03",
+   "status": "planned",
+   "title": "Audit archive with S3 Object Lock anchoring the chain head"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "CI job \"backend\"",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`pyproject.toml`, CI",
+   "layer": "CI/CD security",
+   "phase": 1,
+   "ref": "C-CICD-01",
+   "status": "implemented",
+   "title": "SAST: Bandit + Ruff `S` rules"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "No known vulnerabilities at commit time",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`requirements.txt`, `package-lock.json`, CI",
+   "layer": "CI/CD security",
+   "phase": 1,
+   "ref": "C-CICD-02",
+   "status": "implemented",
+   "title": "SCA: pip-audit (hash-pinned), npm audit"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "Workflow file",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`.github/workflows/ci.yml`",
+   "layer": "CI/CD security",
+   "phase": 1,
+   "ref": "C-CICD-03",
+   "status": "implemented",
+   "title": "Least-privilege CI token; SHA-pinned actions; no persisted credentials"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "CI output",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`pytest --cov-fail-under=90`",
+   "layer": "CI/CD security",
+   "phase": 1,
+   "ref": "C-CICD-04",
+   "status": "implemented",
+   "title": "Coverage floor (90%) on backend"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "CI job output",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`ci.yml`, `Makefile`",
+   "layer": null,
+   "phase": 2,
+   "ref": "C-CICD-05",
+   "status": "implemented",
+   "title": "Schema drift gate (`alembic check`) in CI and `make test-backend`"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make scan"
+    }
+   ],
+   "evidence_text": "CI artifact `security-scans-<run>`; `make scan` output",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`scripts/scan.sh`, `make scan`, `make dast`, CI job `security-scans`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-CICD-06",
+   "status": "implemented",
+   "title": "SAST, SCA, secrets, IaC, container scanning, SBOMs and DAST in one pipeline, locally and in CI (ADR-0020)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make scan-test"
+    }
+   ],
+   "evidence_text": "`make scan-test` (CI job `semgrep-rules`)",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`scanning/semgrep/`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-CICD-07",
+   "status": "implemented",
+   "title": "SentinelEdge Semgrep rules encode the project's own rules, each with annotated tests"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_scanning.py"
+    }
+   ],
+   "evidence_text": "`test_scanning.py` (gate, expiry, `--expect`, coverage)",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`app/scanning/gate.py`, `scanning/accepted-findings.toml`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-CICD-08",
+   "status": "implemented",
+   "title": "Scan gate: fixable critical/high blocks unless an unexpired accepted risk covers it; awaiting-fix package vulnerabilities reported; fails closed on missing or unreadable reports"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make image-digests"
+    }
+   ],
+   "evidence_text": "`make image-digests`",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`scripts/scan.sh`, `scripts/image-digests.sh`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-CICD-09",
+   "status": "implemented",
+   "title": "Contained scanners: images pinned by tag and digest, read-only repository, no Docker socket, offline Checkov; stale pins reported"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "Trivy image reports (CVE-2026-4775 fixed)",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`backend/Dockerfile`, `frontend/Dockerfile`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-CICD-10",
+   "status": "implemented",
+   "title": "OS security fixes applied at image build on top of the pinned base"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_dast_scanner_session_is_read_only_and_revocable"
+    },
+    {
+     "kind": "test",
+     "ref": "test_openapi_document_lists_every_endpoint"
+    }
+   ],
+   "evidence_text": "`test_dast_scanner_session_is_read_only_and_revocable`, `test_openapi_document_lists_every_endpoint`",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "`app/cli.py` (`dast-session`, `openapi --server`), `scripts/scan.sh dast`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-CICD-11",
+   "status": "implemented",
+   "title": "Authenticated DAST as a read-only VIEWER with a one-scan session, revoked afterwards; logout excluded; local stack only"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make verify-hardening"
+    }
+   ],
+   "evidence_text": "`make verify-hardening` against the running stack; Trivy in P8",
+   "extensions": [],
+   "family": "CNT",
+   "implementation": "`backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-CNT-01",
+   "status": "implemented",
+   "title": "Hardened containers: non-root, read-only FS, `cap_drop: ALL`, no-new-privileges, multi-stage, health checks"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_database_roles.py"
+    }
+   ],
+   "evidence_text": "`test_database_roles.py` (privilege matrix)",
+   "extensions": [],
+   "family": "DB",
+   "implementation": "`db/bootstrap-roles.sh`, migrations, ADR-0015",
+   "layer": "Database security",
+   "phase": 2,
+   "ref": "C-DB-01",
+   "status": "implemented",
+   "title": "Separate migrator and runtime roles; explicit per-table grants; query timeouts"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "DB",
+   "implementation": "",
+   "layer": "Database security",
+   "phase": 4,
+   "ref": "C-DB-02",
+   "status": "planned",
+   "title": "Encryption at rest (KMS) and in transit (`rds.force_ssl`)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_deployed_environments_require_verified_database_tls"
+    }
+   ],
+   "evidence_text": "`test_deployed_environments_require_verified_database_tls`",
+   "extensions": [],
+   "family": "DB",
+   "implementation": "Config validator",
+   "layer": "Database security",
+   "phase": 2,
+   "ref": "C-DB-03",
+   "status": "implemented",
+   "title": "Verified TLS to the database required when deployed"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "DB",
+   "implementation": "",
+   "layer": "Database security",
+   "phase": 4,
+   "ref": "C-DB-04",
+   "status": "planned",
+   "title": "Automated database backups"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "DNS",
+   "implementation": "",
+   "layer": "DNS",
+   "phase": 5,
+   "ref": "C-DNS-01",
+   "status": "planned",
+   "title": "CAA records and Route 53 managed as code"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "EDGE",
+   "implementation": "",
+   "layer": "CDN / edge",
+   "phase": 5,
+   "ref": "C-EDGE-01",
+   "status": "planned",
+   "title": "CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "EDGE",
+   "implementation": "",
+   "layer": "CDN / edge",
+   "phase": 4,
+   "ref": "C-EDGE-02",
+   "status": "planned",
+   "title": "Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "EDGE",
+   "implementation": "",
+   "layer": "CDN / edge",
+   "phase": 5,
+   "ref": "C-EDGE-03",
+   "status": "planned",
+   "title": "CloudFront response headers policy"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_capabilities.py"
+    }
+   ],
+   "evidence_text": "`tests/unit/test_capabilities.py`",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "`app/core/capabilities.py`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-GOV-01",
+   "status": "implemented",
+   "title": "Provenance register with enforcement tests"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "Branch protection (configured on GitHub)",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "`.github/CODEOWNERS`, PR template",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-GOV-02",
+   "status": "implemented",
+   "title": "Security-sensitive paths require code-owner review"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "",
+   "layer": null,
+   "phase": 10,
+   "ref": "C-GOV-03",
+   "status": "planned",
+   "title": "Change management: security-sensitive changes need an approver other than the requester, a rollback plan and validation"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "EXC-0001, EXC-0002",
+   "extensions": [
+    {
+     "evidence": [],
+     "evidence_text": "EXC-0001, EXC-0002",
+     "implementation": "`docs/governance/exceptions.md`",
+     "phase": 2,
+     "title": "Security exceptions recorded with justification, compensating control and expiry"
+    }
+   ],
+   "family": "GOV",
+   "implementation": "`docs/governance/exceptions.md`; exception IDs in implementing config",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-GOV-04",
+   "status": "implemented",
+   "title": "Security exceptions are recorded, justified, compensated and time-limited"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_owasp_coverage.py"
+    }
+   ],
+   "evidence_text": "`test_owasp_coverage.py`",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "`app/core/owasp_coverage.py`",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-GOV-05",
+   "status": "implemented",
+   "title": "OWASP API Top 10 coverage with cited test evidence that must exist"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "IAC",
+   "implementation": "",
+   "layer": null,
+   "phase": 3,
+   "ref": "C-IAC-01",
+   "status": "planned",
+   "title": "Per-environment Terraform roots with `allowed_account_ids` guards (ADR-0014)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "IAC",
+   "implementation": "",
+   "layer": null,
+   "phase": 3,
+   "ref": "C-IAC-02",
+   "status": "planned",
+   "title": "Encrypted, private, versioned Terraform state bucket"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "IAM",
+   "implementation": "",
+   "layer": "IAM",
+   "phase": 3,
+   "ref": "C-IAM-01",
+   "status": "planned",
+   "title": "One IAM role per function, least privilege"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "IAM",
+   "implementation": "",
+   "layer": "IAM",
+   "phase": 11,
+   "ref": "C-IAM-02",
+   "status": "planned",
+   "title": "No static cloud keys: GitHub OIDC for CI (ADR-0010)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "IAM",
+   "implementation": "",
+   "layer": "IAM",
+   "phase": 3,
+   "ref": "C-IAM-03",
+   "status": "planned",
+   "title": "Every IAM permission documented with its reason"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_security_primitives.py"
+    },
+    {
+     "kind": "test_file",
+     "ref": "test_config.py"
+    }
+   ],
+   "evidence_text": "`test_security_primitives.py`, `test_config.py`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`app/security/passwords.py`, config validator",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-01",
+   "status": "implemented",
+   "title": "Argon2id password hashing; deployed minimum cost enforced; rehash on login"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_forged_or_invalid_tokens_rejected"
+    }
+   ],
+   "evidence_text": "`test_forged_or_invalid_tokens_rejected` (alg none, substitution, wrong key/aud/iss/type, expired)",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`app/security/tokens.py`, `app/core/authz.py`",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-02",
+   "status": "implemented",
+   "title": "15-minute JWT, algorithm pinned, all claims required; session checked per request"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_auth_sessions.py"
+    },
+    {
+     "kind": "command",
+     "ref": "make smoke"
+    }
+   ],
+   "evidence_text": "`test_auth_sessions.py`, `make smoke`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`app/services/auth.py`, `app/api/v1/auth.py`",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-03",
+   "status": "implemented",
+   "title": "Rotating refresh tokens, `__Host-` HttpOnly Secure SameSite=Strict cookie, reuse revokes session"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_auth_mfa.py"
+    }
+   ],
+   "evidence_text": "`test_auth_mfa.py`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`app/security/mfa.py`",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-04",
+   "status": "implemented",
+   "title": "TOTP MFA (encrypted secrets, no replay, ±1 step), hashed single-use recovery codes; mandatory for ADMIN and SECURITY_ENGINEER"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_auth_login.py"
+    }
+   ],
+   "evidence_text": "`test_auth_login.py`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`AuthService.login`",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-05",
+   "status": "implemented",
+   "title": "Lockout after repeated failures (password and MFA share the counter), uniform errors, constant-work dummy hash"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_cross_site_requests_rejected"
+    }
+   ],
+   "evidence_text": "`test_cross_site_requests_rejected`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`require_same_origin`",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-06",
+   "status": "implemented",
+   "title": "CSRF: Origin allow-list plus custom header on cookie-bearing endpoints"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_auth_password_reset.py"
+    },
+    {
+     "kind": "frontend_test",
+     "ref": "auth-flows.test.tsx"
+    }
+   ],
+   "evidence_text": "`test_auth_password_reset.py`, `auth-flows.test.tsx`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`request_password_reset`, `reset_password`; SPA strips the fragment",
+   "layer": "Authentication",
+   "phase": 2,
+   "ref": "C-ID-07",
+   "status": "implemented",
+   "title": "Password reset: single-use hashed token in URL fragment, 30-minute expiry, rate-limited, revokes sessions"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_cli.py"
+    },
+    {
+     "kind": "test",
+     "ref": "test_users_mid_setup_are_held_at_setup"
+    }
+   ],
+   "evidence_text": "`test_cli.py`, `test_users_mid_setup_are_held_at_setup`",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`app/cli.py`, `pending_steps`",
+   "layer": null,
+   "phase": 2,
+   "ref": "C-ID-08",
+   "status": "implemented",
+   "title": "No default credentials; forced password change and MFA enrollment gate all other access"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "frontend_test",
+     "ref": "session.test.ts"
+    }
+   ],
+   "evidence_text": "`session.test.ts`; Chromium check: empty web storage, cookie invisible to JS",
+   "extensions": [],
+   "family": "ID",
+   "implementation": "`frontend/src/lib/auth/session.ts`",
+   "layer": null,
+   "phase": 2,
+   "ref": "C-ID-09",
+   "status": "implemented",
+   "title": "Browser session: token in memory only, cross-tab refresh lock"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "LB",
+   "implementation": "",
+   "layer": "Load balancer",
+   "phase": 4,
+   "ref": "C-LB-01",
+   "status": "planned",
+   "title": "ALB desync mitigation (strictest) and invalid-header dropping"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_logging.py"
+    },
+    {
+     "kind": "test_file",
+     "ref": "test_correlation_id.py"
+    }
+   ],
+   "evidence_text": "`test_logging.py`, `test_correlation_id.py`",
+   "extensions": [],
+   "family": "LOG",
+   "implementation": "`backend/app/core/logging.py`, `correlation.py`",
+   "layer": "Logging",
+   "phase": 1,
+   "ref": "C-LOG-01",
+   "status": "implemented",
+   "title": "Structured JSON logs with correlation IDs"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_logging.py"
+    }
+   ],
+   "evidence_text": "`test_logging.py`",
+   "extensions": [],
+   "family": "LOG",
+   "implementation": "`redact()`",
+   "layer": "Logging",
+   "phase": 1,
+   "ref": "C-LOG-02",
+   "status": "implemented",
+   "title": "Secret redaction and log-injection neutralisation"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "Code review; access log fields",
+   "extensions": [],
+   "family": "LOG",
+   "implementation": "`SecurityMiddleware`",
+   "layer": "Logging",
+   "phase": 1,
+   "ref": "C-LOG-03",
+   "status": "implemented",
+   "title": "Query strings excluded from access logs"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "MON",
+   "implementation": "",
+   "layer": "Monitoring and detection",
+   "phase": 4,
+   "ref": "C-MON-01",
+   "status": "planned",
+   "title": "CloudWatch alarms for errors, latency and security signals"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make verify-hardening"
+    }
+   ],
+   "evidence_text": "`make verify-hardening`",
+   "extensions": [],
+   "family": "NET",
+   "implementation": "`docker-compose.yml`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-NET-00",
+   "status": "implemented",
+   "title": "Local DB on internal-only network; services bound to 127.0.0.1"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "NET",
+   "implementation": "",
+   "layer": "Private networking",
+   "phase": 3,
+   "ref": "C-NET-01",
+   "status": "planned",
+   "title": "Private subnets for the application and the database"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "NET",
+   "implementation": "",
+   "layer": "Security groups",
+   "phase": 3,
+   "ref": "C-NET-02",
+   "status": "planned",
+   "title": "Tiered security groups: each tier reachable only from the tier above"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_client_ip.py"
+    },
+    {
+     "kind": "command",
+     "ref": "make smoke"
+    }
+   ],
+   "evidence_text": "`test_client_ip.py`, `make smoke`",
+   "extensions": [],
+   "family": "NET",
+   "implementation": "`app/core/client_ip.py`, pinned edge subnet, nginx overwrite",
+   "layer": null,
+   "phase": 6,
+   "ref": "C-NET-03",
+   "status": "implemented",
+   "title": "Client IP from `X-Forwarded-For` only via trusted proxy networks, chain walked right to left"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "Gitleaks run: no leaks",
+   "extensions": [],
+   "family": "SEC",
+   "implementation": "`.gitleaks.toml`, `.pre-commit-config.yaml`, `ci.yml`",
+   "layer": "Secrets management",
+   "phase": 1,
+   "ref": "C-SEC-01",
+   "status": "implemented",
+   "title": "Secret scanning (pre-commit + CI, full history)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "`.gitignore`; Gitleaks",
+   "extensions": [],
+   "family": "SEC",
+   "implementation": "`.env.example` placeholders, `make env` (random, mode 600)",
+   "layer": "Secrets management",
+   "phase": 1,
+   "ref": "C-SEC-02",
+   "status": "implemented",
+   "title": "No secrets in repo; generated local credentials"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "`docker compose config` review",
+   "extensions": [],
+   "family": "SEC",
+   "implementation": "`docker-compose.yml`",
+   "layer": null,
+   "phase": 2,
+   "ref": "C-SEC-03",
+   "status": "implemented",
+   "title": "Secrets scoped per container (API never receives migrator/admin passwords)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_app_role_cannot_alter_or_remove_events"
+    },
+    {
+     "kind": "test",
+     "ref": "test_evidence_links_are_write_once"
+    }
+   ],
+   "evidence_text": "`test_app_role_cannot_alter_or_remove_events`, `test_evidence_links_are_write_once`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "Migrations 0006 and 0007, `app/models/security_event.py`",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-01",
+   "status": "implemented",
+   "title": "Append-only security events; `incident_id` write-once (trigger)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_http_analysis.py"
+    },
+    {
+     "kind": "test",
+     "ref": "test_sensitive_query_parameters_are_redacted"
+    },
+    {
+     "kind": "test",
+     "ref": "test_inspection_exclusions_name_real_routes_and_fields"
+    }
+   ],
+   "evidence_text": "`test_http_analysis.py`, `test_sensitive_query_parameters_are_redacted`, `test_inspection_exclusions_name_real_routes_and_fields`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`app/security/http_analysis.py`, `app/core/http_inspection.py`",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-02",
+   "status": "implemented",
+   "title": "Detect-only HTTP analysis: 17 rules, double decoding, bounded input, sensitive snippets redacted, incident free text excluded"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_rules_are_linear_on_adversarial_input"
+    }
+   ],
+   "evidence_text": "`test_rules_are_linear_on_adversarial_input`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "Linear-time rules, input bounds",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-03",
+   "status": "implemented",
+   "title": "ReDoS-safe patterns"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_concurrent_failures_raise_exactly_one_detection_and_incident"
+    },
+    {
+     "kind": "test",
+     "ref": "test_detections_never_cross_provenance"
+    }
+   ],
+   "evidence_text": "`test_concurrent_failures_raise_exactly_one_detection_and_incident` (30 threads), `test_detections_never_cross_provenance`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`app/services/correlation.py`",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-04",
+   "status": "implemented",
+   "title": "Synchronous correlation under the audit lock: exactly-once detections, partitioned by provenance (ADR-0018)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_incidents.py"
+    },
+    {
+     "kind": "frontend_test",
+     "ref": "secops.test.tsx"
+    }
+   ],
+   "evidence_text": "`test_incidents.py` (workflow table, analysts and viewers), `secops.test.tsx`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`app/services/incidents.py`",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-05",
+   "status": "implemented",
+   "title": "Incident workflow and role rules enforced on the server; UI renders `available_moves` and `permissions`"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_tampering_with_the_timeline_is_detected"
+    },
+    {
+     "kind": "test",
+     "ref": "test_deleting_a_timeline_entry_is_detected"
+    },
+    {
+     "kind": "test",
+     "ref": "test_app_role_cannot_rewrite_incident_records"
+    }
+   ],
+   "evidence_text": "`test_tampering_with_the_timeline_is_detected`, `test_deleting_a_timeline_entry_is_detected`, `test_app_role_cannot_rewrite_incident_records`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`verify_timeline`, migration 0007",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-06",
+   "status": "implemented",
+   "title": "Timeline integrity: each entry's SHA-256 committed to the audit chain and verified on read; incidents never deleted"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_stale_writes_are_refused"
+    },
+    {
+     "kind": "frontend_test",
+     "ref": "secops.test.tsx"
+    }
+   ],
+   "evidence_text": "`test_stale_writes_are_refused`; UI reload prompt in `secops.test.tsx`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`version` columns",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-07",
+   "status": "implemented",
+   "title": "Optimistic concurrency on incidents and applications (409 `stale_version`)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_a_simulation_cannot_be_given_a_target"
+    },
+    {
+     "kind": "test",
+     "ref": "test_every_scenario_produces_only_simulated_activity"
+    },
+    {
+     "kind": "test",
+     "ref": "test_simulations_never_appear_in_the_live_view"
+    }
+   ],
+   "evidence_text": "`test_a_simulation_cannot_be_given_a_target`, `test_every_scenario_produces_only_simulated_activity`, `test_simulations_never_appear_in_the_live_view`",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`app/services/simulator.py`",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-08",
+   "status": "implemented",
+   "title": "Attack simulator safe by construction: no network I/O, no target input, RFC 5737 addresses, SIMULATED provenance, leads only, audited (ADR-0019)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "frontend_test",
+     "ref": "secops.test.tsx"
+    }
+   ],
+   "evidence_text": "`secops.test.tsx`: a `<script>` snippet renders as text; C-WEB-02, C-WEB-03",
+   "extensions": [],
+   "family": "SO",
+   "implementation": "`EvidenceText`, `ThreatsPage`",
+   "layer": "Monitoring and detection",
+   "phase": 7,
+   "ref": "C-SO-09",
+   "status": "implemented",
+   "title": "Attacker-controlled evidence rendered as text only (no markup), under the strict CSP"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_vulnerabilities.py"
+    }
+   ],
+   "evidence_text": "`test_vulnerabilities.py` (import, fixed and reopened, partial scans)",
+   "extensions": [],
+   "family": "VM",
+   "implementation": "`app/services/vulnerabilities.py`, `app/scanning/findings.py`",
+   "layer": "Vulnerability management",
+   "phase": 8,
+   "ref": "C-VM-01",
+   "status": "implemented",
+   "title": "Findings lifecycle: de-duplicated by fingerprint, fixed only by a scan that covers the finding, reopened on return, never fixed by hand"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_import_deduplicates_and_records_the_scan"
+    },
+    {
+     "kind": "test",
+     "ref": "test_severity_change_keeps_the_original_sla_clock"
+    }
+   ],
+   "evidence_text": "`test_import_deduplicates_and_records_the_scan`, `test_severity_change_keeps_the_original_sla_clock`",
+   "extensions": [],
+   "family": "VM",
+   "implementation": "`SLA`, overview",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-VM-02",
+   "status": "implemented",
+   "title": "Remediation SLA from detection (critical 7, high 30, medium 90, low 180 days); past-SLA counted on the dashboard"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_risk_acceptance_lifecycle"
+    },
+    {
+     "kind": "test",
+     "ref": "test_an_expired_acceptance_reopens_its_finding"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_app_role_cannot_rewrite_the_record"
+    }
+   ],
+   "evidence_text": "`test_risk_acceptance_lifecycle`, `test_an_expired_acceptance_reopens_its_finding`, `test_the_app_role_cannot_rewrite_the_record`",
+   "extensions": [],
+   "family": "VM",
+   "implementation": "Migration 0009 (column grants, partial unique index), `accept_risk`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-VM-03",
+   "status": "implemented",
+   "title": "Risk acceptance: leads only, justification, compensating control, expiry within the severity limit, immutable decision, one in force, expiry reopens"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_import_is_all_or_nothing"
+    },
+    {
+     "kind": "test",
+     "ref": "test_scanner_text_is_bounded_and_control_characters_replaced"
+    },
+    {
+     "kind": "test",
+     "ref": "test_cli_import"
+    }
+   ],
+   "evidence_text": "`test_import_is_all_or_nothing`, `test_scanner_text_is_bounded_and_control_characters_replaced`, `test_cli_import`",
+   "extensions": [],
+   "family": "VM",
+   "implementation": "`app/schemas/vulnerabilities.py`, `import-scan`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-VM-04",
+   "status": "implemented",
+   "title": "Imports validated and bounded, all-or-nothing, insert-only scan runs; CLI only"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_new_critical_findings_are_security_events_and_fixable_ones_open_an_incident"
+    },
+    {
+     "kind": "test",
+     "ref": "test_events_per_import_are_bounded"
+    }
+   ],
+   "evidence_text": "`test_new_critical_findings_are_security_events_and_fixable_ones_open_an_incident`, `test_events_per_import_are_bounded`",
+   "extensions": [],
+   "family": "VM",
+   "implementation": "`_report_events`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-VM-05",
+   "status": "implemented",
+   "title": "New and reopened critical/high findings become security events (bounded); fixable criticals open incidents"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_scans_and_sboms"
+    },
+    {
+     "kind": "frontend_test",
+     "ref": "appsec.test.tsx"
+    }
+   ],
+   "evidence_text": "`test_scans_and_sboms`, `appsec.test.tsx`",
+   "extensions": [],
+   "family": "VM",
+   "implementation": "`Sbom`, `/api/v1/sboms`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-VM-06",
+   "status": "implemented",
+   "title": "SBOMs stored per scan and artifact with SHA-256; components searchable; CycloneDX download as an attachment"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "WAF",
+   "implementation": "",
+   "layer": "WAF",
+   "phase": 5,
+   "ref": "C-WAF-01",
+   "status": "planned",
+   "title": "AWS managed rule groups (core, known bad inputs, SQL injection)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "WAF",
+   "implementation": "",
+   "layer": "WAF",
+   "phase": 5,
+   "ref": "C-WAF-02",
+   "status": "planned",
+   "title": "Custom WAF rules for SentinelEdge's own endpoints"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "WAF",
+   "implementation": "",
+   "layer": "WAF",
+   "phase": 5,
+   "ref": "C-WAF-03",
+   "status": "planned",
+   "title": "Rate-based WAF rules"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "WAF",
+   "implementation": "",
+   "layer": "WAF",
+   "phase": 5,
+   "ref": "C-WAF-04",
+   "status": "planned",
+   "title": "WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_security_headers.py"
+    }
+   ],
+   "evidence_text": "`tests/security/test_security_headers.py` (200, 404, 400, 500)",
+   "extensions": [],
+   "family": "WEB",
+   "implementation": "`backend/app/core/security_headers.py`, `middleware.py`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-WEB-01",
+   "status": "implemented",
+   "title": "API security headers on every response"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "Build output has no inline scripts or styles; `docs/security-headers.md`",
+   "extensions": [],
+   "family": "WEB",
+   "implementation": "`frontend/security-headers.conf`, `nginx.conf`",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-WEB-02",
+   "status": "implemented",
+   "title": "SPA security headers, strict CSP (no `unsafe-inline`/`unsafe-eval`)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "`npm run lint` in CI",
+   "extensions": [],
+   "family": "WEB",
+   "implementation": "`frontend/eslint.config.js` (`dangerouslySetInnerHTML`, `innerHTML`, `eval`, web storage)",
+   "layer": null,
+   "phase": 1,
+   "ref": "C-WEB-03",
+   "status": "implemented",
+   "title": "XSS-prone patterns banned at lint time"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make verify-hardening"
+    }
+   ],
+   "evidence_text": "`make verify-hardening`; ZAP rule 90004",
+   "extensions": [],
+   "family": "WEB",
+   "implementation": "`security-headers.conf`, `security_headers.py`",
+   "layer": null,
+   "phase": 8,
+   "ref": "C-WEB-04",
+   "status": "implemented",
+   "title": "Cross-origin isolation: COOP `same-origin` and COEP `require-corp` on the SPA and the API"
+  }
+ ],
+ "digest": "6355a0bbd519045efa62374b453962aecaaea2db9b1b04874d34eb2de538164b",
+ "format": 1,
+ "model": {
+  "elements": [
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "Internet → Edge",
+    "ref": "TB1"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "Edge → Origin",
+    "ref": "TB2"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "Browser session → API",
+    "ref": "TB3"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "API → Database",
+    "ref": "TB4"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "API → AI provider (and attacker data into the AI)",
+    "ref": "TB5"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "CI/CD → AWS",
+    "ref": "TB6"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "Operators",
+    "ref": "TB7"
+   },
+   {
+    "attributes": {},
+    "description": "",
+    "kind": "boundary",
+    "name": "Developer → repo",
+    "ref": "TB8"
+   },
+   {
+    "attributes": {},
+    "description": "Account takeover, privilege escalation",
+    "kind": "asset",
+    "name": "User credentials, MFA secrets, refresh tokens",
+    "ref": "A1"
+   },
+   {
+    "attributes": {},
+    "description": "Reveals defensive posture and weaknesses",
+    "kind": "asset",
+    "name": "Security telemetry (events, incidents, findings)",
+    "ref": "A2"
+   },
+   {
+    "attributes": {},
+    "description": "Accountability; tampering hides attacker actions",
+    "kind": "asset",
+    "name": "Audit log",
+    "ref": "A3"
+   },
+   {
+    "attributes": {},
+    "description": "Weakening it disables the outer defense",
+    "kind": "asset",
+    "name": "WAF and edge configuration",
+    "ref": "A4"
+   },
+   {
+    "attributes": {},
+    "description": "Full environment compromise",
+    "kind": "asset",
+    "name": "AWS credentials and IAM roles",
+    "ref": "A5"
+   },
+   {
+    "attributes": {},
+    "description": "Forging sessions, data access",
+    "kind": "asset",
+    "name": "Secrets (DB credentials, JWT signing key)",
+    "ref": "A6"
+   },
+   {
+    "attributes": {},
+    "description": "Supply-chain compromise",
+    "kind": "asset",
+    "name": "Source, pipeline, container images",
+    "ref": "A7"
+   },
+   {
+    "attributes": {},
+    "description": "Manipulated analysis, data leakage",
+    "kind": "asset",
+    "name": "AI prompts and outputs",
+    "ref": "A8"
+   },
+   {
+    "attributes": {},
+    "description": "May contain sensitive values and resource details",
+    "kind": "asset",
+    "name": "Terraform state",
+    "ref": "A9"
+   },
+   {
+    "attributes": {},
+    "description": "The evidence trail of an attack and of the response to it",
+    "kind": "asset",
+    "name": "Incident records and timelines",
+    "ref": "A10"
+   },
+   {
+    "attributes": {},
+    "description": "Changes what simulations show; must never be mistaken for real edge state",
+    "kind": "asset",
+    "name": "Simulated WAF configuration",
+    "ref": "A11"
+   },
+   {
+    "attributes": {},
+    "description": "A map of known weaknesses; an altered acceptance hides a risk someone decided to carry",
+    "kind": "asset",
+    "name": "Vulnerability records, risk acceptances and SBOMs",
+    "ref": "A12"
+   },
+   {
+    "attributes": {},
+    "description": "A compromised scanner or a silently failed scan lets vulnerable code ship",
+    "kind": "asset",
+    "name": "Scanner images and the scan gate",
+    "ref": "A13"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB1"
+     ]
+    },
+    "description": "Static assets",
+    "kind": "flow",
+    "name": "Browser → SPA (S3)",
+    "ref": "F1"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB1",
+      "TB2",
+      "TB3"
+     ]
+    },
+    "description": "Credentials, tokens, queries, analyst input",
+    "kind": "flow",
+    "name": "Browser → API",
+    "ref": "F2"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB4"
+     ]
+    },
+    "description": "All persistent data",
+    "kind": "flow",
+    "name": "API → DB",
+    "ref": "F3"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB5"
+     ]
+    },
+    "description": "Redacted event data, prompts",
+    "kind": "flow",
+    "name": "API/worker → Bedrock",
+    "ref": "F4"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB1",
+      "TB5"
+     ]
+    },
+    "description": "Attacker-controlled request data",
+    "kind": "flow",
+    "name": "WAF logs → worker",
+    "ref": "F5"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB6"
+     ]
+    },
+    "description": "Images, Terraform plans",
+    "kind": "flow",
+    "name": "GitHub Actions → AWS",
+    "ref": "F6"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB8"
+     ]
+    },
+    "description": "Code, configuration",
+    "kind": "flow",
+    "name": "Developer → GitHub",
+    "ref": "F7"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB3",
+      "TB4"
+     ]
+    },
+    "description": "Attacker-controlled request data (bounded, redacted)",
+    "kind": "flow",
+    "name": "API → security events → correlation → incidents",
+    "ref": "F8"
+   },
+   {
+    "attributes": {
+     "boundaries": [
+      "TB4"
+     ]
+    },
+    "description": "Synthetic requests in memory, labelled SIMULATED",
+    "kind": "flow",
+    "name": "Attack simulator → security events",
+    "ref": "F9"
+   },
+   {
+    "attributes": {
+     "threats": []
+    },
+    "description": "Attacker finds the origin, sends payloads that WAF would block. Broken by ADR-0001 (no public origin) and by app-layer validation and parameterisation, which hold even without WAF.",
+    "kind": "attack_path",
+    "name": "Origin bypass → unfiltered injection",
+    "ref": "AP-1"
+   },
+   {
+    "attributes": {
+     "threats": []
+    },
+    "description": "Broken at the WAF rate rule, app lockout, MFA, short-lived tokens, and RBAC/object checks; detected by COR-001 (stuffing), COR-007 (a sign-in from the stuffing source) and token-replay incidents (Phase 7).",
+    "kind": "attack_path",
+    "name": "Credential stuffing → session theft → data access",
+    "ref": "AP-2"
+   },
+   {
+    "attributes": {
+     "threats": []
+    },
+    "description": "Broken because AI output is schema-bound and advisory, proposals need approval, and real WAF changes need a Terraform PR with review.",
+    "kind": "attack_path",
+    "name": "Poisoned log line → AI recommends harmful change → operator applies it",
+    "ref": "AP-3"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Single-maintainer project: separation of duties is enforced by role checks, not by different people. Accepted for a portfolio.",
+    "kind": "residual_risk",
+    "name": "Single-maintainer project: separation of duties is enforced by role checks, not by different people",
+    "ref": "RR-1"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not be exposed. Closed in Phase 5.",
+    "kind": "residual_risk",
+    "name": "No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not be exposed",
+    "ref": "RR-2"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.",
+    "kind": "residual_risk",
+    "name": "Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash is anchored externally (S3 Object Lock, Phase 4)",
+    "ref": "RR-3"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).",
+    "kind": "residual_risk",
+    "name": "One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).",
+    "ref": "RR-4"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.",
+    "kind": "residual_risk",
+    "name": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout",
+    "ref": "RR-5"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.",
+    "kind": "residual_risk",
+    "name": "Rate-limit and metrics writes add database load per request (ADR-0017)",
+    "ref": "RR-6"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
+    "kind": "residual_risk",
+    "name": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
+    "ref": "RR-7"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.",
+    "kind": "residual_risk",
+    "name": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after ",
+    "ref": "RR-8"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
+    "kind": "residual_risk",
+    "name": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
+    "ref": "RR-9"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "HTTP analysis is detect-only. Until AWS WAF (Phase 5), nothing blocks an injection payload at the edge; parameterised queries and validation remain the protection, and detection records it.",
+    "kind": "residual_risk",
+    "name": "HTTP analysis is detect-only",
+    "ref": "RR-10"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "On one machine every request comes from one address, so local detections group into a single incident. Expected; not a weakness of the deployed design.",
+    "kind": "residual_risk",
+    "name": "On one machine every request comes from one address, so local detections group into a single incident",
+    "ref": "RR-11"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) is planned with Phase 12 hardening.",
+    "kind": "residual_risk",
+    "name": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8)",
+    "ref": "RR-12"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Accepted risks exist in two places until Phase 10: the gate's file register (`scanning/accepted-findings.toml`) and the in-application acceptances.",
+    "kind": "residual_risk",
+    "name": "Accepted risks exist in two places until Phase 10: the gate's file register (`scanning/accepted-findings.toml`) and the in-application acceptances.",
+    "ref": "RR-13"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "kind": "residual_risk",
+    "name": "Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "ref": "RR-14"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 8)"
+    },
+    "description": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
+    "kind": "residual_risk",
+    "name": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
+    "ref": "RR-15"
+   }
+  ],
+  "method": "stride",
+  "threats": [
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-WAF-01",
+     "C-WAF-03"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Shield Standard, WAF rate rules, CloudFront",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-01",
+    "status": "planned",
+    "status_text": "Planned (P5)",
+    "stride": "D",
+    "title": "Volumetric / L7 flood"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-01",
+     "C-WEB-01"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "`TLSv1.2_2021` policy, HSTS",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-02",
+    "status": "partly_mitigated",
+    "status_text": "HSTS mitigated (app); edge P5",
+    "stride": "T/I",
+    "title": "TLS downgrade or weak ciphers"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-02"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Internal ALB via VPC origin (ADR-0001)",
+    "owasp": "",
+    "phases": [
+     4
+    ],
+    "ref": "T-EDGE-03",
+    "status": "planned",
+    "status_text": "Planned (P4–5)",
+    "stride": "E",
+    "title": "Origin bypass around CloudFront/WAF"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-03",
+     "C-API-07",
+     "C-WEB-01"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "`/api/*` uncached, `Cache-Control: no-store`, Host allow-list",
+    "owasp": "",
+    "phases": [
+     1,
+     5
+    ],
+    "ref": "T-EDGE-04",
+    "status": "partly_mitigated",
+    "status_text": "Partly mitigated (P1 headers + Host); edge P5",
+    "stride": "T",
+    "title": "Cache poisoning / cache deception"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-API-07"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "TrustedHostMiddleware, no wildcards",
+    "owasp": "",
+    "phases": [
+     1
+    ],
+    "ref": "T-EDGE-05",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1)",
+    "stride": "S",
+    "title": "Host header injection"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-WEB-01",
+     "C-WEB-02",
+     "C-WEB-04",
+     "C-EDGE-03"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Security headers on every response",
+    "owasp": "",
+    "phases": [
+     1,
+     5
+    ],
+    "ref": "T-EDGE-06",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, local); CloudFront P5",
+    "stride": "T",
+    "title": "Clickjacking, MIME sniffing, XSS via missing headers"
+   },
+   {
+    "boundaries": [
+     "TB2"
+    ],
+    "controls": [
+     "C-EDGE-02"
+    ],
+    "group": "TB2 — Edge → Origin",
+    "impact": 2,
+    "likelihood": 1,
+    "mitigation": "HTTPS listener on ALB",
+    "owasp": "",
+    "phases": [
+     4
+    ],
+    "ref": "T-ORG-01",
+    "status": "planned",
+    "status_text": "Planned (P4)",
+    "stride": "I",
+    "title": "Plaintext CloudFront→origin traffic"
+   },
+   {
+    "boundaries": [
+     "TB2"
+    ],
+    "controls": [
+     "C-NET-03"
+    ],
+    "group": "TB2 — Edge → Origin",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Proxy-header trust only from configured proxy networks, chain walked right to left",
+    "owasp": "",
+    "phases": [
+     4,
+     6
+    ],
+    "ref": "T-ORG-02",
+    "status": "partly_mitigated",
+    "status_text": "Mitigated locally (P6, tested): trusted local proxy network, nginx overwrites the header; ALB subnets in P4",
+    "stride": "S",
+    "title": "Spoofed `X-Forwarded-For` to evade IP controls"
+   },
+   {
+    "boundaries": [
+     "TB2"
+    ],
+    "controls": [
+     "C-LB-01"
+    ],
+    "group": "TB2 — Edge → Origin",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "ALB desync mitigation \"strictest\", drop invalid headers",
+    "owasp": "",
+    "phases": [
+     4
+    ],
+    "ref": "T-ORG-03",
+    "status": "planned",
+    "status_text": "Planned (P4)",
+    "stride": "T",
+    "title": "HTTP request smuggling / desync"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-04",
+     "C-ID-05",
+     "C-API-03",
+     "C-SO-04",
+     "C-WAF-03"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 3,
+    "mitigation": "WAF rate rule, app limiter, lockout, MFA, detection",
+    "owasp": "API2, A07",
+    "phases": [
+     2,
+     5,
+     6,
+     7
+    ],
+    "ref": "T-ID-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2, P6) and detected (P7): lockout, MFA, uniform errors, per-IP sign-in limits; COR-001, COR-002 and COR-007 open incidents; WAF rate rule P5",
+    "stride": "S",
+    "title": "Credential stuffing / brute force"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-09",
+     "C-WEB-02",
+     "C-WEB-03"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Memory-only token, strict CSP, React escaping, ESLint bans",
+    "owasp": "A03",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): token in memory only, refresh cookie HttpOnly (verified in Chromium)",
+    "stride": "S",
+    "title": "Access-token theft via XSS"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-03"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Rotation with family revocation (ADR-0003)",
+    "owasp": "API2",
+    "phases": [
+     2,
+     7
+    ],
+    "ref": "T-ID-03",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): reuse revokes the session and is audited; opens a token-theft incident (P7)",
+    "stride": "S",
+    "title": "Refresh-token replay"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-03",
+     "C-ID-06"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "SameSite=Strict, Origin check, custom header",
+    "owasp": "A01",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-04",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2)",
+    "stride": "T",
+    "title": "CSRF on cookie-authenticated refresh"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-05"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 1,
+    "likelihood": 3,
+    "mitigation": "Generic auth errors, uniform timing",
+    "owasp": "API2",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-05",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): identical responses, dummy hash for unknown accounts, generic reset response",
+    "stride": "I",
+    "title": "Account enumeration"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-01"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 3,
+    "mitigation": "Service-level ownership checks, UUID IDs",
+    "owasp": "API1",
+    "phases": [
+     2,
+     7
+    ],
+    "ref": "T-API-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2, P7): user records; applications (developers see only their own, others 404 and audited); repeated denials raise COR-004",
+    "stride": "E",
+    "title": "BOLA (object-level authorization)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-02"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Role dependencies on every route; route-table test",
+    "owasp": "API5",
+    "phases": [
+     2
+    ],
+    "ref": "T-API-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): declared matrix + enforcement sweep",
+    "stride": "E",
+    "title": "BFLA (function-level authorization)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-04",
+     "C-API-11"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "`extra=\"forbid\"` request models",
+    "owasp": "API3",
+    "phases": [
+     2
+    ],
+    "ref": "T-API-03",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): all request models; tested on login and user admin",
+    "stride": "T",
+    "title": "Mass assignment"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-03",
+     "C-WAF-03"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 3,
+    "mitigation": "WAF rate rules, app limits, body size limit, pagination caps",
+    "owasp": "API4",
+    "phases": [
+     5,
+     6
+    ],
+    "ref": "T-API-04",
+    "status": "partly_mitigated",
+    "status_text": "Mitigated in app (P6): token buckets per IP and account, page caps, body limit, statement timeout; WAF rate rules P5",
+    "stride": "D",
+    "title": "Unrestricted resource consumption"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-11"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Explicit response models (ADR-0012)",
+    "owasp": "API3",
+    "phases": [
+     2
+    ],
+    "ref": "T-API-05",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): user responses checked against an exact field allow-list",
+    "stride": "I",
+    "title": "Excessive data exposure"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-02"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 1,
+    "likelihood": 1,
+    "mitigation": "Moved behind authentication",
+    "owasp": "API9",
+    "phases": [
+     2
+    ],
+    "ref": "T-API-06",
+    "status": "closed",
+    "status_text": "Closed (P2)",
+    "stride": "I",
+    "title": "Unauthenticated capability endpoint discloses roadmap"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-04",
+     "C-CICD-07",
+     "C-SO-02",
+     "C-WAF-01"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "ORM parameterisation, validation, WAF SQLi rules, detection",
+    "owasp": "API8, A03",
+    "phases": [
+     2,
+     5,
+     7
+    ],
+    "ref": "T-API-07",
+    "status": "partly_mitigated",
+    "status_text": "Mitigated in app (P2), detected (P7): ORM only, validated query params; 17 detect-only HTTP rules and COR-003; WAF P5 (simulated WAF in P7)",
+    "stride": "T",
+    "title": "Injection (SQL, command)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-12"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "No server-side fetch of user URLs; egress guard (HTTPS, allow-list, public addresses only)",
+    "owasp": "API7",
+    "phases": [
+     6
+    ],
+    "ref": "T-API-08",
+    "status": "not_exposed",
+    "status_text": "Not exposed; guard ready and tested (P6)",
+    "stride": "I",
+    "title": "SSRF via user-supplied URLs"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-06"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Generic envelope, no input echo, internal logging",
+    "owasp": "API8",
+    "phases": [
+     1
+    ],
+    "ref": "T-API-09",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, tested)",
+    "stride": "I",
+    "title": "Error messages leak stack traces, SQL, paths, secrets"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-LOG-01"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Correlation IDs, structured logs",
+    "owasp": "—",
+    "phases": [
+     1
+    ],
+    "ref": "T-API-10",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1)",
+    "stride": "R",
+    "title": "Requests untraceable during investigation"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-LOG-02"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "JSON logging, control-char neutralisation, ID allow-list",
+    "owasp": "—",
+    "phases": [
+     1
+    ],
+    "ref": "T-API-11",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, tested)",
+    "stride": "T",
+    "title": "Log injection / forging"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-03"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Only the first denial in a run is audited; later ones are counted",
+    "owasp": "API4",
+    "phases": [
+     6
+    ],
+    "ref": "T-API-13",
+    "status": "mitigated",
+    "status_text": "Mitigated (P6, tested)",
+    "stride": "D",
+    "title": "Flood of throttled requests fills the audit log"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-08",
+     "C-API-09",
+     "C-API-10"
+    ],
+    "group": "TB3 — Browser session → API",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Docs disabled in deployed envs; inventory from route table",
+    "owasp": "API9",
+    "phases": [
+     1,
+     6
+    ],
+    "ref": "T-API-12",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, P6): registry must equal the route table; unknown-path probes counted",
+    "stride": "I",
+    "title": "Improper inventory: undocumented or debug endpoints"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-09"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 1,
+    "likelihood": 2,
+    "mitigation": "Web Locks serialize refresh across tabs",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-06",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2)",
+    "stride": "D",
+    "title": "Two browser tabs refresh at once, tripping reuse detection (self-inflicted logout)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-04"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Last accepted step stored; strictly increasing",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-07",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2)",
+    "stride": "S",
+    "title": "TOTP code replayed within its validity window"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-04"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "TOTP secrets Fernet-encrypted with a key outside the DB; recovery codes hashed",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-08",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2)",
+    "stride": "I",
+    "title": "Database dump yields working second factors"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-08"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "No defaults: `create-admin` one-time password; admins invite, never set passwords",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-ID-09",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2)",
+    "stride": "E",
+    "title": "Default or shared bootstrap credentials"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-05",
+     "C-API-03"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 1,
+    "likelihood": 2,
+    "mitigation": "Lockout is temporary; WAF/IP limits will throttle the attacker",
+    "owasp": "",
+    "phases": [
+     5,
+     6
+    ],
+    "ref": "T-ID-10",
+    "status": "accepted",
+    "status_text": "Accepted (interim) until P5/P6",
+    "stride": "D",
+    "title": "Attacker locks out a known account by failing logins"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-04"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 1,
+    "likelihood": 2,
+    "mitigation": "ASCII-only `[0-9]`; regression test",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-INP-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2) — found by the test suite",
+    "stride": "D",
+    "title": "Non-ASCII digits pass `\\d` validation and crash a comparison (500)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-02"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Enum-typed column; `==` comparisons; authorization sweep",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-AZ-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2) — found by the test suite",
+    "stride": "E",
+    "title": "Role compared by identity (`is`) against a string from the DB, silently failing open or closed"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-01",
+     "C-SO-06"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Events append-only for the app role; `incident_id` write-once (trigger); timeline append-only with each entry's SHA-256 in the audit chain, verified on every read; incidents never deleted (ADR-0018)",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "T/R",
+    "title": "Incident evidence or timeline altered to hide an intrusion or a mishandled response"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-04",
+     "C-SO-08",
+     "C-GOV-01"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Provenance on every record; correlation partitioned by provenance; live and simulated views never combined; simulated banner (ADR-0009, ADR-0019)",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "T",
+    "title": "Simulated activity mixed into real detections, incidents or dashboards"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-02",
+     "C-API-03"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Events only from security signals, not every request; HTTP-analysis recording throttled to 30 events a minute per source; a detection at most once per rule, key and window; bounded evidence; one open incident per source; rate limits",
+    "owasp": "",
+    "phases": [
+     7,
+     12
+    ],
+    "ref": "T-SO-03",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7); retention policy P12",
+    "stride": "D",
+    "title": "Attacker floods security events to bury real detections or load the database"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-03"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Linear-time patterns, bounded input sizes, adversarial timing test",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-04",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "D",
+    "title": "ReDoS: crafted input makes HTTP analysis patterns backtrack"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-09",
+     "C-WEB-02"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Evidence rendered as text only, strict CSP (no inline script or style), test with a `<script>` snippet",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-05",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "T",
+    "title": "Stored XSS: attack payloads in evidence rendered as markup in the dashboard"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-05",
+     "C-API-02"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Workflow and role rules enforced on the server; UI renders `available_moves` and `permissions` only; authorization matrix tests",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-06",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "E",
+    "title": "Analyst bypasses the incident workflow (closes, reopens, reassigns beyond their role)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-07"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 1,
+    "likelihood": 2,
+    "mitigation": "Optimistic concurrency (`version`); stale writes get 409 and a reload prompt",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-07",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "T",
+    "title": "Lost update: two responders overwrite each other's changes"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-08"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "No network I/O and no target input; RFC 5737 addresses and `.example` names; leads only; every run audited and rate limited (ADR-0019)",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-08",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "E",
+    "title": "Attack simulator abused to attack another system"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-02",
+     "C-LOG-02"
+    ],
+    "group": "Security operations threats added in Phase 7",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Snippets from sensitive fields replaced with `[REDACTED]`; bounded snippets; incident free text excluded from inspection",
+    "owasp": "",
+    "phases": [
+     7
+    ],
+    "ref": "T-SO-09",
+    "status": "mitigated",
+    "status_text": "Mitigated (P7, tested)",
+    "stride": "I",
+    "title": "Passwords, tokens or codes captured in event evidence"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-VM-04",
+     "C-SO-09"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Every imported string bounded and control characters replaced; rendered as text only; links only for `https:` references",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8, tested)",
+    "stride": "T",
+    "title": "Scanner output (package metadata, rule messages, URLs) carries markup or terminal escapes into the UI or logs"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-VM-03"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Leads only; justification, compensating control and expiry within the severity limit; decision immutable (column grants); one in force per finding; expiry reopens the finding; audited",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8, tested)",
+    "stride": "R",
+    "title": "A risk acceptance used to silence a finding indefinitely, or rewritten after approval"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-VM-01"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "\"Fixed\" only from a scan that ran every report able to produce the finding; no API move to fixed; a returning finding reopens",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-03",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8, tested)",
+    "stride": "T",
+    "title": "A finding marked fixed without a fix (by hand, or by a partial scan)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-CICD-08"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Gate fails closed: every expected report required (`--expect`), unreadable reports and an empty scan exit 2",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-04",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8, tested)",
+    "stride": "E",
+    "title": "The scan gate passes because a scanner crashed or wrote nothing"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-CICD-09"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "Images pinned by tag and digest; run as the calling user, repository read-only, no Docker socket; Checkov offline, Semgrep metrics off",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-05",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8)",
+    "stride": "T",
+    "title": "A compromised or swapped scanner image"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-CICD-11"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Scanner account is a VIEWER without a usable password; one 60-minute session per scan, revoked at the end; logout excluded from the target document; local stack only",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-06",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8, tested)",
+    "stride": "T",
+    "title": "Authenticated DAST changes or destroys platform data"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-01"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Object-level filter on findings, scans and SBOMs; other IDs 404 and audited",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-07",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8, tested)",
+    "stride": "I",
+    "title": "Developers read other teams' findings (a map of their weaknesses)"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-VM-04",
+     "C-VM-05"
+    ],
+    "group": "Application security threats added in Phase 8",
+    "impact": 2,
+    "likelihood": 1,
+    "mitigation": "64 MB stdin cap, 20,000 findings and components per import, at most 50 events per import, CLI-only (no upload endpoint)",
+    "owasp": "",
+    "phases": [
+     8
+    ],
+    "ref": "T-VM-08",
+    "status": "mitigated",
+    "status_text": "Mitigated (P8)",
+    "stride": "D",
+    "title": "A large or hostile import exhausts the API or floods the event store"
+   },
+   {
+    "boundaries": [
+     "TB4"
+    ],
+    "controls": [
+     "C-NET-00",
+     "C-NET-01",
+     "C-NET-02"
+    ],
+    "group": "TB4 — API → Database",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "Isolated subnets, `publicly_accessible=false`, SG, Checkov",
+    "owasp": "",
+    "phases": [
+     1,
+     3
+    ],
+    "ref": "T-DB-01",
+    "status": "partly_mitigated",
+    "status_text": "Local analogue mitigated (P1); AWS P3–4",
+    "stride": "I",
+    "title": "Database exposed to the internet"
+   },
+   {
+    "boundaries": [
+     "TB4"
+    ],
+    "controls": [
+     "C-SEC-03"
+    ],
+    "group": "TB4 — API → Database",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Per-container secrets; Secrets Manager with rotation in AWS",
+    "owasp": "",
+    "phases": [
+     2,
+     4
+    ],
+    "ref": "T-DB-02",
+    "status": "partly_mitigated",
+    "status_text": "Local scoping mitigated (P2); Secrets Manager P4",
+    "stride": "I",
+    "title": "Credential theft"
+   },
+   {
+    "boundaries": [
+     "TB4"
+    ],
+    "controls": [
+     "C-DB-01"
+    ],
+    "group": "TB4 — API → Database",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Separate migration and runtime roles (ADR-0015)",
+    "owasp": "",
+    "phases": [
+     2
+    ],
+    "ref": "T-DB-03",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2): privilege-matrix test",
+    "stride": "E",
+    "title": "Over-privileged app DB role"
+   },
+   {
+    "boundaries": [
+     "TB4"
+    ],
+    "controls": [
+     "C-DB-02",
+     "C-DB-03"
+    ],
+    "group": "TB4 — API → Database",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "KMS, `rds.force_ssl`",
+    "owasp": "",
+    "phases": [
+     4
+    ],
+    "ref": "T-DB-04",
+    "status": "planned",
+    "status_text": "Planned (P4)",
+    "stride": "I",
+    "title": "Unencrypted data at rest or in transit"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-01"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Input validation, prompt-risk scoring",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-01",
+    "status": "planned",
+    "status_text": "Planned (P9)",
+    "stride": "LLM01",
+    "title": "Direct prompt injection by an analyst"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-01",
+     "C-AI-02"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 2,
+    "likelihood": 3,
+    "mitigation": "Untrusted-data delimiting, output schema (ADR-0007)",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-02",
+    "status": "planned",
+    "status_text": "Planned (P9)",
+    "stride": "LLM01",
+    "title": "Indirect injection via WAF log or request content"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-03"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Render as text only; schema validation",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-03",
+    "status": "planned",
+    "status_text": "Planned (P9)",
+    "stride": "LLM05",
+    "title": "Insecure output handling (XSS through AI text)"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-04"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Redaction before send, Bedrock (no training), minimisation",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-04",
+    "status": "planned",
+    "status_text": "Planned (P9)",
+    "stride": "LLM02",
+    "title": "Sensitive data sent to or leaked by the model"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-05"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "No state-changing tools; human approval (ADR-0007)",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-05",
+    "status": "planned",
+    "status_text": "Planned (P9)",
+    "stride": "LLM06",
+    "title": "Excessive agency: AI performs destructive action"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-06"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Per-user quotas, token caps, audit",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-06",
+    "status": "planned",
+    "status_text": "Planned (P9)",
+    "stride": "LLM10",
+    "title": "Unbounded consumption (cost)"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-IAM-02"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "GitHub OIDC, no stored keys (ADR-0010)",
+    "owasp": "",
+    "phases": [
+     1,
+     11
+    ],
+    "ref": "T-CICD-01",
+    "status": "planned",
+    "status_text": "Planned (P11); no keys exist in P1",
+    "stride": "E",
+    "title": "Stolen long-lived cloud keys from CI"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-CICD-03"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "SHA-pinned actions, read-only token, Dependabot",
+    "owasp": "",
+    "phases": [
+     1
+    ],
+    "ref": "T-CICD-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1)",
+    "stride": "T",
+    "title": "Malicious or hijacked third-party action"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-CICD-02",
+     "C-CICD-06",
+     "C-CICD-10"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images",
+    "owasp": "",
+    "phases": [
+     1,
+     8
+    ],
+    "ref": "T-SC-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, P8)",
+    "stride": "T",
+    "title": "Vulnerable or malicious dependency"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-SEC-01",
+     "C-SEC-02"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Gitleaks pre-commit + CI (full history), `.gitignore`",
+    "owasp": "",
+    "phases": [
+     1
+    ],
+    "ref": "T-SEC-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1)",
+    "stride": "I",
+    "title": "Secret committed to git"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-IAC-01"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "Per-env roots, `allowed_account_ids` (ADR-0014)",
+    "owasp": "",
+    "phases": [
+     3
+    ],
+    "ref": "T-IAC-01",
+    "status": "planned",
+    "status_text": "Planned (P3)",
+    "stride": "T",
+    "title": "Dev change applied to production"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-IAC-02"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "Encrypted, private, versioned state bucket",
+    "owasp": "",
+    "phases": [
+     3
+    ],
+    "ref": "T-IAC-02",
+    "status": "planned",
+    "status_text": "Planned (P3)",
+    "stride": "I",
+    "title": "Terraform state disclosure"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-WAF-04",
+     "C-GOV-02",
+     "C-GOV-03"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Terraform-only changes, PR approval",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-WAF-01",
+    "status": "planned",
+    "status_text": "Planned (P5)",
+    "stride": "T",
+    "title": "WAF rule disabled without review"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-WAF-04",
+     "C-IAM-01"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "App holds read-only WAF permissions (ADR-0008)",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-WAF-02",
+    "status": "planned",
+    "status_text": "Planned (P5)",
+    "stride": "E",
+    "title": "Compromised app used to weaken WAF"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-AUD-01",
+     "C-AUD-02",
+     "C-AUD-03"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005)",
+    "owasp": "",
+    "phases": [
+     2,
+     4
+    ],
+    "ref": "T-AUD-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2) except tail deletion by a table owner (Object Lock anchor, P4)",
+    "stride": "R",
+    "title": "Audit records altered or deleted"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-CNT-01"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "Non-root, read-only FS, `cap_drop: ALL`, no-new-privileges",
+    "owasp": "",
+    "phases": [
+     1
+    ],
+    "ref": "T-CNT-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, local)",
+    "stride": "E",
+    "title": "Container breakout / privilege escalation"
+   }
+  ],
+  "version": "0.5"
+ },
+ "requirements": [
+  {
+   "control_text": "AWS WAF SQLi rules + validation + parameterised queries + detection",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_sql_injection_in_a_query_parameter_is_recorded"
+    },
+    {
+     "kind": "command",
+     "ref": "make smoke"
+    }
+   ],
+   "evidence_text": "Query-param validation tests; `test_sql_injection_in_a_query_parameter_is_recorded`; `make smoke`; WAF logs (P5)",
+   "implementation": "`waf` module; Pydantic schemas; SQLAlchemy ORM only; HTTP analysis and COR-003",
+   "phase_text": "P2 (app), P7 (detection), P5",
+   "ref": "REQ-01",
+   "threats": [
+    "T-API-07"
+   ],
+   "title": "SQL injection"
+  },
+  {
+   "control_text": "React escaping + strict CSP + lint bans + Semgrep rules + WAF XSS rules",
+   "evidence": [],
+   "evidence_text": "Lint in CI; header tests; ZAP active XSS rules passed (SCAN-0003)",
+   "implementation": "`security-headers.conf`; `eslint.config.js`; `scanning/semgrep/frontend.yml`; WAF",
+   "phase_text": "P1, P8, P5",
+   "ref": "REQ-02",
+   "threats": [
+    "T-ID-02",
+    "T-EDGE-06"
+   ],
+   "title": "XSS"
+  },
+  {
+   "control_text": "WAF rate rule + app limiter + lockout + MFA + detection",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_account_locks_after_repeated_failures"
+    },
+    {
+     "kind": "test",
+     "ref": "test_login_is_limited_per_ip_with_retry_after"
+    },
+    {
+     "kind": "test",
+     "ref": "test_credential_stuffing_fires_at_threshold_and_not_before"
+    }
+   ],
+   "evidence_text": "`test_account_locks_after_repeated_failures`, `test_login_is_limited_per_ip_with_retry_after`, `test_credential_stuffing_fires_at_threshold_and_not_before`; WAF match counts (P5)",
+   "implementation": "WAF module; auth service; `api_policy.LOGIN`; COR-001, COR-007",
+   "phase_text": "P2, P6, P7, P5",
+   "ref": "REQ-03",
+   "threats": [
+    "T-ID-01"
+   ],
+   "title": "Credential stuffing"
+  },
+  {
+   "control_text": "Ownership checks in services; probing detected",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_users_can_read_only_their_own_record"
+    },
+    {
+     "kind": "test",
+     "ref": "test_developers_see_only_their_own_applications"
+    }
+   ],
+   "evidence_text": "`test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications`",
+   "implementation": "`UserService.get_user`, `ApplicationService`; COR-004",
+   "phase_text": "P2, P7",
+   "ref": "REQ-04",
+   "threats": [
+    "T-API-01"
+   ],
+   "title": "Broken object authorization"
+  },
+  {
+   "control_text": "Append-only events, write-once links, timeline digests in the audit chain",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_tampering_with_the_timeline_is_detected"
+    },
+    {
+     "kind": "test",
+     "ref": "test_evidence_links_are_write_once"
+    }
+   ],
+   "evidence_text": "`test_tampering_with_the_timeline_is_detected`, `test_evidence_links_are_write_once`",
+   "implementation": "ADR-0018",
+   "phase_text": "P7",
+   "ref": "REQ-05",
+   "threats": [
+    "T-SO-01"
+   ],
+   "title": "Tampered incident evidence"
+  },
+  {
+   "control_text": "Provenance partitioning, separate views, banner",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_simulations_never_appear_in_the_live_view"
+    },
+    {
+     "kind": "command",
+     "ref": "make smoke"
+    }
+   ],
+   "evidence_text": "`test_simulations_never_appear_in_the_live_view`, `make smoke`",
+   "implementation": "ADR-0009, ADR-0019",
+   "phase_text": "P7",
+   "ref": "REQ-06",
+   "threats": [
+    "T-SO-02"
+   ],
+   "title": "Simulated data mistaken for real"
+  },
+  {
+   "control_text": "Role dependency on every route",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_authz_matrix.py"
+    }
+   ],
+   "evidence_text": "`test_authz_matrix.py`",
+   "implementation": "`core/authz.py`",
+   "phase_text": "P2",
+   "ref": "REQ-07",
+   "threats": [
+    "T-API-02"
+   ],
+   "title": "Broken function authorization"
+  },
+  {
+   "control_text": "`extra=\"forbid\"`",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_every_request_body_rejects_unknown_fields"
+    }
+   ],
+   "evidence_text": "`test_every_request_body_rejects_unknown_fields` (sweep)",
+   "implementation": "Request schemas",
+   "phase_text": "P1, P6",
+   "ref": "REQ-08",
+   "threats": [
+    "T-API-03"
+   ],
+   "title": "Mass assignment"
+  },
+  {
+   "control_text": "Explicit response models",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_every_json_route_declares_a_response_model"
+    },
+    {
+     "kind": "test",
+     "ref": "test_no_response_model_exposes_secret_fields"
+    }
+   ],
+   "evidence_text": "`test_every_json_route_declares_a_response_model`, `test_no_response_model_exposes_secret_fields`",
+   "implementation": "ADR-0012",
+   "phase_text": "P1, P6",
+   "ref": "REQ-09",
+   "threats": [
+    "T-API-05"
+   ],
+   "title": "Excessive data exposure"
+  },
+  {
+   "control_text": "Generic envelope, internal logging",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_error_handling.py"
+    }
+   ],
+   "evidence_text": "`test_error_handling.py`",
+   "implementation": "`errors.py`",
+   "phase_text": "P1",
+   "ref": "REQ-10",
+   "threats": [
+    "T-API-09"
+   ],
+   "title": "Information leakage in errors"
+  },
+  {
+   "control_text": "Internal ALB + VPC origin",
+   "evidence": [],
+   "evidence_text": "External connection test fails; Checkov",
+   "implementation": "`alb`, `cloudfront` modules",
+   "phase_text": "P4–5",
+   "ref": "REQ-11",
+   "threats": [
+    "T-EDGE-03"
+   ],
+   "title": "Origin bypass"
+  },
+  {
+   "control_text": "Isolated subnets, SG, `publicly_accessible=false`",
+   "evidence": [],
+   "evidence_text": "Checkov; plan review",
+   "implementation": "`rds`, `vpc` modules",
+   "phase_text": "P3–4",
+   "ref": "REQ-12",
+   "threats": [
+    "T-DB-01"
+   ],
+   "title": "Public database"
+  },
+  {
+   "control_text": "Gitleaks + Secrets Manager",
+   "evidence": [],
+   "evidence_text": "Gitleaks report",
+   "implementation": "`.gitleaks.toml`; `secrets-manager` module",
+   "phase_text": "P1, P4",
+   "ref": "REQ-13",
+   "threats": [
+    "T-SEC-01"
+   ],
+   "title": "Secret leakage"
+  },
+  {
+   "control_text": "Pinned deps + SCA + SBOM + image scan + build-time OS fixes",
+   "evidence": [],
+   "evidence_text": "CI artifact `security-scans-<run>`; Vulnerabilities and SBOM pages",
+   "implementation": "Lock files; Syft; Trivy; Dockerfiles",
+   "phase_text": "P1, P8",
+   "ref": "REQ-14",
+   "threats": [
+    "T-SC-01"
+   ],
+   "title": "Supply chain"
+  },
+  {
+   "control_text": "Scan gate, findings lifecycle, SLA, risk acceptance",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_scanning.py"
+    },
+    {
+     "kind": "test_file",
+     "ref": "test_vulnerabilities.py"
+    }
+   ],
+   "evidence_text": "`test_scanning.py`, `test_vulnerabilities.py`; [runbook](runbooks/vulnerability-remediation.md)",
+   "implementation": "ADR-0020, ADR-0021",
+   "phase_text": "P8",
+   "ref": "REQ-15",
+   "threats": [
+    "T-VM-03",
+    "T-VM-04"
+   ],
+   "title": "Known vulnerabilities shipped"
+  },
+  {
+   "control_text": "Hash chain + grants + triggers + Object Lock",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_audit_log.py"
+    },
+    {
+     "kind": "command",
+     "ref": "make verify-audit"
+    }
+   ],
+   "evidence_text": "`test_audit_log.py`, `make verify-audit`",
+   "implementation": "ADR-0005",
+   "phase_text": "P2, P4",
+   "ref": "REQ-16",
+   "threats": [
+    "T-AUD-01"
+   ],
+   "title": "Audit tampering"
+  },
+  {
+   "control_text": "Delimiting, scoring, schema-bound output",
+   "evidence": [],
+   "evidence_text": "Injection corpus tests",
+   "implementation": "`app/ai/guardrails`",
+   "phase_text": "P9",
+   "ref": "REQ-17",
+   "threats": [
+    "T-AI-01",
+    "T-AI-02"
+   ],
+   "title": "Prompt injection"
+  },
+  {
+   "control_text": "Proposals + human approval",
+   "evidence": [],
+   "evidence_text": "Approval workflow tests; audit",
+   "implementation": "`ai_action_proposals`",
+   "phase_text": "P9",
+   "ref": "REQ-18",
+   "threats": [
+    "T-AI-05"
+   ],
+   "title": "Excessive AI agency"
+  },
+  {
+   "control_text": "Read-only WAF IAM; Terraform-only changes",
+   "evidence": [],
+   "evidence_text": "IAM policy; Access Analyzer",
+   "implementation": "ADR-0008; IAM module",
+   "phase_text": "P5",
+   "ref": "REQ-19",
+   "threats": [
+    "T-WAF-02"
+   ],
+   "title": "WAF weakened via app"
+  },
+  {
+   "control_text": "ACM managed renewal + expiry alerting",
+   "evidence": [],
+   "evidence_text": "CloudWatch alarm; dashboard",
+   "implementation": "ACM module; worker poller",
+   "phase_text": "P5",
+   "ref": "REQ-20",
+   "threats": [
+    "T-EDGE-02"
+   ],
+   "title": "Certificate expiry"
+  },
+  {
+   "control_text": "Per-env roots, account guards",
+   "evidence": [],
+   "evidence_text": "Plan fails on wrong account",
+   "implementation": "ADR-0014",
+   "phase_text": "P3",
+   "ref": "REQ-21",
+   "threats": [
+    "T-IAC-01"
+   ],
+   "title": "Cross-environment change"
+  }
+ ]
+}

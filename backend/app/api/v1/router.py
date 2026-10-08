@@ -7,6 +7,7 @@ from app.api.v1 import (
     applications,
     audit_logs,
     auth,
+    governance,
     health,
     incidents,
     platform,
@@ -30,3 +31,4 @@ api_v1.include_router(security_overview.router)
 api_v1.include_router(applications.router)
 api_v1.include_router(simulator.router)
 api_v1.include_router(vulnerabilities.router)
+api_v1.include_router(governance.router)

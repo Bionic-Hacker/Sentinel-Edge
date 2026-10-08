@@ -149,16 +149,37 @@ or read.
 | Certificate expiry | T-EDGE-02 | ACM managed renewal + expiry alerting | ACM module; worker poller | CloudWatch alarm; dashboard | P5 |
 | Cross-environment change | T-IAC-01 | Per-env roots, account guards | ADR-0014 | Plan fails on wrong account | P3 |
 
-## 4. Control ID index (planned)
+## 4. Planned controls
 
-C-DNS-01 CAA + Route 53 as code · C-EDGE-01 TLS policy · C-EDGE-02 private origin · C-EDGE-03
-CloudFront headers policy · C-WAF-01 managed rule groups · C-WAF-02 custom rules · C-WAF-03
-rate-based rules · C-WAF-04 Terraform-only WAF changes · C-LB-01 ALB desync/invalid-header
-protection · C-NET-01 private subnets · C-NET-02 tiered SGs · C-ID-01 Argon2id · C-ID-02
-short-lived JWT · C-ID-03 rotating refresh tokens · C-ID-04 MFA · C-ID-05 lockout · C-ID-06 CSRF
-defenses · C-ID-07 secure reset · C-API-01 object authz · C-API-02 function authz · C-API-03 app
-rate limiting · C-DB-01 least-privilege roles · C-DB-02 encryption · C-DB-03 TLS required ·
-C-DB-04 backups · C-IAM-01 per-function roles · C-IAM-02 no static keys · C-IAM-03 permission
-documentation · C-AUD-01 hash chain · C-AUD-02 INSERT-only grants · C-AUD-03 Object Lock archive ·
-C-MON-01 alarms · C-SO-01..09 security operations (Phase 7, section 2c) · C-CICD-06..11, C-VM-01..06, C-WEB-04 application security (Phase 8, section 2d) · C-AI-01..06 per ADR-0007 · C-GOV-03 change
-management.
+Every control ID used in the threat model and not yet implemented, with the phase that
+implements it. When a phase implements one, its row moves to that phase's section above.
+
+| ID | Control | Phase |
+|---|---|---|
+| C-DNS-01 | CAA records and Route 53 managed as code | 5 |
+| C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge | 5 |
+| C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001) | 4 |
+| C-EDGE-03 | CloudFront response headers policy | 5 |
+| C-WAF-01 | AWS managed rule groups (core, known bad inputs, SQL injection) | 5 |
+| C-WAF-02 | Custom WAF rules for SentinelEdge's own endpoints | 5 |
+| C-WAF-03 | Rate-based WAF rules | 5 |
+| C-WAF-04 | WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008) | 5 |
+| C-LB-01 | ALB desync mitigation (strictest) and invalid-header dropping | 4 |
+| C-NET-01 | Private subnets for the application and the database | 3 |
+| C-NET-02 | Tiered security groups: each tier reachable only from the tier above | 3 |
+| C-IAC-01 | Per-environment Terraform roots with `allowed_account_ids` guards (ADR-0014) | 3 |
+| C-IAC-02 | Encrypted, private, versioned Terraform state bucket | 3 |
+| C-DB-02 | Encryption at rest (KMS) and in transit (`rds.force_ssl`) | 4 |
+| C-DB-04 | Automated database backups | 4 |
+| C-IAM-01 | One IAM role per function, least privilege | 3 |
+| C-IAM-02 | No static cloud keys: GitHub OIDC for CI (ADR-0010) | 11 |
+| C-IAM-03 | Every IAM permission documented with its reason | 3 |
+| C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head | 4 |
+| C-MON-01 | CloudWatch alarms for errors, latency and security signals | 4 |
+| C-AI-01 | Untrusted data delimited, never concatenated into instructions; input validation and prompt-risk scoring (ADR-0007) | 9 |
+| C-AI-02 | Schema-bound AI output separating observed evidence from inference; non-conforming output rejected | 9 |
+| C-AI-03 | AI text rendered as text only, never executed or used to build queries | 9 |
+| C-AI-04 | Redaction and minimisation before data reaches the model | 9 |
+| C-AI-05 | No state-changing AI tools; proposals need human approval (audited) | 9 |
+| C-AI-06 | Per-user AI quotas and token caps | 9 |
+| C-GOV-03 | Change management: security-sensitive changes need an approver other than the requester, a rollback plan and validation | 10 |

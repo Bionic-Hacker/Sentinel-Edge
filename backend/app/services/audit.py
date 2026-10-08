@@ -70,6 +70,13 @@ class AuditAction(StrEnum):
     RISK_ACCEPTANCE_EXPIRED = "vulnerability.acceptance_expired"
     DAST_SESSION_ISSUED = "dast.session_issued"
     DAST_SESSION_REVOKED = "dast.session_revoked"
+    GOVERNANCE_CATALOGUE_SYNCED = "governance.catalogue_synced"
+    THREAT_MODEL_CREATED = "threat_model.created"
+    THREAT_MODEL_UPDATED = "threat_model.updated"
+    THREAT_MODEL_ELEMENT_ADDED = "threat_model.element_added"
+    THREAT_MODEL_ELEMENT_UPDATED = "threat_model.element_updated"
+    THREAT_ADDED = "threat_model.threat_added"
+    THREAT_UPDATED = "threat_model.threat_updated"
 
 
 @dataclass(frozen=True)

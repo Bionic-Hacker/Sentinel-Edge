@@ -41,6 +41,15 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "vulnerabilities": {"SELECT", "INSERT", "UPDATE"},  # fixed or accepted, never deleted (0009)
     "risk_acceptances": {"SELECT", "INSERT"},  # the decision is never rewritten (0009)
     "sboms": {"SELECT", "INSERT"},  # what each artifact contained (0009)
+    # Loaded from the reviewed catalogue; retired, never deleted (0010).
+    "controls": {"SELECT", "INSERT", "UPDATE"},
+    "requirements": {"SELECT", "INSERT", "UPDATE"},
+    "threat_models": {"SELECT", "INSERT", "UPDATE"},  # archived, never deleted (0010)
+    "model_elements": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0010)
+    "threats": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0010)
+    # Link tables: re-linking a threat's controls replaces its links (audited) (0010).
+    "threat_controls": {"SELECT", "INSERT", "DELETE"},
+    "requirement_threats": {"SELECT", "INSERT", "DELETE"},
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.
