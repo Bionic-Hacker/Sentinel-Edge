@@ -375,6 +375,18 @@ def test_gate_refuses_to_pass_without_reports(tmp_path: Path, setup: str) -> Non
     assert "make scan" in text or "refusing" in text
 
 
+def test_gate_refuses_to_pass_when_an_expected_report_is_missing(tmp_path: Path) -> None:
+    # A scanner that failed (Trivy could not download its database, say) must not let the
+    # build pass on the reports the other scanners did write.
+    (tmp_path / "zap-baseline.json").write_text((REPORTS / "zap-baseline.json").read_text())
+    expect = ["--expect", "zap-baseline.json", "--expect", "trivy-fs.json"]
+    code, text = run([str(tmp_path), *expect])
+    assert code == 2
+    assert "missing reports: trivy-fs.json" in text
+    code, _ = run([str(tmp_path), "--expect", "zap-baseline.json"])
+    assert code == 0
+
+
 def test_gate_refuses_a_malformed_register(tmp_path: Path) -> None:
     bad = write_toml(tmp_path, '[[accepted]]\nid = "ACC-1"\n')
     code, text = run([str(REPORTS), "--accepted", str(bad)])

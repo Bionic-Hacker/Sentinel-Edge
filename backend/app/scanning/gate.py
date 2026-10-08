@@ -180,6 +180,13 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
     parser.add_argument("--accepted", type=Path, help="accepted-findings TOML file")
     parser.add_argument("--json", type=Path, help="write all normalised findings here")
     parser.add_argument("--today", type=date.fromisoformat, help="evaluate expiry as of this date")
+    parser.add_argument(
+        "--expect",
+        action="append",
+        default=[],
+        metavar="REPORT",
+        help="a report file that must be present (repeatable); a missing one fails the gate",
+    )
     args = parser.parse_args(argv)
 
     if not args.reports.is_dir():
@@ -193,6 +200,11 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
         return 2
     if not read:
         print("scan-gate: no scanner reports found; refusing to pass an empty scan", file=out)
+        return 2
+    missing = sorted(set(args.expect) - set(read))
+    if missing:
+        # A scanner that failed or never ran must not let the build pass on the others' reports.
+        print(f"scan-gate: missing reports: {', '.join(missing)}; run `make scan`", file=out)
         return 2
     today = args.today or datetime.now(UTC).date()
     decision = evaluate(findings, acceptances, today)

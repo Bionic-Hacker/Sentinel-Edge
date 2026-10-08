@@ -144,7 +144,12 @@ gate() {
   log "Gate"
   local py
   py="$(tool python)"
-  (cd backend && "$py" -m app.scanning.gate "$OUT" --root "$ROOT" \
+  # Every scanner's report must be present: one that failed must not let the others pass.
+  local expect=(semgrep bandit trivy-fs gitleaks checkov trivy-image-api trivy-image-web)
+  [[ " ${steps[*]} " == *" dast "* ]] && expect+=(zap-baseline)
+  local flags=()
+  for name in "${expect[@]}"; do flags+=(--expect "$name.json"); done
+  (cd backend && "$py" -m app.scanning.gate "$OUT" --root "$ROOT" "${flags[@]}" \
      --accepted "$ROOT/scanning/accepted-findings.toml" --json "$OUT/findings.json")
 }
 

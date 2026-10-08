@@ -23,7 +23,6 @@ from __future__ import annotations
 import os
 import re
 import secrets
-import shlex
 import subprocess
 import sys
 from datetime import UTC, datetime, timedelta
@@ -32,7 +31,9 @@ import httpx2 as httpx
 import pyotp
 
 BASE = os.environ.get("SMOKE_BASE_URL", "http://localhost:8080")
-CLI = shlex.split(os.environ.get("SMOKE_CLI", "docker compose exec -T api python -m app.cli"))
+# A fixed command, never taken from the environment: the smoke test runs with the caller's
+# privileges, so an overridable command would be an injection point (Semgrep, Phase 8).
+CLI = ("docker", "compose", "exec", "-T", "api", "python", "-m", "app.cli")
 HEADERS = {"Origin": BASE, "X-SentinelEdge-CSRF": "1"}
 COOKIE = "__Host-sentinel_refresh"
 # RFC 5737 documentation ranges: the only addresses the attack simulator ever uses.
@@ -54,6 +55,7 @@ def check(label: str, condition: bool) -> None:
 
 
 def cli(*args: str) -> str:
+    # CLI is a constant and args come from this script, never from input or the environment.
     result = subprocess.run([*CLI, *args], capture_output=True, text=True, check=False)  # noqa: S603
     if result.returncode not in (0, 1):
         print(result.stderr, file=sys.stderr)
