@@ -216,11 +216,14 @@ def test_a_finding_no_longer_reported_is_fixed_and_comes_back_reopened(db_app: F
 
 def test_a_scan_without_a_report_never_fixes_that_reports_findings(db_app: FastAPI) -> None:
     zap = finding("z", "medium", tool="zap", category="dast", location="http://localhost:8080/")
-    run_import(db_app, report(zap, reports=[*ALL_REPORTS, "zap-baseline.json"]))
+    dast = [*ALL_REPORTS, "zap-baseline.json", "zap-api.json"]
+    run_import(db_app, report(zap, reports=dast))
     summary = run_import(db_app, report())  # no DAST this time
     assert summary["fixed"] == 0
-    assert vulns(db_app)["sentineledge-rule-z"].status is VulnStatus.OPEN
     summary = run_import(db_app, report(reports=[*ALL_REPORTS, "zap-baseline.json"]))
+    assert summary["fixed"] == 0  # the baseline alone cannot vouch for the API scan's findings
+    assert vulns(db_app)["sentineledge-rule-z"].status is VulnStatus.OPEN
+    summary = run_import(db_app, report(reports=dast))
     assert summary["fixed"] == 1
 
 
@@ -589,3 +592,99 @@ def test_cli_import(db_app: FastAPI) -> None:
 def test_the_app_role_cannot_rewrite_the_record(db_app: FastAPI, statement: str) -> None:
     with db_app.state.session_factory() as db, pytest.raises(ProgrammingError, match="permission"):
         db.execute(text(statement))
+
+
+# --- Dashboard, API inventory and authenticated DAST (Part 3) ------------------------------------
+
+
+def test_dashboard_vulnerability_control_is_measured_once_a_scan_exists(
+    db_app: FastAPI, db_client: TestClient, people: dict[str, Any]
+) -> None:
+    h = people["lead"]["h"]
+
+    def control() -> dict[str, Any]:
+        body = db_client.get("/api/v1/security/overview", params={"view": "live"}, headers=h)
+        assert body.status_code == 200, body.text
+        result: dict[str, Any] = body.json()["controls"]["vulnerabilities"]
+        return result
+
+    assert control()["status"] == "not_connected"
+    run_import(db_app, report(finding("a", "critical"), package("1", "high", fixed=None)))
+    measured = control()
+    assert measured["status"] == "measured"
+    assert measured["values"]["open"] == 2
+    assert measured["values"]["awaiting_fix"] == 1
+    assert measured["values"]["fixable_critical_high"] == 1
+    assert "SCAN-0001" in measured["summary"]
+    # Scanner rule IDs are findings, not detection rules: they stay out of "most matched rules".
+    overview = db_client.get("/api/v1/security/overview", params={"view": "live"}, headers=h).json()
+    rules = [r["rule_id"] for r in overview["top_rules"]]
+    assert not [r for r in rules if r.startswith(("CVE-", "sentineledge-rule"))]
+
+
+def test_api_inventory_reports_the_last_authenticated_dast_scan(
+    db_app: FastAPI, db_client: TestClient, people: dict[str, Any]
+) -> None:
+    h = people["lead"]["h"]
+
+    def item() -> dict[str, Any]:
+        items = db_client.get("/api/v1/api-security/inventory", headers=h).json()["items"]
+        result: dict[str, Any] = items[0]
+        return result
+
+    assert item()["last_scan"] is None
+    run_import(db_app, report(reports=[*ALL_REPORTS, "zap-baseline.json"]))
+    baseline = item()
+    assert baseline["last_scan"] is None
+    assert "Only the passive baseline" in baseline["scan_note"]
+    run_import(db_app, report(reports=[*ALL_REPORTS, "zap-baseline.json", "zap-api.json"]))
+    authenticated = item()
+    assert authenticated["last_scan"] is not None
+    assert "SCAN-0002" in authenticated["scan_note"]
+
+
+def test_dast_scanner_session_is_read_only_and_revocable(
+    db_app: FastAPI, db_client: TestClient
+) -> None:
+    out = io.StringIO()
+    assert cli.main(["dast-session", "issue"], settings=make_settings(), out=out) == 0
+    h = bearer(out.getvalue().strip())
+    assert db_client.get("/api/v1/vulnerabilities", headers=h).status_code == 200
+    assert db_client.get("/api/v1/security-events", headers=h).status_code == 200  # VIEWER
+    assert db_client.get("/api/v1/users", headers=h).status_code == 403
+    write = db_client.post(
+        f"/api/v1/vulnerabilities/{uuid.uuid4()}/status",
+        json={"status": "in_progress", "version": 1},
+        headers=h,
+    )
+    assert write.status_code == 403
+    # A second issue reuses the account; revoke ends every scanner session at once.
+    assert cli.main(["dast-session", "issue"], settings=make_settings(), out=io.StringIO()) == 0
+    revoked = io.StringIO()
+    assert cli.main(["dast-session", "revoke"], settings=make_settings(), out=revoked) == 0
+    assert "Revoked 2" in revoked.getvalue()
+    assert db_client.get("/api/v1/vulnerabilities", headers=h).status_code == 401
+    actions = [e.action for e in audit_entries(db_app) if e.action.startswith("dast.")]
+    assert actions == ["dast.session_issued", "dast.session_issued", "dast.session_revoked"]
+
+
+def test_dast_scanner_account_must_stay_a_viewer(db_app: FastAPI) -> None:
+    create_user(db_app, "dast-scanner@example.com", role=Role.ADMIN)
+    assert cli.main(["dast-session", "issue"], settings=make_settings(), out=io.StringIO()) == 1
+
+
+def test_openapi_document_lists_every_endpoint() -> None:
+    out = io.StringIO()
+    assert cli.main(["openapi"], settings=make_settings(), out=out) == 0
+    paths = json.loads(out.getvalue())["paths"]
+    assert "/api/v1/vulnerabilities/{vulnerability_id}" in paths
+    assert "/api/v1/auth/logout" in paths
+
+    dast = io.StringIO()
+    argv = ["openapi", "--server", "http://localhost:8080"]
+    assert cli.main(argv, settings=make_settings(), out=dast) == 0
+    document = json.loads(dast.getvalue())
+    assert document["servers"] == [{"url": "http://localhost:8080"}]
+    assert "/api/v1/auth/logout" not in document["paths"]  # the scan must not end its session
+    elsewhere = ["openapi", "--server", "https://victim.example"]
+    assert cli.main(elsewhere, settings=make_settings(), out=io.StringIO()) == 2

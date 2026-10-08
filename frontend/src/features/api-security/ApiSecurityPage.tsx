@@ -4,6 +4,7 @@ import { useCurrentUser } from "../../app/auth-context";
 import { MODULES } from "../../app/modules";
 import { CapabilityTable } from "../../components/CapabilityTable";
 import { Button, FormError } from "../../components/forms";
+import { formatTime } from "../../components/secops";
 import { getInventory, getOwaspCoverage } from "../../lib/api/apiSecurity";
 import type { ApiError } from "../../lib/api/client";
 import type {
@@ -302,7 +303,7 @@ function InventoryRow({ item, open, onToggle }: { item: InventoryItem; open: boo
         <td className={`px-3 py-2.5 text-right tabular-nums ${m.security_rejections ? "text-prov-sim" : ""}`}>
           {m.security_rejections}
         </td>
-        <td className="whitespace-nowrap px-3 py-2.5 text-xs text-ink-muted">{item.last_scan ?? "Not scanned"}</td>
+        <td className="whitespace-nowrap px-3 py-2.5 text-xs text-ink-muted">{item.last_scan ? formatTime(item.last_scan) : "Not scanned"}</td>
         <td className={`px-3 py-2.5 text-xs font-medium ${status.className}`}>{status.label}</td>
       </tr>
       {open && (

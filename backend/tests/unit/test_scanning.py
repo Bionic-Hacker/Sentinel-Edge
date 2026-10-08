@@ -409,3 +409,5 @@ def test_a_finding_is_covered_only_when_every_report_able_to_produce_it_ran() ->
     assert not covered("trivy", "secret", reports)  # the image scans did not run
     assert covered("trivy", "secret", [*reports, "trivy-image-api.json"])
     assert not covered("semgrep", "dast", reports)  # an unknown pairing never infers a fix
+    assert not covered("zap", "dast", [*reports, "zap-baseline.json"])
+    assert covered("zap", "dast", [*reports, "zap-baseline.json", "zap-api.json"])

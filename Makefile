@@ -111,7 +111,7 @@ scan-test: ## Test the SentinelEdge Semgrep rules against their annotated exampl
 sbom: ## CycloneDX SBOMs for the API image, the web image and the source tree
 	./scripts/scan.sh sbom
 
-dast: ## ZAP baseline against the running local stack (make dev first), then the gate
+dast: ## ZAP baseline + authenticated API scan of the running local stack (make dev first), then the gate
 	./scripts/scan.sh dast gate
 
 scan-gate: ## Re-apply the gate to the existing reports (after editing accepted-findings.toml)

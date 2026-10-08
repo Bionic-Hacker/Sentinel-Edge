@@ -39,7 +39,8 @@ const SOURCE_LABEL: Record<EventSource, string> = {
   correlation: "Detection rule",
   waf: "WAF",
   certificate: "Certificate monitor",
-  dependency: "Dependency scan",
+  dependency: "Dependency scan (simulated)",
+  appsec: "Application security scan",
 };
 
 export function ThreatsPage() {
@@ -309,6 +310,19 @@ function findingsOf(evidence: Record<string, unknown>): Finding[] {
   );
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** A scan event names its finding in the evidence; link to it (a checked UUID, never a URL). */
+function findingLink(event: SecurityEventDetail) {
+  const id = event.source === "appsec" ? event.evidence.vulnerability_id : undefined;
+  if (typeof id !== "string" || !UUID.test(id)) return null;
+  return (
+    <Link to={`/vulnerabilities/${id}`} className="text-sm text-accent hover:underline">
+      Open the finding
+    </Link>
+  );
+}
+
 function EventDetail({ eventId, canInvestigate }: { eventId: string; canInvestigate: boolean }) {
   const navigate = useNavigate();
   // Rendered with key={eventId}, so a new selection mounts a fresh panel: no reset in the effect.
@@ -419,6 +433,7 @@ function EventDetail({ eventId, canInvestigate }: { eventId: string; canInvestig
       </section>
 
       <footer className="flex flex-wrap items-center gap-3">
+        {findingLink(event)}
         {event.incident_id ? (
           <Link to={`/incidents/${event.incident_id}`} className="text-sm text-accent hover:underline">
             Open the incident this event belongs to

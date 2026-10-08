@@ -314,6 +314,25 @@ function run(over: Partial<SimulationRun> = {}): SimulationRun {
 // --- Dashboard ----------------------------------------------------------------------------------
 
 describe("security dashboard", () => {
+  it("shows each control's state; vulnerabilities link to their page (Phase 8)", async () => {
+    const controls = {
+      ...overview("live").controls,
+      vulnerabilities: {
+        status: "measured" as const,
+        summary: "171 open findings (1 critical, 44 high; 44 awaiting an upstream fix), 0 past SLA",
+        values: { open: 171 },
+      },
+      certificates: { status: "not_connected" as const, summary: "No data", values: {} },
+    };
+    await renderAs("ANALYST", "/", {
+      "/api/v1/security/overview": () => jsonResponse(overview("live", { controls })),
+    });
+    const section = await screen.findByRole("region", { name: "Controls" });
+    expect(within(section).getByRole("link", { name: "Vulnerabilities" })).toHaveAttribute("href", "/vulnerabilities");
+    expect(within(section).getByText(/171 open findings/)).toBeInTheDocument();
+    expect(within(section).getByText("No data yet")).toBeInTheDocument();
+  });
+
   it("renders the status line, KPIs and the hourly chart from the overview", async () => {
     const calls = await renderAs("ANALYST", "/", { "/api/v1/security/overview": () => jsonResponse(overview("live")) });
     expect(await screen.findByText("1 open incident is unassigned")).toBeInTheDocument();

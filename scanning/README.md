@@ -13,6 +13,7 @@ Phase 8 adds one scan pipeline that runs the same way on a laptop (`make scan`) 
 | Container | Trivy (`image`)       | API and web images, from `docker save` tarballs        | `trivy-image-{api,web}.json`    |
 | SBOM      | Syft                  | API image, web image, source tree (CycloneDX)          | `sbom-{api,web,source}.cdx.json`|
 | DAST      | ZAP baseline (passive)| the local stack at `http://localhost:8080` only        | `zap-baseline.json`             |
+| DAST      | ZAP API scan (active, authenticated) | every endpoint in the OpenAPI document, local stack only | `zap-api.json`  |
 
 All reports land in `reports/scan/` (git-ignored; uploaded as a CI artifact for 30 days).
 
@@ -21,7 +22,7 @@ All reports land in `reports/scan/` (git-ignored; uploaded as a CI artifact for 
 ```
 make scan        # everything except DAST, then the gate
 make dev         # DAST needs the stack
-make dast        # ZAP baseline, then the gate over every report
+make dast        # ZAP baseline + authenticated API scan, then the gate over every report
 make scan-gate   # re-apply the gate after editing accepted-findings.toml
 make sbom        # SBOMs only
 make scan-test   # test the SentinelEdge Semgrep rules
@@ -74,6 +75,19 @@ computed URLs. Each rule has annotated examples (`python.py`, `frontend.tsx`) th
 rule with an optional component pattern), the justification, the compensating control, the
 approver and an expiry date. Prefer fixing. Suppressions in code (`# nosemgrep: <rule>`,
 `# checkov:skip=<id>: <reason>`, `# nosec`) are allowed only with the reason written beside them.
+
+## Authenticated DAST
+
+`make dast` runs the passive baseline against the SPA, then ZAP's API scan against every endpoint
+in the OpenAPI document (`python -m app.cli openapi --server http://localhost:8080`, which pins the
+target to the local stack and leaves out logout, so the scan cannot end its own session). It signs
+in as `dast-scanner@example.com`, a VIEWER account that has no usable password: `python -m app.cli
+dast-session issue` gives it one session for 60 minutes, and the session is revoked when the scan
+ends, however it ends. As a viewer it reads what a viewer may, and every write it attempts is
+refused (403), so a scan cannot change the platform's data. The token is passed to ZAP in a mode-600
+env file, never on a command line. Attack payloads reach only the local stack, and HTTP analysis
+detects them like any other attack: expect live injection events from this machine's address.
+Both ZAP reports must be present before the gate marks a ZAP finding fixed.
 
 ## Safety
 

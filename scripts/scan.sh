@@ -139,14 +139,45 @@ dast() {
   fi
   local work
   work="$(mktemp -d)"
-  chmod 0777 "$work"  # ZAP writes as its own user (zap, UID 1000)
+  chmod 0777 "$work"  # ZAP writes as its own user (zap, UID 1000); nothing secret goes here
   # -I: warnings never fail this step; the gate decides. Host networking so ZAP reaches the
   # stack on localhost, the only origin the web container trusts.
   docker run --rm --network host -v "$work:/zap/wrk:rw" "$ZAP_IMAGE" \
     zap-baseline.py -t "$DAST_TARGET" -J zap-baseline.json -I -m 2 || true
-  test -s "$work/zap-baseline.json" || { echo "ZAP wrote no report" >&2; exit 2; }
+  test -s "$work/zap-baseline.json" || { echo "ZAP wrote no baseline report" >&2; exit 2; }
   cp "$work/zap-baseline.json" "$OUT/zap-baseline.json"
+
+  log "DAST: ZAP API scan (active, authenticated as the read-only DAST scanner)"
+  # The OpenAPI document pinned to the local stack, without the logout endpoint.
+  docker compose exec -T api python -m app.cli openapi --server "$DAST_TARGET" > "$work/openapi.json"
+  # A session for the VIEWER-only scanner account: it reads what a viewer may and every write
+  # it attempts is refused. The token goes to a mode-600 env file, never onto a command line,
+  # and the session is revoked when this step ends, however it ends.
+  local token
+  DAST_SECRETS="$(mktemp -d)"
+  trap revoke_dast EXIT
+  token="$(docker compose exec -T api python -m app.cli dast-session issue)"
+  [[ "$token" =~ ^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$ ]] \
+    || { echo "Could not issue the DAST scanner session" >&2; exit 2; }
+  (umask 077 && printf 'ZAP_AUTH_HEADER=Authorization\nZAP_AUTH_HEADER_VALUE=Bearer %s\nZAP_AUTH_HEADER_SITE=localhost\n' \
+    "$token" > "$DAST_SECRETS/zap.env")
+  unset token
+  # -T: at most 20 minutes. Attack payloads reach only the local stack; HTTP analysis detects
+  # them like any other attack, so expect live injection events for this machine's address.
+  docker run --rm --network host --env-file "$DAST_SECRETS/zap.env" -v "$work:/zap/wrk:rw" "$ZAP_IMAGE" \
+    zap-api-scan.py -t /zap/wrk/openapi.json -f openapi -J zap-api.json -I -T 20 || true
+  test -s "$work/zap-api.json" || { echo "ZAP wrote no API scan report" >&2; exit 2; }
+  cp "$work/zap-api.json" "$OUT/zap-api.json"
   rm -rf "$work"
+  revoke_dast
+}
+
+DAST_SECRETS=""
+revoke_dast() {
+  [[ -n "$DAST_SECRETS" ]] || return 0
+  docker compose exec -T api python -m app.cli dast-session revoke >/dev/null 2>&1 || true
+  rm -rf "$DAST_SECRETS"
+  DAST_SECRETS=""
 }
 
 gate() {
@@ -155,7 +186,7 @@ gate() {
   py="$(tool python)"
   # Every scanner's report must be present: one that failed must not let the others pass.
   local expect=(semgrep bandit trivy-fs gitleaks checkov trivy-image-api trivy-image-web)
-  [[ " ${steps[*]} " == *" dast "* ]] && expect+=(zap-baseline)
+  [[ " ${steps[*]} " == *" dast "* ]] && expect+=(zap-baseline zap-api)
   local flags=()
   for name in "${expect[@]}"; do flags+=(--expect "$name.json"); done
   (cd backend && "$py" -m app.scanning.gate "$OUT" --root "$ROOT" "${flags[@]}" \

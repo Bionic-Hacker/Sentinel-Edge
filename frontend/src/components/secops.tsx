@@ -67,6 +67,8 @@ const CATEGORY_LABEL: Record<EventCategory, string> = {
   suspicious_auth: "Suspicious sign-in",
   certificate: "Certificate",
   vulnerable_dependency: "Vulnerable dependency",
+  code_weakness: "Code weakness",
+  exposed_secret: "Exposed secret",
 };
 
 export const categoryLabel = (category: string) =>

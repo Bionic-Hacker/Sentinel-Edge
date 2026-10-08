@@ -184,6 +184,7 @@ export const EVENT_SOURCES = [
   "waf",
   "certificate",
   "dependency",
+  "appsec",
 ] as const;
 export type EventSource = (typeof EVENT_SOURCES)[number];
 export const EVENT_CATEGORIES = [
@@ -208,6 +209,8 @@ export const EVENT_CATEGORIES = [
   "suspicious_auth",
   "certificate",
   "vulnerable_dependency",
+  "code_weakness",
+  "exposed_secret",
 ] as const;
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 export const OUTCOMES = ["allowed", "rejected", "throttled", "blocked", "detected"] as const;
@@ -408,7 +411,10 @@ export interface Overview {
     series: { hour: string; requests: number; rejected: number; errors: number }[];
     top_endpoints: { method: string; endpoint: string; requests: number }[];
   };
-  controls: Record<string, { status: "measured" | "simulated" | "planned"; summary: string; values: Record<string, number> }>;
+  controls: Record<
+    string,
+    { status: "measured" | "simulated" | "planned" | "not_connected"; summary: string; values: Record<string, number> }
+  >;
 }
 
 // --- Applications (spec §40) --------------------------------------------------------------------
@@ -491,4 +497,161 @@ export interface WafRuleList {
   web_acl: string;
   note: string;
   items: WafRule[];
+}
+
+// --- Vulnerability management (Phase 8) ---------------------------------------------------------
+
+export const VULN_STATUSES = ["open", "in_progress", "fixed", "accepted_risk", "false_positive"] as const;
+export type VulnStatus = (typeof VULN_STATUSES)[number];
+export const FINDING_CATEGORIES = ["sast", "sca", "secret", "container", "iac", "dast"] as const;
+export type FindingCategory = (typeof FINDING_CATEGORIES)[number];
+export const SCAN_TOOLS = ["semgrep", "bandit", "trivy", "gitleaks", "checkov", "zap"] as const;
+export type ScanTool = (typeof SCAN_TOOLS)[number];
+export const SCAN_SOURCES = ["local", "ci"] as const;
+export type ScanSource = (typeof SCAN_SOURCES)[number];
+export const ACCEPTANCE_ENDS = ["revoked", "expired", "fixed"] as const;
+export type AcceptanceEnd = (typeof ACCEPTANCE_ENDS)[number];
+
+export interface AppRef {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface ScanRef {
+  id: string;
+  reference: string;
+  imported_at: string;
+}
+
+export interface RiskAcceptance {
+  id: string;
+  reference: string;
+  justification: string;
+  compensating_control: string;
+  approver_label: string;
+  created_at: string;
+  expires_at: string;
+  ended_at: string | null;
+  end_reason: AcceptanceEnd | null;
+  ended_by_label: string | null;
+  in_force: boolean;
+}
+
+export interface VulnerabilitySummary {
+  id: string;
+  reference: string;
+  application: AppRef;
+  tool: ScanTool;
+  category: FindingCategory;
+  rule_id: string;
+  title: string;
+  severity: Severity;
+  component: string;
+  location: string;
+  cve: string | null;
+  fixed_version: string | null;
+  fixable: boolean;
+  status: VulnStatus;
+  first_seen_at: string;
+  last_seen_at: string;
+  resolved_at: string | null;
+  sla_due_at: string | null;
+  overdue: boolean;
+  times_reopened: number;
+  version: number;
+}
+
+export interface VulnerabilityDetail extends VulnerabilitySummary {
+  cvss: number | null;
+  recommendation: string | null;
+  references: string[];
+  status_note: string | null;
+  first_scan: ScanRef;
+  last_scan: ScanRef;
+  acceptances: RiskAcceptance[];
+  allowed_statuses: VulnStatus[];
+  can_accept_risk: boolean;
+  can_revoke_acceptance: boolean;
+  max_acceptance_days: number;
+}
+
+export interface VulnerabilityPage {
+  items: VulnerabilitySummary[];
+  next_before: number | null;
+}
+
+export type SeverityCounts = Record<Severity, number>;
+
+export interface LastScan {
+  id: string;
+  reference: string;
+  application: AppRef;
+  source: ScanSource;
+  imported_at: string;
+  generated_at: string;
+  commit_sha: string | null;
+  gate_passed: boolean;
+}
+
+export interface VulnerabilityOverview {
+  active: SeverityCounts;
+  active_total: number;
+  awaiting_fix: number;
+  overdue: number;
+  accepted: number;
+  false_positive: number;
+  fixed_30d: number;
+  by_category: Record<string, number>;
+  last_scan: LastScan | null;
+}
+
+export interface ScanSummary {
+  id: string;
+  reference: string;
+  application: AppRef;
+  source: ScanSource;
+  commit_sha: string | null;
+  branch: string | null;
+  imported_by_label: string;
+  imported_at: string;
+  generated_at: string;
+  reports: string[];
+  gate_passed: boolean;
+  summary: Record<string, unknown>;
+}
+
+export interface ScanList {
+  items: ScanSummary[];
+}
+
+export interface SbomSummary {
+  id: string;
+  application: AppRef;
+  scan: ScanRef;
+  artifact: string;
+  format: string;
+  spec_version: string;
+  subject: string;
+  subject_version: string | null;
+  component_count: number;
+  document_sha256: string;
+  created_at: string;
+}
+
+export interface SbomList {
+  items: SbomSummary[];
+}
+
+export interface SbomComponent {
+  name: string;
+  version: string | null;
+  type: string | null;
+  purl: string | null;
+  licenses: string[];
+}
+
+export interface SbomDetail extends SbomSummary {
+  components: SbomComponent[];
+  components_total: number;
 }

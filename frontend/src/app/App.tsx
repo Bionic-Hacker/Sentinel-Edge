@@ -3,6 +3,9 @@ import { Layout } from "../components/Layout";
 import { AuditLogsPage } from "../features/admin/AuditLogsPage";
 import { SettingsPage } from "../features/admin/SettingsPage";
 import { ApiSecurityPage } from "../features/api-security/ApiSecurityPage";
+import { SbomPage } from "../features/appsec/SbomPage";
+import { VulnerabilitiesPage } from "../features/appsec/VulnerabilitiesPage";
+import { VulnerabilityDetailPage } from "../features/appsec/VulnerabilityDetailPage";
 import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
@@ -31,6 +34,8 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   "/applications": ApplicationsPage,
   "/waf": WafPage,
   "/automation": AutomationPage,
+  "/vulnerabilities": VulnerabilitiesPage,
+  "/sbom": SbomPage,
 };
 
 export function AppRoutes() {
@@ -56,6 +61,7 @@ export function AppRoutes() {
             return <Route key={m.path} path={m.path} element={Page ? <Page /> : <ModulePage module={m} />} />;
           })}
           <Route path="/incidents/:incidentId" element={<IncidentDetailPage />} />
+          <Route path="/vulnerabilities/:vulnerabilityId" element={<VulnerabilityDetailPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

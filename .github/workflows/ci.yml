@@ -142,7 +142,7 @@ jobs:
   security-scans:
     name: Security scans and gate (SAST, SCA, secrets, IaC, containers, SBOM, DAST)
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -165,7 +165,7 @@ jobs:
           done
           docker compose ps; docker compose logs --tail 50
           exit 1
-      - name: DAST (ZAP baseline) and the gate
+      - name: DAST (ZAP baseline and authenticated API scan) and the gate
         run: ./scripts/scan.sh dast gate
       - name: Upload scan reports, findings and SBOMs
         if: always()

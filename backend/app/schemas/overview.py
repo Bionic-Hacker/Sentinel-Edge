@@ -109,7 +109,8 @@ class Traffic(BaseModel):
 
 
 class Control(BaseModel):
-    status: Literal["measured", "simulated", "planned"]
+    # not_connected: the control exists here but has no data yet (e.g. no scan imported).
+    status: Literal["measured", "simulated", "planned", "not_connected"]
     summary: str
     values: dict[str, int]
 

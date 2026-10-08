@@ -27,7 +27,8 @@ PRODUCERS: dict[tuple[str, str], frozenset[str]] = {
     ("gitleaks", "secret"): frozenset({"gitleaks"}),
     ("checkov", "iac"): frozenset({"checkov"}),
     ("checkov", "secret"): frozenset({"checkov"}),
-    ("zap", "dast"): frozenset({"zap"}),
+    # The passive baseline (the SPA) and the authenticated API scan run together (`make dast`).
+    ("zap", "dast"): frozenset({"zap-baseline", "zap-api"}),
 }
 
 

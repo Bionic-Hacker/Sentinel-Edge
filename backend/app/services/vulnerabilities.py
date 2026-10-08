@@ -83,6 +83,7 @@ from app.schemas.vulnerabilities import (
     VulnerabilitySummary,
 )
 from app.services import audit, security_events
+from app.services.api_inventory import DastCoverage
 from app.services.audit import SYSTEM_CONTEXT, AuditAction, RequestContext
 from app.services.security_events import EventContext
 
@@ -490,6 +491,26 @@ def _report_events(
             evidence={"application": app.slug, "scan": scan.reference, "omitted": rest},
             correlate=False,
         )
+
+
+def last_dast(db: Session) -> DastCoverage | None:
+    """The platform's latest imported scan that included DAST, for the API inventory."""
+    scans = db.scalars(
+        select(ScanRun)
+        .join(Application, Application.id == ScanRun.application_id)
+        .where(Application.is_platform)
+        .order_by(ScanRun.imported_at.desc())
+        .limit(50)
+    )
+    for scan in scans:
+        reports = list(scan.reports)
+        if any(r.startswith("zap") for r in reports):
+            return DastCoverage(
+                imported_at=scan.imported_at,
+                reference=scan.reference,
+                authenticated=any(r.startswith("zap-api") for r in reports),
+            )
+    return None
 
 
 # --- API ---------------------------------------------------------------------------------------

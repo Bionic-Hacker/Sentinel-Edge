@@ -5,6 +5,8 @@
     python -m app.cli outbox [--limit 5]
     python -m app.cli verify-audit
     python -m app.cli import-scan --application sentineledge < bundle.json   (make scan-import)
+    python -m app.cli dast-session issue|revoke                              (make dast)
+    python -m app.cli openapi                                                (make dast)
 """
 
 from __future__ import annotations
@@ -15,7 +17,8 @@ import re
 import secrets
 import sys
 from collections.abc import Sequence
-from typing import TextIO
+from datetime import timedelta
+from typing import Any, TextIO
 
 from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import select
@@ -175,6 +178,117 @@ def import_scan_bundle(
     return 0
 
 
+# The authenticated DAST scan signs in as this read-only account (VIEWER): it reads every
+# endpoint a viewer may, and every write it attempts is refused (403), so a scan cannot change
+# the platform's data. Its sessions exist only while a scan runs.
+DAST_EMAIL = "dast-scanner@example.com"
+DAST_SESSION_MINUTES = 60
+
+
+def dast_session(db: Session, settings: Settings, action: str, out: TextIO) -> int:
+    from app.core.clock import utcnow
+    from app.models.session import AuthSession
+    from app.security.tokens import TokenService
+
+    user = db.scalar(select(User).where(User.email == DAST_EMAIL))
+    now = utcnow()
+    if action == "revoke":
+        sessions = (
+            [] if user is None else [s for s in user_sessions(db, user) if s.revoked_at is None]
+        )
+        for session in sessions:
+            session.revoked_at = now
+            session.revoked_reason = "dast_scan_finished"
+        if sessions:
+            audit.record(
+                db,
+                action=AuditAction.DAST_SESSION_REVOKED,
+                result=AuditResult.SUCCESS,
+                actor=CLI_ACTOR,
+                ctx=SYSTEM_CONTEXT,
+                resource_type="user",
+                resource_id=str(user.id) if user else None,
+                details={"sessions": len(sessions)},
+            )
+        db.commit()
+        print(f"Revoked {len(sessions)} DAST scanner session(s).", file=out)
+        return 0
+
+    if user is None:
+        # No usable password: the account is reachable only through sessions issued here.
+        user = User(
+            email=DAST_EMAIL,
+            display_name="DAST scanner (read-only)",
+            role=Role.VIEWER,
+            password_hash=PasswordHasher(settings).hash(secrets.token_urlsafe(32)),
+            must_change_password=False,
+        )
+        db.add(user)
+        db.flush()
+        audit.record(
+            db,
+            action=AuditAction.USER_CREATED,
+            result=AuditResult.SUCCESS,
+            actor=CLI_ACTOR,
+            ctx=SYSTEM_CONTEXT,
+            resource_type="user",
+            resource_id=str(user.id),
+            details={"email": DAST_EMAIL, "role": Role.VIEWER.value, "via": "cli:dast"},
+        )
+    if user.role is not Role.VIEWER or not user.is_active:
+        print(f"error: {DAST_EMAIL} must be an active VIEWER", file=sys.stderr)
+        return 1
+    lifetime = timedelta(minutes=DAST_SESSION_MINUTES)
+    session = AuthSession(user_id=user.id, expires_at=now + lifetime, mfa_verified=False)
+    db.add(session)
+    db.flush()
+    audit.record(
+        db,
+        action=AuditAction.DAST_SESSION_ISSUED,
+        result=AuditResult.SUCCESS,
+        actor=CLI_ACTOR,
+        ctx=SYSTEM_CONTEXT,
+        resource_type="user",
+        resource_id=str(user.id),
+        details={"session": str(session.id), "minutes": DAST_SESSION_MINUTES},
+    )
+    db.commit()
+    # Only the token on stdout: the caller captures it into a mode-600 file, never a command line.
+    print(TokenService(settings).issue_access(user.id, session.id, lifetime), file=out)
+    return 0
+
+
+def user_sessions(db: Session, user: User) -> list[Any]:
+    from app.models.session import AuthSession
+
+    return list(db.scalars(select(AuthSession).where(AuthSession.user_id == user.id)))
+
+
+# Never scanned with the scanner's own token: logging out would end the scan's session.
+DAST_EXCLUDED_PATHS = ("/api/v1/auth/logout",)
+_SERVER = re.compile(r"^http://(localhost|127\.0\.0\.1)(:\d{1,5})?$")
+
+
+def print_openapi(settings: Settings, server: str | None, out: TextIO) -> int:
+    """The OpenAPI document (the API serves it only when docs are enabled). With --server, the
+    DAST scan's map: that server only (the local stack), and no path that would end its session."""
+    from app.main import create_app
+
+    document = create_app(settings).openapi()
+    if server is not None:
+        if not _SERVER.fullmatch(server):
+            print(
+                "error: --server must be the local stack (http://localhost:PORT)", file=sys.stderr
+            )
+            return 2
+        document["servers"] = [{"url": server}]
+        for path in DAST_EXCLUDED_PATHS:
+            document["paths"].pop(path, None)
+    json.dump(document, out, indent=2)
+    print(file=out)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m app.cli", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -191,6 +305,10 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--commit", help="full commit SHA the scan ran on")
     scan.add_argument("--branch")
     scan.add_argument("--actor", default="operator", help="who ran the import")
+    dast = commands.add_parser("dast-session", help="issue or revoke the DAST scanner's session")
+    dast.add_argument("action", choices=["issue", "revoke"])
+    spec = commands.add_parser("openapi", help="print the OpenAPI document")
+    spec.add_argument("--server", help="DAST target, the local stack (http://localhost:8080)")
     return parser
 
 
@@ -220,6 +338,10 @@ def main(
                     actor=args.actor,
                     out=out,
                 )
+            if args.command == "dast-session":
+                return dast_session(db, settings, args.action, out)
+            if args.command == "openapi":
+                return print_openapi(settings, args.server, out)
             if args.command == "prune-rate-limits":
                 removed = RateLimiter(build_session_factory(engine)).prune()
                 print(f"Removed {removed} idle rate-limit buckets.", file=out)

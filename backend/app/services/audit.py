@@ -68,6 +68,8 @@ class AuditAction(StrEnum):
     RISK_ACCEPTED = "vulnerability.risk_accepted"
     RISK_ACCEPTANCE_REVOKED = "vulnerability.acceptance_revoked"
     RISK_ACCEPTANCE_EXPIRED = "vulnerability.acceptance_expired"
+    DAST_SESSION_ISSUED = "dast.session_issued"
+    DAST_SESSION_REVOKED = "dast.session_revoked"
 
 
 @dataclass(frozen=True)
