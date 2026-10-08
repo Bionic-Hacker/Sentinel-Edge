@@ -14,6 +14,31 @@ BLOCKING_SEVERITIES = frozenset({"critical", "high"})
 CATEGORIES: tuple[str, ...] = ("sast", "sca", "secret", "container", "iac", "dast")
 
 
+# Which report files produce which (tool, category) findings. A stored finding that a new scan
+# no longer reports is "fixed" only if that scan included every report able to produce it: a
+# scan run without DAST must not mark the ZAP findings fixed. Keys are report-name prefixes.
+PRODUCERS: dict[tuple[str, str], frozenset[str]] = {
+    ("semgrep", "sast"): frozenset({"semgrep"}),
+    ("bandit", "sast"): frozenset({"bandit"}),
+    ("trivy", "sca"): frozenset({"trivy-fs"}),
+    ("trivy", "iac"): frozenset({"trivy-fs"}),
+    ("trivy", "container"): frozenset({"trivy-image"}),
+    ("trivy", "secret"): frozenset({"trivy-fs", "trivy-image"}),
+    ("gitleaks", "secret"): frozenset({"gitleaks"}),
+    ("checkov", "iac"): frozenset({"checkov"}),
+    ("checkov", "secret"): frozenset({"checkov"}),
+    ("zap", "dast"): frozenset({"zap"}),
+}
+
+
+def covered(tool: str, category: str, reports: list[str] | tuple[str, ...]) -> bool:
+    """True if `reports` (file names) include every report able to produce (tool, category)."""
+    needed = PRODUCERS.get((tool, category))
+    if not needed:
+        return False  # unknown producer: never infer a fix
+    return all(any(r.startswith(prefix) for r in reports) for prefix in needed)
+
+
 def severity_rank(severity: str) -> int:
     """0 for critical … 4 for info; unknown severities sort with medium."""
     return SEVERITIES.index(severity) if severity in SEVERITIES else 2

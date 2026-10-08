@@ -37,12 +37,20 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "applications": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0008)
     "simulation_runs": {"SELECT", "INSERT"},  # a record of what was simulated (0008)
     "simulated_waf_rules": {"SELECT", "INSERT", "UPDATE"},  # simulated WAF modes (0008)
+    "scan_runs": {"SELECT", "INSERT"},  # a record of what each scan found (0009)
+    "vulnerabilities": {"SELECT", "INSERT", "UPDATE"},  # fixed or accepted, never deleted (0009)
+    "risk_acceptances": {"SELECT", "INSERT"},  # the decision is never rewritten (0009)
+    "sboms": {"SELECT", "INSERT"},  # what each artifact contained (0009)
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.
 EXPECTED_APP_COLUMN_PRIVILEGES: dict[tuple[str, str], set[str]] = {
     # Linking an event to its incident; a trigger makes the link write-once (0007).
     ("security_events", "incident_id"): {"UPDATE"},
+    # How an acceptance ended (revoked, expired, fixed); the decision itself is immutable (0009).
+    ("risk_acceptances", "ended_at"): {"UPDATE"},
+    ("risk_acceptances", "end_reason"): {"UPDATE"},
+    ("risk_acceptances", "ended_by_label"): {"UPDATE"},
 }
 
 

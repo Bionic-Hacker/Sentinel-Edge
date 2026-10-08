@@ -63,6 +63,11 @@ class AuditAction(StrEnum):
     SIMULATED_WAF_RULE_CHANGED = "simulator.waf_rule_changed"
     APPLICATION_CREATED = "application.created"
     APPLICATION_UPDATED = "application.updated"
+    SCAN_IMPORTED = "scan.imported"
+    VULNERABILITY_STATUS_CHANGED = "vulnerability.status_changed"
+    RISK_ACCEPTED = "vulnerability.risk_accepted"
+    RISK_ACCEPTANCE_REVOKED = "vulnerability.acceptance_revoked"
+    RISK_ACCEPTANCE_EXPIRED = "vulnerability.acceptance_expired"
 
 
 @dataclass(frozen=True)

@@ -5,7 +5,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
 
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests
+        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -116,6 +116,13 @@ dast: ## ZAP baseline against the running local stack (make dev first), then the
 
 scan-gate: ## Re-apply the gate to the existing reports (after editing accepted-findings.toml)
 	./scripts/scan.sh gate
+
+scan-import: ## Import reports/scan into vulnerability management (FROM=dir SOURCE=ci for a CI artifact)
+	@test -d "$(or $(FROM),reports/scan)" || { echo "No reports at $(or $(FROM),reports/scan): run make scan first"; exit 2; }
+	set -o pipefail; python3 scripts/scan-bundle.py "$(or $(FROM),reports/scan)" | docker compose exec -T api \
+	  python -m app.cli import-scan --application "$(or $(APP),sentineledge)" --source "$(or $(SOURCE),local)" \
+	  $(if $(COMMIT),--commit "$(COMMIT)",$(if $(FROM),,--commit "$$(git rev-parse HEAD)" --branch "$$(git rev-parse --abbrev-ref HEAD)")) \
+	  --actor "$$(git config user.email || echo operator)"
 
 image-digests: ## Check pinned image digests against their tags (UPDATE=1 rewrites stale pins)
 	./scripts/image-digests.sh

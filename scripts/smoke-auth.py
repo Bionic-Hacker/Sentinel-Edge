@@ -25,6 +25,7 @@ import re
 import secrets
 import subprocess
 import sys
+import uuid
 from datetime import UTC, datetime, timedelta
 
 import httpx2 as httpx
@@ -274,6 +275,7 @@ def main() -> None:
     check("inventory counts the throttled probes", ready["metrics"]["throttled"] > 0)
 
     security_operations(client, token)
+    vulnerability_management(client, token, run)
 
     print(f"\nAll {passed} checks passed.")
 
@@ -383,6 +385,54 @@ def security_operations(client: httpx.Client, token: str) -> None:
         f"audit chain intact after the simulations ({chain['records_checked']} records)",
         chain["intact"],
     )
+
+
+def vulnerability_management(client: httpx.Client, token: str, run: str) -> None:
+    """Phase 8: the findings, scan and SBOM endpoints answer and enforce their rules. Read-only:
+    the smoke test never imports scans, so it leaves the local findings untouched."""
+    auth = bearer(token)
+    print("\nVulnerability management (Phase 8)")
+    # The earlier analyst is locked out on purpose (Sessions); invite a read-only viewer.
+    viewer_email = f"smoke-viewer-{run}@example.com"
+    client.post(
+        "/api/v1/users",
+        headers=auth,
+        json={"email": viewer_email, "display_name": "Smoke Viewer", "role": "VIEWER"},
+    )
+    links = re.findall(r"#token=([A-Za-z0-9_-]+)", cli("outbox", "--limit", "50"))
+    viewer_password = f"amber meadow lantern {run}"
+    client.post(
+        "/api/v1/auth/password/reset", json={"token": links[-1], "new_password": viewer_password}
+    )
+    response = client.post(
+        "/api/v1/auth/login", json={"email": viewer_email, "password": viewer_password}
+    )
+    check("a viewer is invited and signs in for these checks", response.status_code == 200)
+    viewer = bearer(response.json().get("access_token", ""))
+    overview = client.get("/api/v1/vulnerabilities/overview", headers=auth)
+    check(
+        "the vulnerability overview answers with counts",
+        overview.status_code == 200 and isinstance(overview.json().get("active_total"), int),
+    )
+    listing = client.get("/api/v1/vulnerabilities", headers=viewer, params={"limit": 5})
+    check("a viewer can read findings", listing.status_code == 200)
+    missing = f"/api/v1/vulnerabilities/{uuid.uuid4()}"
+    check("an unknown finding is not found", client.get(missing, headers=auth).status_code == 404)
+    change = client.post(
+        f"{missing}/status", headers=viewer, json={"status": "in_progress", "version": 1}
+    )
+    check("a viewer cannot change a finding's status (BFLA)", change.status_code == 403)
+    check(
+        "scans and SBOMs are listed",
+        client.get("/api/v1/scans", headers=auth).status_code == 200
+        and client.get("/api/v1/sboms", headers=auth).status_code == 200,
+    )
+    check(
+        "findings require authentication",
+        client.get("/api/v1/vulnerabilities").status_code == 401,
+    )
+    bogus = client.get("/api/v1/vulnerabilities", headers=auth, params={"min_severity": "bogus"})
+    check("an invalid filter is rejected", bogus.status_code == 422)
 
 
 if __name__ == "__main__":

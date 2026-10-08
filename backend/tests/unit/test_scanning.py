@@ -397,3 +397,15 @@ def test_gate_refuses_a_malformed_register(tmp_path: Path) -> None:
 
 def test_fingerprints_ignore_nothing_but_order() -> None:
     assert fingerprint("a", "b") == fingerprint("a", "b") != fingerprint("b", "a")
+
+
+def test_a_finding_is_covered_only_when_every_report_able_to_produce_it_ran() -> None:
+    from app.scanning.findings import covered
+
+    reports = ["semgrep.json", "trivy-fs.json", "gitleaks.json"]
+    assert covered("semgrep", "sast", reports)
+    assert covered("trivy", "sca", reports)
+    assert not covered("zap", "dast", reports)  # no DAST in this scan
+    assert not covered("trivy", "secret", reports)  # the image scans did not run
+    assert covered("trivy", "secret", [*reports, "trivy-image-api.json"])
+    assert not covered("semgrep", "dast", reports)  # an unknown pairing never infers a fix

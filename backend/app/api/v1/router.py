@@ -14,6 +14,7 @@ from app.api.v1 import (
     security_overview,
     simulator,
     users,
+    vulnerabilities,
 )
 
 api_v1 = APIRouter(prefix="/api/v1")
@@ -28,3 +29,4 @@ api_v1.include_router(incidents.router)
 api_v1.include_router(security_overview.router)
 api_v1.include_router(applications.router)
 api_v1.include_router(simulator.router)
+api_v1.include_router(vulnerabilities.router)

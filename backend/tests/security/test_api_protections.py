@@ -13,7 +13,7 @@ from collections.abc import Iterator
 from typing import Any, get_args, get_origin
 
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.routing import APIRoute, iter_route_contexts
 from pydantic import BaseModel
 
@@ -69,12 +69,21 @@ def test_every_request_body_rejects_unknown_fields(app: FastAPI) -> None:
     assert checked >= 8  # guard against the sweep silently finding nothing
 
 
+# Routes that return a file instead of JSON: each one is reviewed and listed here.
+FILE_DOWNLOADS = frozenset({("GET", "/api/v1/sboms/{sbom_id}/document")})
+
+
 def test_every_json_route_declares_a_response_model(app: FastAPI) -> None:
     """Excessive data exposure: responses are allow-listed by a model, never a raw object."""
+    downloads = set()
     for path, route in _api_routes(app):
         if route.status_code == 204:
             continue
+        if route.response_model is None and route.response_class is Response:
+            downloads.update((method, path) for method in route.methods)
+            continue
         assert route.response_model is not None, f"{sorted(route.methods)} {path}"
+    assert downloads == FILE_DOWNLOADS
 
 
 def test_no_response_model_exposes_secret_fields(app: FastAPI) -> None:

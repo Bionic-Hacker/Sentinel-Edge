@@ -25,7 +25,11 @@ make dast        # ZAP baseline, then the gate over every report
 make scan-gate   # re-apply the gate after editing accepted-findings.toml
 make sbom        # SBOMs only
 make scan-test   # test the SentinelEdge Semgrep rules
+make scan-import # store reports/scan in vulnerability management (the stack must be running)
 ```
+
+`make scan-import FROM=<dir> SOURCE=ci COMMIT=<sha>` imports a downloaded CI artifact instead
+(`gh run download <run-id> -n security-scans-<run-id> -D <dir>`).
 
 Single steps: `scripts/scan.sh sast`, `sca`, `secrets`, `iac`, `container`, `sbom`, `dast`, `gate`.
 `SEMGREP_RULESETS=""` skips the registry rulesets when offline; CI always uses them.
@@ -44,6 +48,17 @@ by fingerprint, and writes it to `reports/scan/findings.json`. Then:
 
 Severity mapping: scanner severities are used as given; Checkov failures without a severity
 count as high; ZAP risk 3/2/1/0 is high/medium/low/info; every Gitleaks finding is critical.
+
+## Vulnerability management
+
+`make scan-import` sends the gate's `findings.json` and the SBOMs to the API container's CLI
+(`python -m app.cli import-scan`, over stdin). Findings are de-duplicated per application by
+fingerprint; one that a scan no longer reports is marked fixed, but only if that scan included
+every report able to produce it, so a scan without DAST never fixes a ZAP finding. New and
+reopened critical or high findings become security events. Remediation SLA from detection:
+critical 7 days, high 30, medium 90, low 180. Risk acceptance (leads only) needs a
+justification, a compensating control and an expiry within the severity's limit (critical 30
+days, high 90, others 365); an expired acceptance reopens its finding.
 
 ## SentinelEdge Semgrep rules
 

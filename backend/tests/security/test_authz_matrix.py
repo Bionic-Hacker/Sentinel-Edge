@@ -32,6 +32,7 @@ AUDITORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
 API_SECURITY = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 SECOPS_READ = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
 INVESTIGATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST})
+REMEDIATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -81,6 +82,21 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("POST", "/api/v1/simulator/runs"): AUDITORS,
     ("GET", "/api/v1/simulator/waf-rules"): INVESTIGATORS,
     ("PUT", "/api/v1/simulator/waf-rules/{rule_id}"): AUDITORS,
+    # Vulnerability management (Phase 8): every role reads, developers their own applications.
+    ("GET", "/api/v1/vulnerabilities"): ALL,  # plus an object-level filter
+    ("GET", "/api/v1/vulnerabilities/overview"): ALL,  # plus an object-level filter
+    ("GET", "/api/v1/vulnerabilities/{vulnerability_id}"): ALL,  # plus an object-level check
+    ("POST", "/api/v1/vulnerabilities/{vulnerability_id}/status"): REMEDIATORS,
+    ("POST", "/api/v1/vulnerabilities/{vulnerability_id}/acceptances"): AUDITORS,
+    (
+        "POST",
+        "/api/v1/vulnerabilities/{vulnerability_id}/acceptances/{acceptance_id}/revoke",
+    ): AUDITORS,
+    ("GET", "/api/v1/scans"): ALL,  # plus an object-level filter
+    ("GET", "/api/v1/scans/{scan_id}"): ALL,  # plus an object-level check
+    ("GET", "/api/v1/sboms"): ALL,  # plus an object-level filter
+    ("GET", "/api/v1/sboms/{sbom_id}"): ALL,  # plus an object-level check
+    ("GET", "/api/v1/sboms/{sbom_id}/document"): ALL,  # plus an object-level check
 }
 
 
