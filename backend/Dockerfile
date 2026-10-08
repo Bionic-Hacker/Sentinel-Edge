@@ -17,6 +17,11 @@ RUN python -m venv /opt/venv \
  && /opt/venv/bin/pip install --require-hashes --no-deps -r requirements.txt
 
 FROM ${PYTHON_IMAGE} AS runtime
+# OS security fixes published since the pinned base image was built (the scan gate blocks on a
+# fixable high or critical package vulnerability, ADR-0020).
+RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/*
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1

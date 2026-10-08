@@ -15,6 +15,10 @@ COPY . .
 RUN npm run build
 
 FROM ${NGINX_IMAGE} AS runtime
+# OS security fixes published since the pinned base image was built (the scan gate blocks on a
+# fixable high or critical package vulnerability, ADR-0020). The base image runs as UID 101.
+USER root
+RUN apk upgrade --no-cache
 COPY --chown=root:root nginx.conf /etc/nginx/conf.d/default.conf
 COPY --chown=root:root security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --chown=root:root --from=build /build/dist /usr/share/nginx/html
