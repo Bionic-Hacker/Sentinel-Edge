@@ -25,11 +25,6 @@ export async function renderSettled(ui: ReactElement): Promise<RenderResult> {
   await act(async () => {
     await settled;
   });
-  // The provider's own update can land a tick after the notification (on a slower or busier
-  // machine, after the scope above has closed): flush one more macrotask inside act().
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
   unsubscribe();
   clearTimeout(timer);
   return view;
