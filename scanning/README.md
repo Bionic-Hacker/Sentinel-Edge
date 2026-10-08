@@ -62,6 +62,7 @@ approver and an expiry date. Prefer fixing. Suppressions in code (`# nosemgrep: 
 
 ## Safety
 
-Every scanner runs in a version-pinned image as the calling user with the repository mounted
+Every scanner runs in an image pinned by tag and digest (`make image-digests` reports pins whose
+tag has moved; `UPDATE=1` rewrites them) as the calling user with the repository mounted
 read-only, and none is given the Docker socket. Checkov runs with `skip-download`, Semgrep with
 metrics off. ZAP runs the passive baseline only, and only against the local stack.

@@ -6,7 +6,7 @@
 # - Scanned by Trivy on every CI run (scripts/scan.sh, ADR-0020). Debian 13 (trixie), the
 #   current stable release: Debian 12 is oldstable and receives fewer security fixes.
 
-ARG PYTHON_IMAGE=python:3.12-slim-trixie
+ARG PYTHON_IMAGE=python:3.12-slim-trixie@sha256:05cda9777409a9c3ffddd94a4c476b79f0769a0b4857f0c7ed9226b6800b0d6f
 
 # checkov:skip=CKV_DOCKER_7: the base image is a build argument whose default above is pinned
 FROM ${PYTHON_IMAGE} AS builder

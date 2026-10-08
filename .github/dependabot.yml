@@ -29,3 +29,9 @@ updates:
   - package-ecosystem: docker
     directories: [/backend, /frontend]
     schedule: { interval: weekly }
+
+  # Images pinned outside FROM lines (build arguments, scripts, CI) are checked with
+  # `make image-digests`.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly }

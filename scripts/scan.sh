@@ -17,13 +17,14 @@ OUT="$ROOT/reports/scan"
 CACHE="$ROOT/reports/cache"
 cd "$ROOT"
 
-# Scanner images: pinned by version tag and digest. Override only to test an upgrade.
-SEMGREP_IMAGE="${SEMGREP_IMAGE:-semgrep/semgrep:1.180.0}"
-TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.75.0}"
-CHECKOV_IMAGE="${CHECKOV_IMAGE:-bridgecrew/checkov:3.3.26}"
-SYFT_IMAGE="${SYFT_IMAGE:-anchore/syft:v1.54.1}"
-GITLEAKS_IMAGE="${GITLEAKS_IMAGE:-ghcr.io/gitleaks/gitleaks:v8.30.1}"
-ZAP_IMAGE="${ZAP_IMAGE:-ghcr.io/zaproxy/zaproxy:2.17.0}"
+# Scanner images: pinned by version tag and digest (`make image-digests` finds stale pins).
+# Override only to test an upgrade.
+SEMGREP_IMAGE="${SEMGREP_IMAGE:-semgrep/semgrep:1.180.0@sha256:529ee8a277ec8adc5b534d7c74eea0a47e9de21d62852b6ba7ac6ba9566845c3}"
+TRIVY_IMAGE="${TRIVY_IMAGE:-aquasec/trivy:0.75.0@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa}"
+CHECKOV_IMAGE="${CHECKOV_IMAGE:-bridgecrew/checkov:3.3.26@sha256:8e63f217cb084f1c1a067326a9cf6e37d54bdc82e5822210d50ca4e2f647dd93}"
+SYFT_IMAGE="${SYFT_IMAGE:-anchore/syft:v1.54.1@sha256:3eb5379ba7b409c3f4069b686110527af0c47df993fa5c10d13e7cf34f49b1aa}"
+GITLEAKS_IMAGE="${GITLEAKS_IMAGE:-ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f}"
+ZAP_IMAGE="${ZAP_IMAGE:-ghcr.io/zaproxy/zaproxy:2.17.0@sha256:781a2bdaea47324e7bab583e2263f21d257b0aee61ed51521a5be45f5f5081ef}"
 
 # Semgrep registry rulesets (fetched from semgrep.dev). SEMGREP_RULESETS="" runs only the
 # SentinelEdge rules, for offline use; CI always uses the full set.

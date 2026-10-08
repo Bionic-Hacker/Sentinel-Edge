@@ -1,11 +1,11 @@
 # SentinelEdge developer entry points. `make help` lists targets.
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
-GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
+GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate
+        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -116,6 +116,9 @@ dast: ## ZAP baseline against the running local stack (make dev first), then the
 
 scan-gate: ## Re-apply the gate to the existing reports (after editing accepted-findings.toml)
 	./scripts/scan.sh gate
+
+image-digests: ## Check pinned image digests against their tags (UPDATE=1 rewrites stale pins)
+	./scripts/image-digests.sh
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install

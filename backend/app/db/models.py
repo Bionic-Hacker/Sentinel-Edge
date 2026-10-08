@@ -10,6 +10,7 @@ from app.models.security_event import SecurityEvent
 from app.models.session import AuthSession, MfaRecoveryCode, PasswordResetToken, RefreshToken
 from app.models.simulation import SimulatedWafRule, SimulationRun
 from app.models.user import User
+from app.models.vulnerability import RiskAcceptance, Sbom, ScanRun, Vulnerability
 
 __all__ = [
     "ApiEndpointStat",
@@ -23,8 +24,12 @@ __all__ = [
     "PasswordResetToken",
     "RateLimitBucket",
     "RefreshToken",
+    "RiskAcceptance",
+    "Sbom",
+    "ScanRun",
     "SecurityEvent",
     "SimulatedWafRule",
     "SimulationRun",
     "User",
+    "Vulnerability",
 ]
