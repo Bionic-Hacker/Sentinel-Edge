@@ -11,9 +11,9 @@ written in the phase that introduces its failure mode, then exercised in a demo 
 | TLS failure | 5 |
 | Certificate expiration | 5 |
 | WAF false positive | 5 |
-| SQL injection event | 7 |
-| API abuse | 7 |
-| Credential stuffing | 7 |
-| Bot traffic | 7 |
+| [SQL injection event](sql-injection-event.md) | 7 ✓ |
+| [API abuse](api-abuse.md) | 7 ✓ |
+| [Credential stuffing](credential-stuffing.md) | 7 ✓ |
+| [Bot traffic and scanning](bot-traffic.md) | 7 ✓ |
 | Vulnerability remediation | 8 |
 | AI prompt injection | 9 |

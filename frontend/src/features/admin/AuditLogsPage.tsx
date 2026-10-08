@@ -24,6 +24,16 @@ const KNOWN_ACTIONS = [
   "user.mfa_reset",
   "user.deleted",
   "audit.verified",
+  "incident.created",
+  "incident.updated",
+  "incident.status_changed",
+  "incident.assigned",
+  "incident.note_added",
+  "incident.events_linked",
+  "simulator.run",
+  "simulator.waf_rule_changed",
+  "application.created",
+  "application.updated",
 ] as const;
 
 const RESULT_STYLE: Record<AuditEntry["result"], string> = {

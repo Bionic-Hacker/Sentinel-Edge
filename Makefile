@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1
 
-.PHONY: prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
+.PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
         create-admin outbox verify-audit migrate smoke
 
@@ -52,7 +52,7 @@ verify-audit: ## Verify the audit log hash chain
 prune-rate-limits: ## Delete rate-limit buckets idle for over a day
 	docker compose exec api python -m app.cli prune-rate-limits
 
-smoke: ## End-to-end auth/authz/audit smoke test against the running stack
+smoke: ## End-to-end smoke test of the running stack (auth, audit, API security, security operations)
 	backend/.venv/bin/python scripts/smoke-auth.py 2>/dev/null || python scripts/smoke-auth.py
 
 migrate: ## Apply new database migrations to the running stack
@@ -95,6 +95,10 @@ secrets-scan: ## Scan the working tree and git history for secrets
 lock-backend: ## Re-resolve hash-pinned backend lock files
 	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements.txt requirements.in
 	cd backend && pip-compile -q --generate-hashes --strip-extras --allow-unsafe -o requirements-dev.txt requirements-dev.in
+
+book: ## Rebuild the engineering book PDF (docs/book/SentinelEdge-Engineering-Blueprint.pdf)
+	python -m pip install -q --require-hashes -r docs/book/requirements.txt
+	python docs/book/build.py
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install

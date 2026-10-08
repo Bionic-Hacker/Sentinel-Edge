@@ -27,6 +27,7 @@ from app.core.clock import utcnow
 from app.core.logging import redact
 from app.models.audit import AuditLog, AuditResult
 from app.models.user import User
+from app.services import security_events
 
 GENESIS_HASH = "0" * 64
 # Arbitrary constant identifying "the audit chain" for pg_advisory_xact_lock.
@@ -52,6 +53,16 @@ class AuditAction(StrEnum):
     AUDIT_VERIFIED = "audit.verified"
     ACCESS_DENIED = "authz.denied"
     RATE_LIMITED = "ratelimit.exceeded"
+    INCIDENT_CREATED = "incident.created"
+    INCIDENT_UPDATED = "incident.updated"
+    INCIDENT_STATUS_CHANGED = "incident.status_changed"
+    INCIDENT_ASSIGNED = "incident.assigned"
+    INCIDENT_NOTE_ADDED = "incident.note_added"
+    INCIDENT_EVENTS_LINKED = "incident.events_linked"
+    SIMULATION_RUN = "simulator.run"
+    SIMULATED_WAF_RULE_CHANGED = "simulator.waf_rule_changed"
+    APPLICATION_CREATED = "application.created"
+    APPLICATION_UPDATED = "application.updated"
 
 
 @dataclass(frozen=True)
@@ -59,6 +70,9 @@ class RequestContext:
     source_ip: str | None = None
     user_agent: str | None = None
     correlation_id: str | None = None
+    # Not part of the audit record itself; carried to the security event it may produce.
+    method: str | None = None
+    endpoint: str | None = None  # route template, e.g. "/api/v1/auth/login"
 
 
 SYSTEM_CONTEXT = RequestContext()
@@ -149,6 +163,10 @@ def record(
     entry.record_hash = compute_record_hash(prev_hash, canonical_payload(entry))
     db.add(entry)
     db.flush()
+    # Security-relevant actions are also security events, in the same transaction.
+    security_events.from_audit(
+        db, entry, user_agent=ctx.user_agent, method=ctx.method, endpoint=ctx.endpoint
+    )
     return entry
 
 

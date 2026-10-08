@@ -1,0 +1,10 @@
+digraph G {
+  graph [fontname="Inter", rankdir=LR, nodesep=0.25, ranksep=0.3, bgcolor="transparent", pad=0.08];
+  node  [fontname="DejaVu Sans Mono", fontsize=12, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#1f3a68", margin="0.14,0.08"];
+  edge  [color="#5b6b80", arrowsize=0.8];
+  g  [label="GENESIS\n000…0", fillcolor="#eef1f5"];
+  r1 [label="record 1\nprev = 000…0\nhash = H1"];
+  r2 [label="record 2\nprev = H1\nhash = H2"];
+  r3 [label="record n\nprev = Hn-1\nhash = Hn", fillcolor="#e6f4f5", color="#0e7c86"];
+  g -> r1 -> r2; r2 -> r3 [style=dashed];
+}

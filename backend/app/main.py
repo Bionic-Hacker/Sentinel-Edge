@@ -17,6 +17,7 @@ from app.core.api_policy import build_route_templates
 from app.core.client_ip import ClientIpMiddleware
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
+from app.core.http_inspection import HttpInspectionMiddleware, SecurityEventRecorder
 from app.core.logging import configure_logging
 from app.core.middleware import SecurityMiddleware
 from app.core.rate_limiting import enforce_ip_limits
@@ -61,11 +62,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.api_metrics = ApiMetrics(
         app.state.session_factory, enabled=settings.api_metrics_enabled
     )
+    app.state.event_recorder = SecurityEventRecorder(
+        app.state.session_factory,
+        app.state.rate_limiter if settings.rate_limit_enabled else None,
+        enabled=settings.http_analysis_enabled,
+    )
 
     # Order matters: the last added middleware runs first. SecurityMiddleware is outermost so
     # that every response — including Host rejections and errors — gets headers and a
     # correlation ID.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+    # Detect-only attack analysis (Phase 7): sees the routed request and its final status.
+    app.add_middleware(HttpInspectionMiddleware, recorder=app.state.event_recorder)
     app.add_middleware(ApiMetricsMiddleware, metrics=app.state.api_metrics)
     app.add_middleware(SecurityMiddleware)
     # Outermost: resolve the real client IP first, so logs, audit and limits all agree on it.

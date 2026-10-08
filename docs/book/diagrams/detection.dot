@@ -1,0 +1,29 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.16, ranksep=0.38, bgcolor="transparent", pad=0.1];
+  node  [fontname="Inter", fontsize=11, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#9aa7b8", margin="0.08,0.05"];
+  edge  [color="#5b6b80", arrowsize=0.6, fontname="Inter", fontsize=9, fontcolor="#5b6b80"];
+
+  { rank=same;
+    http  [label="HTTP analysis\n(17 rules)", fillcolor="#fdecec", color="#b42318"];
+    auth  [label="Sign-in, MFA,\ntoken reuse", fillcolor="#e8edf6", color="#1f3a68"];
+    authz [label="Authz denials\n(BOLA, BFLA)", fillcolor="#e8edf6", color="#1f3a68"];
+    rl    [label="Rate-limit\ntrips", fillcolor="#fff6e5", color="#d9a441"];
+    sim   [label="Simulator\n(SIMULATED)", fillcolor="#fff6e5", color="#d9a441", style="rounded,filled,dashed"];
+  }
+  ev  [label="security_events\nappend-only, provenance on every row", fillcolor="#e6f4f5", color="#0e7c86"];
+  { rank=same;
+    cor [label="Correlation\nCOR-001 … COR-007\non each event, in the same\ntransaction, under the audit lock", fillcolor="#e6f4f5", color="#0e7c86"];
+    pol [label="Incident policy\n≥ HIGH · any CRITICAL ·\ntoken theft · tampering", fillcolor="#ffffff"];
+  }
+  { rank=same;
+    inc [label="Incident\none open per\nprovenance + source", fillcolor="#e8edf6", color="#1f3a68"];
+    aud [label="Audit chain\ntimeline digests", fillcolor="#eef1f5", color="#5b6b80"];
+  }
+
+  http -> ev; auth -> ev; authz -> ev; rl -> ev; sim -> ev [style=dashed];
+  ev -> cor;
+  cor -> ev [style=dashed];
+  cor -> pol;
+  pol -> inc;
+  inc -> aud [label="every change"];
+}

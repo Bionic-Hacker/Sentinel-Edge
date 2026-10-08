@@ -86,3 +86,23 @@ def test_no_response_model_exposes_secret_fields(app: FastAPI) -> None:
                 if SENSITIVE_NAME.search(name) and (model.__name__, name) not in APPROVED_SENSITIVE:
                     unexpected.append(f"{path}: {model.__name__}.{name}")
     assert unexpected == [], "new sensitive-looking response fields need explicit approval"
+
+
+def test_inspection_exclusions_name_real_routes_and_fields(app: FastAPI) -> None:
+    """HTTP analysis skips a few free-text fields where analysts quote attack strings. Each
+    exclusion must name an existing route and a field of its request body: a renamed field or
+    route must not silently widen or orphan an exclusion."""
+    from app.core.http_inspection import INSPECTION_EXCLUSIONS
+
+    bodies: dict[tuple[str, str], set[str]] = {}
+    for path, route in _api_routes(app):
+        body = route.body_field
+        if body is not None and isinstance(body.field_info.annotation, type):
+            model = body.field_info.annotation
+            if issubclass(model, BaseModel):
+                for method in route.methods:
+                    bodies[(method, path)] = set(model.model_fields)
+    assert INSPECTION_EXCLUSIONS
+    for key, fields in INSPECTION_EXCLUSIONS.items():
+        assert key in bodies, f"exclusion for unknown route {key}"
+        assert fields <= bodies[key], f"{key}: {sorted(fields - bodies[key])} not in the body"

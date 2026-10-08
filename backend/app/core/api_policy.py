@@ -92,6 +92,11 @@ CREDENTIAL_CHANGE = RateLimitPolicy("credential_change", 10, 300, LimitScope.USE
 READ = RateLimitPolicy("read", 120, 60, LimitScope.USER)
 ADMIN_WRITE = RateLimitPolicy("admin_write", 30, 60, LimitScope.USER)
 EXPENSIVE = RateLimitPolicy("expensive", 6, 60, LimitScope.USER)
+# Incident work: notes, transitions, assignment and evidence links by an investigator.
+INVESTIGATION = RateLimitPolicy("investigation", 60, 60, LimitScope.USER)
+# Not an endpoint policy: bounds how many attack-detection events one source IP can create, so a
+# flood of malicious requests cannot flood the event store (app.core.http_inspection).
+DETECTION_EVENTS = RateLimitPolicy("detection_events", 30, 60, LimitScope.IP)
 
 ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     GLOBAL_IP,
@@ -105,6 +110,8 @@ ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     READ,
     ADMIN_WRITE,
     EXPENSIVE,
+    INVESTIGATION,
+    DETECTION_EVENTS,
 )
 
 
@@ -234,6 +241,157 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
     ),
     ("GET", "/api/v1/api-security/owasp"): EndpointPolicy(
         "OWASP API Top 10 coverage", Risk.LOW, READ, (A.API5, A.API9), "Control evidence"
+    ),
+    ("GET", "/api/v1/security-events"): EndpointPolicy(
+        "Query security events",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Security telemetry: source IPs, attack payload snippets",
+    ),
+    ("GET", "/api/v1/security-events/{event_id}"): EndpointPolicy(
+        "Read one security event with its evidence",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Security evidence (bounded, redacted)",
+    ),
+    ("GET", "/api/v1/incidents"): EndpointPolicy(
+        "List incidents",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Incident records: source IPs, account names",
+    ),
+    ("POST", "/api/v1/incidents"): EndpointPolicy(
+        "Open an incident from events",
+        Risk.MEDIUM,
+        INVESTIGATION,
+        (A.API3, A.API5, A.API6),
+        "Incident records, evidence links",
+        object_rule="Evidence must share one provenance and not belong to another incident",
+    ),
+    ("GET", "/api/v1/incidents/assignees"): EndpointPolicy(
+        "People an incident can be assigned to",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API5),
+        "Names and roles of investigators",
+    ),
+    ("GET", "/api/v1/incidents/{incident_id}"): EndpointPolicy(
+        "Read an incident with timeline, evidence and integrity check",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Security evidence, analyst notes",
+    ),
+    ("PATCH", "/api/v1/incidents/{incident_id}"): EndpointPolicy(
+        "Edit an incident's title, summary, remediation or severity",
+        Risk.HIGH,
+        INVESTIGATION,
+        (A.API1, A.API3, A.API5),
+        "Incident records",
+        object_rule="Analysts edit only incidents assigned to them; severity is lead-only",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/transitions"): EndpointPolicy(
+        "Move an incident through the workflow",
+        Risk.HIGH,
+        INVESTIGATION,
+        (A.API1, A.API5, A.API6),
+        "Incident state",
+        object_rule="Analysts move only their own incidents; closing and reopening are lead-only",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/assignment"): EndpointPolicy(
+        "Assign or take an incident",
+        Risk.MEDIUM,
+        INVESTIGATION,
+        (A.API1, A.API5),
+        "Incident ownership",
+        object_rule="Analysts may only take an unassigned incident; leads assign anyone",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/notes"): EndpointPolicy(
+        "Add an analyst note to the timeline",
+        Risk.LOW,
+        INVESTIGATION,
+        (A.API3, A.API4),
+        "Analyst notes (append-only)",
+    ),
+    ("POST", "/api/v1/incidents/{incident_id}/events"): EndpointPolicy(
+        "Attach security events as evidence",
+        Risk.MEDIUM,
+        INVESTIGATION,
+        (A.API1, A.API3),
+        "Evidence links (write-once)",
+        object_rule="Own incidents only (analysts); one provenance; an event joins one incident",
+    ),
+    ("GET", "/api/v1/security/overview"): EndpointPolicy(
+        "Security dashboard: incidents, threats and traffic for one view",
+        Risk.MEDIUM,
+        READ,
+        (A.API3, A.API5),
+        "Aggregated security telemetry, top source IPs",
+    ),
+    ("GET", "/api/v1/applications"): EndpointPolicy(
+        "List protected applications",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Application inventory, owners",
+        object_rule="Developers see only the applications they own",
+    ),
+    ("POST", "/api/v1/applications"): EndpointPolicy(
+        "Register a protected application",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API3, A.API5),
+        "Application inventory",
+        object_rule="Owner must be an active admin, security engineer or developer",
+    ),
+    ("GET", "/api/v1/applications/owners"): EndpointPolicy(
+        "People an application can be assigned to",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API5),
+        "Names and roles of possible owners",
+    ),
+    ("GET", "/api/v1/applications/{application_id}"): EndpointPolicy(
+        "Read one protected application",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Application inventory, owner",
+        object_rule="Developers: own applications only; other IDs return 404 (audited)",
+    ),
+    ("PATCH", "/api/v1/applications/{application_id}"): EndpointPolicy(
+        "Change an application's owner, criticality, domain or status",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API1, A.API3, A.API5),
+        "Application inventory",
+        object_rule="SentinelEdge itself cannot be retired; version must match",
+    ),
+    ("GET", "/api/v1/simulator/scenarios"): EndpointPolicy(
+        "Attack simulation scenarios", Risk.LOW, READ, (A.API5,), "Scenario catalogue"
+    ),
+    ("GET", "/api/v1/simulator/runs"): EndpointPolicy(
+        "Recent simulation runs", Risk.LOW, READ, (A.API5,), "Simulation records"
+    ),
+    ("POST", "/api/v1/simulator/runs"): EndpointPolicy(
+        "Run an attack simulation against SentinelEdge (SIMULATED events only)",
+        Risk.MEDIUM,
+        EXPENSIVE,
+        (A.API4, A.API5, A.API6),
+        "Simulated events; no network traffic, no target input",
+    ),
+    ("GET", "/api/v1/simulator/waf-rules"): EndpointPolicy(
+        "Simulated WAF rules and their modes", Risk.LOW, READ, (A.API5,), "Simulated WAF state"
+    ),
+    ("PUT", "/api/v1/simulator/waf-rules/{rule_id}"): EndpointPolicy(
+        "Switch a simulated WAF rule between block, count and off",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API5,),
+        "Simulated WAF state (no AWS resource is changed)",
     ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",

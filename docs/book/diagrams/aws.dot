@@ -1,0 +1,30 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.3, ranksep=0.3, bgcolor="transparent", pad=0.08];
+  node  [fontname="Inter", fontsize=12, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#9aa7b8", penwidth=1.2, margin="0.14,0.06"];
+  edge  [fontname="Inter", fontsize=10.5, color="#5b6b80", arrowsize=0.7, fontcolor="#3d4b5c"];
+  user [label="Internet user / attacker", fillcolor="#eef1f5"];
+  r53  [label="Route 53  ·  CAA: Amazon only", fillcolor="#fff6e5", color="#d9a441"];
+  waf [label="AWS WAF web ACL\nmanaged · custom · rate rules", fillcolor="#fff6e5", color="#d9a441"];
+  cf  [label="CloudFront (Phase 5)\nTLS 1.2+ · ACM · headers policy", fillcolor="#fff6e5", color="#d9a441"];
+  s3  [label="S3, private\nSPA via Origin Access Control", fillcolor="#fff6e5", color="#d9a441"];
+  subgraph cluster_vpc { label="VPC  (Phases 3–4)"; labeljust=l; fontname="Inter"; fontsize=11; style="rounded"; color="#0e7c86"; fontcolor="#0e7c86"; margin=12;
+    alb [label="Internal ALB, HTTPS\nprivate subnets · no public IP", fillcolor="#e6f4f5", color="#0e7c86"];
+    api [label="ECS Fargate: API", fillcolor="#e6f4f5", color="#0e7c86"];
+    wrk [label="ECS Fargate: worker", fillcolor="#e6f4f5", color="#0e7c86", style="rounded,filled,dashed"];
+    db  [label="RDS PostgreSQL\nisolated subnets · KMS · TLS", shape=cylinder, fillcolor="#e6f4f5", color="#0e7c86"];
+  }
+  br  [label="Amazon Bedrock (Phase 9)\nvia IAM task role", fillcolor="#f2ecfb", color="#7b5cc4"];
+  sup [label="Secrets Manager · KMS · CloudWatch\nCloudTrail · S3 Object Lock archive", fillcolor="#eef1f5"];
+  user -> r53 -> cf;
+  {rank=same; waf; cf; s3}
+  waf -> cf [style=dashed, arrowhead=none, label="at edge"];
+  cf -> s3 [label="/*"];
+  cf -> alb [label="  /api/*  VPC origin"];
+  alb -> api [label="  SG: ALB only"];
+  {rank=same; api; wrk; br}
+  api -> br [label="InvokeModel"];
+  api -> db [label="  SG: app only"];
+  wrk -> db;
+  {rank=same; db; sup}
+  api -> sup [style=dotted];
+}

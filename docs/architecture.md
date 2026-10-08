@@ -57,10 +57,10 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
 
 | Component | Technology | Status |
 |---|---|---|
-| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, password reset, user admin, audit log viewer, platform status |
-| API | FastAPI, Pydantic v2 | Implemented (local): health/readiness, authentication, MFA, RBAC, user admin, audit log API, security middleware |
-| Worker | same image, separate entrypoint | Planned (Phase 7) |
-| Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Implemented (local): `sentinel` schema, migrator/app roles (ADR-0015), migrations 0001–0002 |
+| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, password reset, user admin, audit log viewer, API Security Center, security dashboard, Threats, Incidents, Applications, simulated WAF, attack simulator |
+| API | FastAPI, Pydantic v2 | Implemented (local): health/readiness, authentication, MFA, RBAC, user admin, audit log, rate limiting, API inventory, security events, HTTP attack analysis, correlation, incidents, dashboard overview, applications, attack simulator (45 endpoints) |
+| Worker | same image, separate entrypoint | Not needed yet: correlation runs synchronously in the request (ADR-0018). Revisited with WAF log ingestion (Phase 5) and AI analysis (Phase 9) |
+| Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Implemented (local): `sentinel` schema, migrator/app roles (ADR-0015), migrations 0001–0008 |
 | Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `outbox`, `verify-audit` |
 | AI engine | Amazon Bedrock (ADR-0006) | Selected and validated in config; integration in Phase 9 |
 
@@ -76,8 +76,12 @@ app/
   schemas/       Pydantic request/response models             (Phase 2+)
   ai/            provider interface, guardrails, output schemas (Phase 9)
   integrations/aws/  read-only AWS clients                    (Phase 5+)
-  simulator/     labelled simulated event generators          (Phase 7)
+  security/      passwords, tokens, MFA, rate limiter, egress guard, HTTP attack analysis (Phase 2, 6, 7)
 ```
+
+The attack simulator lives in `services/simulator.py` (Phase 7): it is a service over the same
+detection code as real traffic, not a separate generator package. Data access stays in the
+services with SQLAlchemy (parameterised only); a separate repositories layer was not needed.
 
 Directories are created when their first real code lands, so the tree never contains empty
 placeholders presented as features.
@@ -107,10 +111,11 @@ not enumerable. Timestamps are UTC.
 |---|---|---|
 | Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed), password_reset_tokens (hashed), outbox_messages | **2 ✓** |
 | Audit | audit_log (hash-chained, append-only by grant and trigger) | **2 ✓** |
-| Inventory | applications, api_endpoints (with OWASP API mappings) | 6 |
-| Edge / WAF | waf_rules (mirror), waf_exceptions, ip_lists | 5–7 |
-| Telemetry | security_events | 7 |
-| Operations | incidents, incident_timeline, incident_events, analyst_notes | 7 |
+| Inventory | applications **7 ✓**; API endpoints come from the route table and the policy registry, with hourly api_endpoint_stats **6 ✓** | 6, 7 |
+| Rate limiting | rate_limit_buckets | **6 ✓** |
+| Edge / WAF | simulated_waf_rules, simulation_runs **7 ✓**; waf_rules (mirror of AWS), waf_exceptions, ip_lists | 5, 7 |
+| Telemetry | security_events (append-only; `incident_id` write-once) | **7 ✓** |
+| Operations | incidents, incident_timeline (append-only; notes are timeline entries; digests in the audit chain) | **7 ✓** |
 | Vulnerabilities | vulnerabilities, scan_runs | 8 |
 | Supply chain | sbom_documents, sbom_components | 8 |
 | Certificates | certificates | 5 |

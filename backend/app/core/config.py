@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SENTINEL_", extra="ignore")
 
     environment: Environment = Environment.LOCAL
-    app_version: str = Field(default="0.3.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    app_version: str = Field(default="0.4.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     log_level: LogLevel = LogLevel.INFO
     enable_api_docs: bool = False
     trusted_hosts: Annotated[list[str], NoDecode] = Field(
@@ -125,6 +125,9 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     # Per-endpoint request counters for the API Security Center.
     api_metrics_enabled: bool = True
+    # Attack-pattern detection on every request (Phase 7, detect-only). Like rate limiting it may
+    # be switched off only outside deployed environments.
+    http_analysis_enabled: bool = True
 
     @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
     @classmethod
@@ -199,6 +202,8 @@ class Settings(BaseSettings):
                 raise ValueError("deployed environments must use https public_origins")
             if not self.rate_limit_enabled:
                 raise ValueError("rate limiting cannot be disabled in deployed environments")
+            if not self.http_analysis_enabled:
+                raise ValueError("HTTP analysis cannot be disabled in deployed environments")
             # OWASP password storage minimum for Argon2id: 19 MiB, t=2.
             if self.password_hash_memory_kib < 19456 or self.password_hash_time_cost < 2:
                 raise ValueError("password hashing cost is below the deployed minimum")

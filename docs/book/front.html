@@ -1,0 +1,52 @@
+<section class="cover">
+  <div class="band"></div>
+  <svg class="grid" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#7fd3da" stroke-width="1.2">
+    <path d="M200 20 L350 80 L350 200 C350 290 285 350 200 385 C115 350 50 290 50 200 L50 80 Z"/>
+    <path d="M200 55 L320 103 L320 200 C320 272 268 322 200 351 C132 322 80 272 80 200 L80 103 Z"/>
+    <path d="M200 90 L290 126 L290 200 C290 255 250 293 200 316 C150 293 110 255 110 200 L110 126 Z"/>
+    <path d="M200 125 L260 149 L260 200 C260 237 233 263 200 280 C167 263 140 237 140 200 L140 149 Z"/>
+    <line x1="0" y1="200" x2="400" y2="200"/><line x1="200" y1="0" x2="200" y2="400"/>
+  </svg>
+  <div class="inner">
+    <div class="kicker">Engineering Blueprint · Running Edition</div>
+    <h1>SentinelEdge</h1>
+    <div class="sub">An AI-assisted application, API and edge security platform: architecture, build plan, security design and a step-by-step guide to reproducing it.</div>
+  </div>
+  <div class="meta">
+    <div><b>Bionic-Hacker</b><br>github.com/Bionic-Hacker/Sentinel-Edge</div>
+    <div style="text-align:right"><b>Edition {number} · {version}</b><br>{phases} complete · {date}</div>
+  </div>
+</section>
+
+<section class="front">
+  <h1>SentinelEdge at a glance</h1>
+  <p class="lead">SentinelEdge is a security engineering portfolio platform designed to read like a simplified enterprise security product. It is its own first protected workload: every control the platform reports on also protects the platform itself.</p>
+  <table class="glance">
+    <tr><td><div class="big">12</div><div class="lbl">approval-gated build phases</div></td>
+        <td><div class="big">4 of 12</div><div class="lbl">phases shipped (1, 2, 6, 7)</div></td>
+        <td><div class="big">19</div><div class="lbl">architecture decision records</div></td>
+        <td><div class="big">17</div><div class="lbl">defense-in-depth layers designed</div></td></tr>
+    <tr><td><div class="big">668</div><div class="lbl">backend tests, 98.6% coverage, real PostgreSQL</div></td>
+        <td><div class="big">75</div><div class="lbl">frontend tests</div></td>
+        <td><div class="big">48</div><div class="lbl">end-to-end smoke checks</div></td>
+        <td><div class="big">$0</div><div class="lbl">AWS spend so far, by design</div></td></tr>
+  </table>
+
+  <h2>What it demonstrates</h2>
+  <p>The project sets out to support one sentence in an interview: <em>"I can design, build, secure, automate, deploy, monitor, and govern an internet-facing, AI-enabled application in AWS."</em> It is aimed at Application Security, Product Security, API Security, Cloud Security, DevSecOps, AI Application Security and WAF/CDN Security engineering roles.</p>
+  <ul>
+    <li><strong>Secure application engineering:</strong> Argon2id passwords, short-lived JWTs checked against a live session on every request, rotating refresh tokens with theft detection, TOTP MFA, CSRF defenses, and no default credentials anywhere.</li>
+    <li><strong>Authorization that cannot drift:</strong> five roles, an access rule declared on every route, and a test that sweeps every route as every role and fails if code and policy disagree.</li>
+    <li><strong>Tamper-evident audit:</strong> a SHA-256 hash chain, append-only by database grant <em>and</em> trigger, verifiable from the CLI, the API and the UI.</li>
+    <li><strong>API security:</strong> atomic PostgreSQL token-bucket rate limiting, spoof-proof client-IP resolution, and a live API inventory generated from the route table. OWASP API Top 10 coverage is mapped, with cited test evidence.</li>
+    <li><strong>Security operations:</strong> detect-only attack analysis on every request, correlation rules that fire exactly once, and an incident workflow whose evidence is append-only and whose timeline is committed to the audit chain, so it cannot be rewritten unnoticed. An attack simulator that cannot be pointed at anything, with a simulated WAF that shows block versus count.</li>
+    <li><strong>Honesty about what is real:</strong> every capability is labelled REAL_AWS, LOCAL, SIMULATED or DEMO, and tests stop anything being presented as an AWS control before it is one.</li>
+    <li><strong>Cloud architecture designed ahead of spend:</strong> a private-origin AWS design (CloudFront VPC origins, internal ALB, isolated RDS, WAF changes only through Terraform), built late on purpose so no infrastructure sits idle.</li>
+  </ul>
+
+  <h2>How to read this book</h2>
+  <p><strong>Recruiters and hiring managers:</strong> this page, Chapter 1 and Chapter 2 tell the story in about ten minutes. <strong>Engineers and reviewers:</strong> Part I is the blueprint (architecture, stack and security design). Part II walks through each completed phase: what was built, why, how it works and how it is verified. Part III describes the remaining phases as designed. <strong>Anyone reproducing the build:</strong> Part IV contains the commands, in order, that bring the platform up from an empty machine and verify it.</p>
+
+  <h2>About this edition</h2>
+  <p>This is a <em>running</em> book. A new edition is produced with every phase release, and each completed phase moves from Part III (planned) into Part II (as built). Edition {number} reflects release <strong>{version}</strong>, with {phases} complete. Everything described as built has been run and tested. Everything planned is labelled as planned. All data in the platform is synthetic.</p>
+</section>

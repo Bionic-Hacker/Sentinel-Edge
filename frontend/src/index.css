@@ -37,6 +37,16 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
+/*
+ * Screen-reader-only text (sr-only) is absolutely positioned. Inside a scroll container its
+ * containing block would otherwise be the page, so a label in a wide table's last column sat past
+ * the clip and widened the whole document on a phone. Anchoring it to the scroll box keeps it in.
+ */
+.overflow-x-auto,
+.overflow-auto {
+  position: relative;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;

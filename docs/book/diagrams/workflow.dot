@@ -1,0 +1,15 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.3, ranksep=0.7, bgcolor="transparent", pad=0.1, ordering=out];
+  node  [fontname="Inter", fontsize=11.5, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#1f3a68", margin="0.08,0.06", width=1.2];
+  edge  [color="#5b6b80", arrowsize=0.6, fontname="Inter", fontsize=10.5, fontcolor="#5b6b80"];
+  D [label="DETECTED", fillcolor="#fdecec", color="#b42318"]; T [label="TRIAGED"]; I [label="INVESTIGATING"]; C [label="CONTAINMENT"];
+  X [label="CLOSED", fillcolor="#e6f4f5", color="#0e7c86"]; V [label="VALIDATION"]; R [label="REMEDIATION"];
+  { rank=same; D -> T -> I -> C; }
+  { rank=same; X -> V -> R [style=invis]; }
+  C -> R;
+  R -> V [constraint=false];
+  V -> X [constraint=false, label="close (lead)\nresolution + note"];
+  V -> R [constraint=false, style=dashed, label="validation failed\n(note)"];
+  X -> I [style=dashed, label=" reopen (lead, note)"];
+  D -> X [style=dotted, label="close as not an incident,\nfrom any open status\n(lead: false positive or\nduplicate, note)"];
+}

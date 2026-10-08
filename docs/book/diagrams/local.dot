@@ -1,0 +1,19 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.35, ranksep=0.3, bgcolor="transparent", pad=0.08];
+  node  [fontname="Inter", fontsize=13, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#9aa7b8", margin="0.16,0.07"];
+  edge  [fontname="Inter", fontsize=11, color="#5b6b80", arrowsize=0.75, fontcolor="#3d4b5c"];
+  br [label="Browser  ·  http://localhost:8080", fillcolor="#eef1f5"];
+  subgraph cluster_edge { label="edge network 172.30.86.0/24 (pinned)"; labeljust=l; fontname="Inter"; fontsize=11.5; style="rounded"; color="#0e7c86"; fontcolor="#0e7c86";
+    web [label="web: nginx-unprivileged\nSPA + security headers\nX-Forwarded-For = $remote_addr", fillcolor="#e6f4f5", color="#0e7c86"];
+  }
+  api [label="api: FastAPI / Uvicorn\nconnects as sentinel_app\n--no-proxy-headers", color="#0e7c86", penwidth=1.8];
+  subgraph cluster_data { label="data network (internal: no route out)"; labeljust=l; fontname="Inter"; fontsize=11.5; style="rounded"; color="#1f3a68"; fontcolor="#1f3a68";
+    mig [label="migrate (one-shot)\nAlembic as sentinel_migrator", fillcolor="#e8edf6", color="#1f3a68"];
+    db  [label="db: PostgreSQL 17\nno published port", shape=cylinder, fillcolor="#e8edf6", color="#1f3a68"];
+  }
+  br -> web [label="  bound to 127.0.0.1"];
+  web -> api [label="  /api/*"];
+  api -> db;
+  mig -> db [style=dashed, label="  runs first"];
+  {rank=same; api; mig}
+}

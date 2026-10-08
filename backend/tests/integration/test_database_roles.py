@@ -31,6 +31,18 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "audit_log": {"SELECT", "INSERT"},  # append-only (ADR-0005)
     "rate_limit_buckets": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # idle buckets pruned
     "api_endpoint_stats": {"SELECT", "INSERT", "UPDATE", "DELETE"},  # pruned after 30 days
+    "security_events": {"SELECT", "INSERT"},  # evidence: append-only (0006)
+    "incidents": {"SELECT", "INSERT", "UPDATE"},  # closed, never deleted (0007)
+    "incident_timeline": {"SELECT", "INSERT"},  # append-only (0007)
+    "applications": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0008)
+    "simulation_runs": {"SELECT", "INSERT"},  # a record of what was simulated (0008)
+    "simulated_waf_rules": {"SELECT", "INSERT", "UPDATE"},  # simulated WAF modes (0008)
+}
+
+# Column-level grants beyond the table-level ones above: (table, column) -> privileges.
+EXPECTED_APP_COLUMN_PRIVILEGES: dict[tuple[str, str], set[str]] = {
+    # Linking an event to its incident; a trigger makes the link write-once (0007).
+    ("security_events", "incident_id"): {"UPDATE"},
 }
 
 
@@ -60,6 +72,25 @@ def _actual_app_privileges(migrator_engine: Engine) -> dict[str, set[str]]:
 
 def test_app_role_privileges_match_the_intended_matrix(migrator_engine: Engine) -> None:
     assert _actual_app_privileges(migrator_engine) == EXPECTED_APP_PRIVILEGES
+
+
+def test_app_role_column_privileges_match_the_intended_matrix(migrator_engine: Engine) -> None:
+    """Column grants that are not implied by a table grant (a column-only UPDATE)."""
+    with migrator_engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT c.table_name, c.column_name, c.privilege_type "
+                "FROM information_schema.column_privileges c "
+                "WHERE c.grantee = 'sentinel_app' AND c.table_schema = 'sentinel' "
+                "AND NOT EXISTS (SELECT 1 FROM information_schema.role_table_grants t "
+                "  WHERE t.grantee = c.grantee AND t.table_schema = c.table_schema "
+                "  AND t.table_name = c.table_name AND t.privilege_type = c.privilege_type)"
+            )
+        ).all()
+    actual: dict[tuple[str, str], set[str]] = {}
+    for table, column, privilege in rows:
+        actual.setdefault((table, column), set()).add(privilege)
+    assert actual == EXPECTED_APP_COLUMN_PRIVILEGES
 
 
 @pytest.mark.parametrize(

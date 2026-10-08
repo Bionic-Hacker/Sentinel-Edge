@@ -12,12 +12,12 @@ const SPEC_NAV = [
   "Audit Logs", "Automation", "Settings",
 ];
 
-async function renderAt(path: string) {
+async function renderAt(path: string, caps = CAPS) {
   vi.spyOn(globalThis, "fetch").mockImplementation(
     mockApi({
       "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()),
       "/api/v1/health": () => jsonResponse({ status: "ok", version: "0.1.0" }),
-      "/api/v1/platform/capabilities": () => jsonResponse({ items: CAPS }),
+      "/api/v1/platform/capabilities": () => jsonResponse({ items: caps }),
     }),
   );
   const view = await renderSettled(
@@ -57,18 +57,30 @@ describe("dashboard", () => {
     await renderAt("/");
     expect(screen.getByText(/Phase 2, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 6, complete/)).toBeInTheDocument();
-    expect(screen.getByText(/Phase 7, next/).closest("li")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/Phase 7, complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Phase 8, next/).closest("li")).toHaveAttribute("aria-current", "step");
   });
 });
 
 describe("module pages", () => {
   it("show only the module's own capabilities and no fabricated data", async () => {
-    await renderAt("/waf");
-    expect(screen.getByRole("heading", { level: 1, name: "WAF" })).toBeInTheDocument();
+    // Edge Security is still a placeholder (Phase 5); WAF, Threats and the rest now have pages.
+    const edge = {
+      key: "aws.edge",
+      name: "CloudFront edge",
+      area: "Edge",
+      provenance: "REAL_AWS",
+      status: "planned",
+      phase: 5,
+      note: "Terraform.",
+    } as const;
+    await renderAt("/edge", [...CAPS, edge]);
+    expect(screen.getByRole("heading", { level: 1, name: "Edge Security" })).toBeInTheDocument();
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("AWS WAF on CloudFront")).toBeInTheDocument();
-    expect(within(table).getByText("Simulated")).toBeInTheDocument();
+    expect(within(table).getByText("CloudFront edge")).toBeInTheDocument();
+    expect(within(table).getByText("Real AWS")).toBeInTheDocument();
     expect(within(table).queryByText("Health endpoint")).not.toBeInTheDocument();
+    expect(within(table).queryByText("AWS WAF on CloudFront")).not.toBeInTheDocument();
     expect(screen.getByText(/shows no data until then/)).toBeInTheDocument();
   });
 

@@ -4,7 +4,7 @@
   reuse alert fired; SEV2 for other roles with evidence of use; SEV3 for a suspected exposure with
   no evidence of use.
 - **Owner role:** SECURITY_ENGINEER (investigation), ADMIN (containment)
-- **Related threats / controls:** T-ID-01, T-ID-02, T-ID-03 · C-ID-02, C-ID-03, C-ID-05, C-AUD-01
+- **Related threats / controls:** T-ID-01, T-ID-02, T-ID-03 · C-ID-02, C-ID-03, C-ID-05, C-AUD-01, C-SO-05
 - **Last exercised:** 2026-10-07, `make smoke` (refresh-token reuse, lockout)
 
 ## 1. Detection
@@ -24,7 +24,10 @@ but the frontend serializes refresh across tabs, so treat it as theft unless the
 1. Identify the account and role. Privileged role → SEV1.
 2. In the audit log, filter by the actor email for the last 24 hours. Note source IPs,
    correlation IDs and any `user.*` actions the account performed (role changes, invitations).
-3. Open an incident (Phase 7 adds this to the app; until then, record it in the issue tracker).
+3. Check **Incidents** (live view): a refresh-token reuse, or a sign-in from a credential-stuffing
+   source (COR-007), has already opened one automatically. Otherwise open one from the matching
+   event on the **Threats** page, so the evidence is linked. Triage it (you become the owner) and
+   record each step below as a timeline note.
 
 ## 3. Containment (lowest-risk action first)
 1. **End every session for the account.** Settings → Users → **Deactivate**. This revokes all

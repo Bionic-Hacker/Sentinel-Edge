@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Any
 
@@ -29,6 +30,8 @@ ALL = frozenset(Role)
 ADMIN = frozenset({Role.ADMIN})
 AUDITORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
 API_SECURITY = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
+SECOPS_READ = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
+INVESTIGATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -54,6 +57,30 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/audit-logs/verify"): AUDITORS,
     ("GET", "/api/v1/api-security/inventory"): API_SECURITY,
     ("GET", "/api/v1/api-security/owasp"): API_SECURITY,
+    ("GET", "/api/v1/security-events"): SECOPS_READ,
+    ("GET", "/api/v1/security-events/{event_id}"): SECOPS_READ,
+    ("GET", "/api/v1/incidents"): SECOPS_READ,
+    ("POST", "/api/v1/incidents"): INVESTIGATORS,
+    ("GET", "/api/v1/incidents/assignees"): INVESTIGATORS,
+    ("GET", "/api/v1/incidents/{incident_id}"): SECOPS_READ,
+    # Plus object-level rules: analysts change only incidents assigned to them, and closing,
+    # reopening, re-rating and assigning others are lead-only (test_incidents.py).
+    ("PATCH", "/api/v1/incidents/{incident_id}"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/transitions"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/assignment"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/notes"): INVESTIGATORS,
+    ("POST", "/api/v1/incidents/{incident_id}/events"): INVESTIGATORS,
+    ("GET", "/api/v1/security/overview"): SECOPS_READ,
+    ("GET", "/api/v1/applications"): ALL,  # plus an object-level filter (developers: own apps)
+    ("POST", "/api/v1/applications"): AUDITORS,
+    ("GET", "/api/v1/applications/owners"): AUDITORS,
+    ("GET", "/api/v1/applications/{application_id}"): ALL,  # plus an object-level check
+    ("PATCH", "/api/v1/applications/{application_id}"): AUDITORS,
+    ("GET", "/api/v1/simulator/scenarios"): INVESTIGATORS,
+    ("GET", "/api/v1/simulator/runs"): INVESTIGATORS,
+    ("POST", "/api/v1/simulator/runs"): AUDITORS,
+    ("GET", "/api/v1/simulator/waf-rules"): INVESTIGATORS,
+    ("PUT", "/api/v1/simulator/waf-rules/{rule_id}"): AUDITORS,
 }
 
 
@@ -113,7 +140,8 @@ def test_table_is_not_empty(app: FastAPI) -> None:
 
 
 def _url(path: str) -> str:
-    return path.replace("{user_id}", str(uuid.uuid4()))
+    path = path.replace("{rule_id}", "XSS-999")  # a well-formed but unknown simulated rule
+    return re.sub(r"\{\w+_id\}", lambda _: str(uuid.uuid4()), path)
 
 
 @pytest.fixture

@@ -30,16 +30,45 @@ Settings → Users; their invitation (and any password-reset email) lands in the
 ```bash
 make outbox         # show recent "emails" with their one-time links
 make verify-audit   # check the audit log hash chain
-make smoke          # 26-check end-to-end test of auth, authorization and auditing
+make smoke          # 48-check end-to-end test of the running stack
 ```
 
-`make smoke` creates its own uniquely named synthetic users and locks one of them on purpose.
+`make smoke` creates its own uniquely named synthetic users and locks one of them on purpose. It
+also replays a refresh token on purpose, sends one SQL injection probe, and runs two attack
+simulations (switching the simulated WAF's SQL injection rules to count and back).
 
 `make env` never overwrites an existing `.env`. `make dev` refuses to start with a `.env` that is
 missing a secret the current phase needs, and tells you how to regenerate it.
 
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
+
+## Upgrading from v0.3.0 (Phase 6) to v0.4.0 (Phase 7)
+
+Your data is kept. `make dev` rebuilds the images and the `migrate` container applies the three
+new migrations; nothing else is needed.
+
+```bash
+make dev
+docker compose logs migrate | grep "Running upgrade"   # 0005 -> 0006 -> 0007 -> 0008 on first run
+```
+
+| Migration | Adds |
+|---|---|
+| `0006_security_events` | Append-only security events (the app role may INSERT and SELECT only) |
+| `0007_incidents` | Incidents, the append-only timeline, and the write-once `incident_id` trigger on events |
+| `0008_applications_and_simulator` | Application inventory (seeded with SentinelEdge itself), simulation runs, simulated WAF rule modes |
+
+**Expect one live incident from your own testing.** On one machine every request comes from the
+same address (the Docker gateway, or `127.0.0.1` outside Docker). `make smoke` deliberately replays
+a refresh token, locks an account and sends a SQL injection probe, so the first run opens a
+"Rotated refresh token replayed: likely token theft" incident for that address, and later runs
+join it as more evidence. A sign-in after the deliberate failures can raise COR-007 and lift it to
+critical. This is the detection pipeline working, not an attack. Work it through the workflow
+(or close it as a false positive with a note) to practise; incidents are never deleted.
+
+Simulated activity from the Automation page appears only in the **Simulated** view of the
+dashboard, Threats and Incidents pages, under an amber banner, and never in the live view.
 
 ## Upgrading from v0.2.0 (Phase 2) to v0.3.0 (Phase 6)
 
@@ -80,6 +109,7 @@ make create-admin EMAIL=you@example.com
 | Follow logs | `make logs` |
 | Reset everything including DB data | `make clean` |
 | Delete idle rate-limit buckets | `make prune-rate-limits` |
+| Generate simulated attack activity | Automation page (admin or security engineer), or `POST /api/v1/simulator/runs` |
 
 ## Exposure rules
 
@@ -104,3 +134,5 @@ make create-admin EMAIL=you@example.com
 | UI shows "The API could not be reached" | API container down | `docker compose ps`, then `make logs` |
 | API returns 400 for every request | Host not in `SENTINEL_TRUSTED_HOSTS` | Add the host to `.env` and restart |
 | Error shows a reference ID | Expected: errors are generic | Search API logs for that `correlation_id` |
+| A "likely token theft" or "credential-stuffing source" incident appears | `make smoke` triggers them on purpose from your own address | Expected; see "Upgrading from v0.3.0" |
+| "This incident changed since you loaded it" | Someone (or another tab) changed it first | Select Reload, then repeat the action |

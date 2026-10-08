@@ -5,7 +5,10 @@ Top 10 (2023) is addressed. Everything here is **LOCAL**: no AWS resources are i
 
 ## The API Security Center
 
-`/apis` in the app (ADMIN, SECURITY_ENGINEER, DEVELOPER), backed by:
+`/apis` in the app (ADMIN, SECURITY_ENGINEER, DEVELOPER), backed by the endpoints below. At
+v0.4.0 the inventory lists **45 endpoints**: 23 from Phases 1 to 6 and 22 for security operations
+(Phase 7: security events, incidents, the dashboard overview, applications and the attack
+simulator). Their roles are in [authorization.md](authorization.md).
 
 | Endpoint | Returns |
 |---|---|
@@ -21,7 +24,7 @@ For every endpoint (spec §14):
 | Risk rating | Policy registry: critical, high, medium or low inherent risk if the controls failed |
 | Rate limit | Policy registry; enforced by the same entry ([ADR-0017](adr/0017-rate-limiting-and-client-ip.md)) |
 | Request count, error rate | Hourly counters: requests, and (4xx + 5xx) / requests |
-| Attack count | Security rejections: 401 + 403 + 429 responses. A signal, not a verdict; attack classification arrives with WAF logs (Phase 5–7) |
+| Attack count | Security rejections: 401 + 403 + 429 responses. A signal, not a verdict. Classified attacks (injection, scanning, stuffing) are on the Threats page from HTTP analysis (Phase 7); WAF logs join them in Phase 5 |
 | Last scan | Not scanned yet: authenticated DAST runs arrive in Phase 8 |
 | Security status | `protected`; `elevated` when requests were throttled or there were 5+ forbidden responses in 24 hours; `review` when there were server errors |
 
@@ -43,8 +46,8 @@ days are pruned.
 
 | Category | Status | How |
 |---|---|---|
-| API1 Broken Object Level Authorization | Mitigated | Service-layer ownership checks; others' records return 404; denials audited |
-| API2 Broken Authentication | Mitigated | Argon2id, MFA, short-lived tokens checked per request, refresh-token reuse detection, lockout, per-IP sign-in limits |
+| API1 Broken Object Level Authorization | Mitigated | Service-layer ownership checks (users, applications, incidents); others' records return 404; denials audited; repeated denials detected (COR-004) |
+| API2 Broken Authentication | Mitigated | Argon2id, MFA, short-lived tokens checked per request, refresh-token reuse detection, lockout, per-IP sign-in limits; stuffing detected (COR-001, COR-007) |
 | API3 Broken Object Property Level Authorization | Mitigated | Response models allow-list fields; request models forbid unknown fields; route-table sweeps enforce both |
 | API4 Unrestricted Resource Consumption | Partial | Token buckets per IP and account, page-size caps, 1 MB body limit, 15 s statement timeout. WAF rate rules in Phase 5 |
 | API5 Broken Function Level Authorization | Mitigated | Roles declared on every route; sweep as every role |
@@ -55,6 +58,15 @@ days are pruned.
 | API10 Unsafe Consumption of APIs | Not exposed | No third-party APIs consumed; Bedrock output contract in Phase 9 (ADR-0007) |
 
 The live version, with cited tests, is in the app and at `/api/v1/api-security/owasp`.
+
+## Attack detection on every request (Phase 7)
+Every API request also passes through detect-only HTTP analysis: 17 rules for SQL injection,
+XSS, path traversal, command injection, SSRF, scanners and reconnaissance, applied to the path,
+query, headers and JSON body after double percent-decoding. Matches are recorded as security
+events; nothing is blocked, because blocking belongs to the WAF at the edge
+([ADR-0018](adr/0018-security-event-pipeline-and-incidents.md)). Snippets from sensitive fields
+are stored as `[REDACTED]`, and incident free-text fields are excluded so that analysts can
+write about an attack without triggering one.
 
 ## SSRF guard (OWASP API7)
 `backend/app/security/egress.py` must approve any future outbound request. It requires HTTPS on

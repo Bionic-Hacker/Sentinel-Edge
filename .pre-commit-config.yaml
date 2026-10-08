@@ -10,7 +10,7 @@ repos:
     hooks:
       - id: detect-private-key
       - id: check-added-large-files
-        args: ["--maxkb=500"]
+        args: ["--maxkb=1024"]  # the book PDF (docs/book) is ~0.6 MB
       - id: check-merge-conflict
       - id: check-yaml
       - id: end-of-file-fixer

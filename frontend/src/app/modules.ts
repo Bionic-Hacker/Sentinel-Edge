@@ -22,6 +22,7 @@ export const MODULES: readonly ModuleDef[] = [
       "platform.security_headers",
       "platform.error_handling",
       "platform.db_least_privilege",
+      "secops.dashboard",
     ],
   },
   {
@@ -64,7 +65,7 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Threats",
     purpose: "Detected attack activity by type: injection, XSS, SSRF, credential stuffing, bots, API abuse.",
     phase: 7,
-    capabilityKeys: ["aws.waf_logs", "sim.attacks"],
+    capabilityKeys: ["secops.events", "secops.http_analysis", "secops.correlation", "sim.attacks", "aws.waf_logs"],
   },
   {
     path: "/incidents",

@@ -7,6 +7,12 @@ import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { SetupPage } from "../features/auth/SetupPage";
+import { ApplicationsPage } from "../features/secops/ApplicationsPage";
+import { AutomationPage } from "../features/secops/AutomationPage";
+import { IncidentDetailPage } from "../features/secops/IncidentDetailPage";
+import { IncidentsPage } from "../features/secops/IncidentsPage";
+import { ThreatsPage } from "../features/secops/ThreatsPage";
+import { WafPage } from "../features/secops/WafPage";
 import { Dashboard } from "../routes/Dashboard";
 import { ModulePage } from "../routes/ModulePage";
 import { NotFound } from "../routes/NotFound";
@@ -20,6 +26,11 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   "/settings": SettingsPage,
   "/audit-logs": AuditLogsPage,
   "/apis": ApiSecurityPage,
+  "/threats": ThreatsPage,
+  "/incidents": IncidentsPage,
+  "/applications": ApplicationsPage,
+  "/waf": WafPage,
+  "/automation": AutomationPage,
 };
 
 export function AppRoutes() {
@@ -44,6 +55,7 @@ export function AppRoutes() {
             const Page = PAGES[m.path];
             return <Route key={m.path} path={m.path} element={Page ? <Page /> : <ModulePage module={m} />} />;
           })}
+          <Route path="/incidents/:incidentId" element={<IncidentDetailPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
