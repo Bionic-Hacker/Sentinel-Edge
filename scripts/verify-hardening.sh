@@ -26,6 +26,7 @@ done
 
 # Right after `make dev` the API may still be starting; HTTP checks need it to answer. Wait up
 # to 60 seconds, and stop if it never does (a check must never pass on a missing response).
+# Checks use GET: the API answers HEAD on its GET routes with 405.
 for _ in $(seq 1 60); do
   curl -fsS -o /dev/null "$API_URL/api/v1/health" && break
   sleep 1
@@ -69,7 +70,7 @@ check "API sends a deny-all Content-Security-Policy" \
 check "SPA sends a strict CSP without unsafe-inline" \
   bash -c "curl -sI $WEB_URL/ | grep -i '^content-security-policy:' | grep -qv 'unsafe-inline'"
 check "API does not disclose a Server header" \
-  bash -c "headers=\$(curl -fsSI $API_URL/api/v1/health) && ! grep -qi '^server:' <<<\"\$headers\""
+  bash -c "headers=\$(curl -fsS -D - -o /dev/null $API_URL/api/v1/health) && ! grep -qi '^server:' <<<\"\$headers\""
 
 echo
 if (( failures == 0 )); then
