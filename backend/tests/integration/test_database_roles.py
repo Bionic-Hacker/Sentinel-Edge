@@ -50,6 +50,9 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     # Link tables: re-linking a threat's controls replaces its links (audited) (0010).
     "threat_controls": {"SELECT", "INSERT", "DELETE"},
     "requirement_threats": {"SELECT", "INSERT", "DELETE"},
+    # Decided records are final (trigger); ended, never deleted (0011).
+    "exceptions": {"SELECT", "INSERT", "UPDATE"},
+    "change_requests": {"SELECT", "INSERT", "UPDATE"},
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.

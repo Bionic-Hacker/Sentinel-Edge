@@ -77,6 +77,19 @@ class AuditAction(StrEnum):
     THREAT_MODEL_ELEMENT_UPDATED = "threat_model.element_updated"
     THREAT_ADDED = "threat_model.threat_added"
     THREAT_UPDATED = "threat_model.threat_updated"
+    EXCEPTION_REQUESTED = "exception.requested"
+    EXCEPTION_APPROVED = "exception.approved"
+    EXCEPTION_REJECTED = "exception.rejected"
+    EXCEPTION_WITHDRAWN = "exception.withdrawn"
+    EXCEPTION_CLOSED = "exception.closed"
+    EXCEPTION_EXPIRED = "exception.expired"
+    CHANGE_SUBMITTED = "change_request.submitted"
+    CHANGE_APPROVED = "change_request.approved"
+    CHANGE_REJECTED = "change_request.rejected"
+    CHANGE_CANCELLED = "change_request.cancelled"
+    CHANGE_IMPLEMENTED = "change_request.implemented"
+    CHANGE_VALIDATED = "change_request.validated"
+    CHANGE_ROLLED_BACK = "change_request.rolled_back"
 
 
 @dataclass(frozen=True)

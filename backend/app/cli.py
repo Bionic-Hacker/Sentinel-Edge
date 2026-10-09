@@ -35,6 +35,7 @@ from app.security.passwords import PasswordHasher
 from app.security.rate_limit import RateLimiter
 from app.services import audit
 from app.services.audit import SYSTEM_CONTEXT, AuditAction, verify_chain
+from app.services.risk_governance import accepted_risks_toml
 from app.services.vulnerabilities import ScanImportError, import_scan
 
 CLI_ACTOR = "system:cli"
@@ -309,6 +310,10 @@ def build_parser() -> argparse.ArgumentParser:
     dast.add_argument("action", choices=["issue", "revoke"])
     spec = commands.add_parser("openapi", help="print the OpenAPI document")
     spec.add_argument("--server", help="DAST target, the local stack (http://localhost:8080)")
+    commands.add_parser(
+        "export-accepted-risks",
+        help="print the scan gate's accepted-risk register from approved exceptions",
+    )
     return parser
 
 
@@ -342,6 +347,10 @@ def main(
                 return dast_session(db, settings, args.action, out)
             if args.command == "openapi":
                 return print_openapi(settings, args.server, out)
+            if args.command == "export-accepted-risks":
+                out.write(accepted_risks_toml(db))
+                db.commit()  # expiries found on the way are recorded
+                return 0
             if args.command == "prune-rate-limits":
                 removed = RateLimiter(build_session_factory(engine)).prune()
                 print(f"Removed {removed} idle rate-limit buckets.", file=out)

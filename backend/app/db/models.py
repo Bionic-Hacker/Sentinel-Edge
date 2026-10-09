@@ -15,6 +15,7 @@ from app.models.governance import (
 from app.models.incident import Incident, IncidentTimelineEntry
 from app.models.outbox import OutboxMessage
 from app.models.rate_limit import RateLimitBucket
+from app.models.risk_governance import ChangeRequest, SecurityException
 from app.models.security_event import SecurityEvent
 from app.models.session import AuthSession, MfaRecoveryCode, PasswordResetToken, RefreshToken
 from app.models.simulation import SimulatedWafRule, SimulationRun
@@ -26,6 +27,7 @@ __all__ = [
     "Application",
     "AuditLog",
     "AuthSession",
+    "ChangeRequest",
     "Control",
     "Incident",
     "IncidentTimelineEntry",
@@ -41,6 +43,7 @@ __all__ = [
     "Sbom",
     "ScanRun",
     "SecurityEvent",
+    "SecurityException",
     "SimulatedWafRule",
     "SimulationRun",
     "Threat",

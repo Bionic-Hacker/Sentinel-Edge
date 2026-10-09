@@ -563,6 +563,82 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         object_rule="Application models only; the threat must belong to the model; version "
         "must match",
     ),
+    ("GET", "/api/v1/exceptions"): EndpointPolicy(
+        "Security exceptions with their status and expiry",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Risk decisions",
+        object_rule="Developers see only exceptions of applications they own",
+    ),
+    ("POST", "/api/v1/exceptions"): EndpointPolicy(
+        "Request a time-limited security exception",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API1, A.API5, A.API6),
+        "Risk decisions",
+        object_rule="Developers: own applications only; expiry within the risk's limit "
+        "(critical 30 days); scan-finding exceptions are SentinelEdge's own",
+    ),
+    ("GET", "/api/v1/exceptions/{exception_id}"): EndpointPolicy(
+        "Read an exception with its history from the audit log",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Risk decisions",
+        object_rule="Developers: own applications only; other IDs return 404 (audited)",
+    ),
+    ("POST", "/api/v1/exceptions/{exception_id}/decision"): EndpointPolicy(
+        "Approve or reject a requested exception",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API1, A.API5, A.API6),
+        "Risk decisions",
+        object_rule="Never by the requester (separation of duties, also a database "
+        "constraint); a rejection needs a note; version must match",
+    ),
+    ("POST", "/api/v1/exceptions/{exception_id}/close"): EndpointPolicy(
+        "Withdraw a request, or close an approved exception early",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API1, A.API5),
+        "Risk decisions",
+        object_rule="The requester or a lead; a note is required; version must match",
+    ),
+    ("GET", "/api/v1/change-requests"): EndpointPolicy(
+        "Change requests with their status",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Planned security changes",
+        object_rule="Developers see only change requests of applications they own",
+    ),
+    ("POST", "/api/v1/change-requests"): EndpointPolicy(
+        "Submit a change request with its rollback and validation plans",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API1, A.API5, A.API6),
+        "Planned security changes",
+        object_rule="Developers: own applications only; WAF changes target the simulated WAF "
+        "of SentinelEdge only",
+    ),
+    ("GET", "/api/v1/change-requests/{change_id}"): EndpointPolicy(
+        "Read a change request with its moves and history",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Planned security changes",
+        object_rule="Developers: own applications only; other IDs return 404 (audited)",
+    ),
+    ("POST", "/api/v1/change-requests/{change_id}/transition"): EndpointPolicy(
+        "Approve, reject, cancel, implement, validate or roll back a change",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API1, A.API5, A.API6),
+        "Planned security changes; simulated WAF state",
+        object_rule="Approval and rejection by a lead other than the requester; validation "
+        "by a lead; moves that end work need a note; version must match",
+    ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",
         Risk.MEDIUM,
