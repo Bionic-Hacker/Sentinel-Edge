@@ -3,7 +3,7 @@
 `SENTINEL_AI_PROVIDER` selects one:
 * `disabled` (the default): the engine refuses to run (503 `ai_disabled`); nothing is sent.
 * `offline`: the deterministic analyser in app.ai.offline. Free, local, refused in production.
-* `bedrock`: Amazon Bedrock (Phase 9 M2), the only provider that costs money.
+* `bedrock`: Amazon Bedrock (app.ai.bedrock), the only provider that costs money.
 
 A provider only turns a prompt into text. Everything that keeps the engine safe (minimising,
 scoring, delimiting, validating, quotas, audit) happens around it, identically for each one.
@@ -55,5 +55,8 @@ def get_provider(settings: Settings) -> Provider | None:
     if settings.ai_provider is AIProvider.OFFLINE:
         return OfflineProvider()
     if settings.ai_provider is AIProvider.BEDROCK:
-        raise ProviderError("The Bedrock provider is not installed in this build.")
+        # Imported here so boto3 loads only when Bedrock is the provider.
+        from app.ai.bedrock import BedrockProvider
+
+        return BedrockProvider(settings)
     return None

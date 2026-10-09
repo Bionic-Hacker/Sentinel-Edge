@@ -77,7 +77,12 @@ services:
       <<: *app-config
       SENTINEL_ENABLE_API_DOCS: ${SENTINEL_ENABLE_API_DOCS:-false}
       SENTINEL_TRUSTED_HOSTS: ${SENTINEL_TRUSTED_HOSTS:-localhost,127.0.0.1,api}
+      # AI engine (Phase 9): disabled unless chosen. Only `bedrock` costs money; its bounds:
       SENTINEL_AI_PROVIDER: ${SENTINEL_AI_PROVIDER:-disabled}
+      SENTINEL_AI_MODEL: ${SENTINEL_AI_MODEL:-amazon.nova-micro-v1:0}
+      SENTINEL_AI_MAX_OUTPUT_TOKENS: ${SENTINEL_AI_MAX_OUTPUT_TOKENS:-800}
+      SENTINEL_AI_REQUESTS_PER_USER_PER_DAY: ${SENTINEL_AI_REQUESTS_PER_USER_PER_DAY:-20}
+      SENTINEL_AI_TOKENS_PER_DAY: ${SENTINEL_AI_TOKENS_PER_DAY:-200000}
       SENTINEL_AWS_REGION: ${SENTINEL_AWS_REGION:-us-east-1}
       SENTINEL_DB_PASSWORD: ${SENTINEL_DB_APP_PASSWORD:?.env predates Phase 2; see docs/local-development.md}
       SENTINEL_JWT_SIGNING_KEY: ${SENTINEL_JWT_SIGNING_KEY:?.env predates Phase 2; see docs/local-development.md}
@@ -86,6 +91,11 @@ services:
       # Trust X-Forwarded-For only from the edge network, where the web (nginx) container is
       # the only other member (T-ORG-02). nginx overwrites the header with the real client.
       SENTINEL_TRUSTED_PROXY_CIDRS: 172.30.86.0/24
+    # Short-lived AWS session credentials for Bedrock, only if `make bedrock-credentials`
+    # wrote them (git-ignored, mode 600). Without the file the API has no AWS credentials.
+    env_file:
+      - path: .env.bedrock
+        required: false
     tmpfs: [/tmp]
     depends_on:
       migrate:

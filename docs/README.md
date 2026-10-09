@@ -16,6 +16,7 @@ system that doesn't exist yet as if it did.
 | [authorization.md](authorization.md) | Roles and the endpoint permission matrix | Phase 2 |
 | [governance/exceptions.md](governance/exceptions.md) | Where security exceptions live now (the application) and the rules they follow | Phase 2; moved to the app in Phase 10 |
 | [api-security.md](api-security.md) | API Security Center, metrics, OWASP API Top 10 coverage, SSRF guard | Phase 6 |
+| [bedrock-setup.md](bedrock-setup.md) | Using Amazon Bedrock for the AI engine: least-privilege IAM, short-lived credentials, cost bounds | Phase 9 |
 | [adr/](adr/) | Architecture decision records 0001–0023 | Phase 1–10 |
 | [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); governance (Phase 10) | Phase 2, 7, 8, 10 |
 | aws-security.md | IAM roles, network, KMS, CloudTrail | Phase 3–4 |

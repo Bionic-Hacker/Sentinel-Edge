@@ -34,5 +34,10 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+# boto3 ships without type information; app.ai.bedrock keeps its use behind typed methods.
+module = ["boto3", "boto3.*", "botocore", "botocore.*"]
+ignore_missing_imports = true
+
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
