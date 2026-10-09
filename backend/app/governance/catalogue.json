@@ -1,76 +1,171 @@
 {
  "controls": [
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_injection_corpus_scores_high"
+    },
+    {
+     "kind": "test",
+     "ref": "test_untrusted_data_cannot_close_its_delimiter"
+    },
+    {
+     "kind": "test",
+     "ref": "test_invisible_characters_are_removed_and_flagged"
+    },
+    {
+     "kind": "test",
+     "ref": "test_injection_cannot_change_the_offline_verdict"
+    }
+   ],
+   "evidence_text": "test_injection_corpus_scores_high, test_untrusted_data_cannot_close_its_delimiter, test_invisible_characters_are_removed_and_flagged, test_injection_cannot_change_the_offline_verdict",
    "extensions": [],
    "family": "AI",
-   "implementation": "",
+   "implementation": "app/ai/guardrails.py",
    "layer": "AI security",
    "phase": 9,
    "ref": "C-AI-01",
-   "status": "planned",
-   "title": "Untrusted data delimited, never concatenated into instructions; input validation and prompt-risk scoring (ADR-0007)"
+   "status": "implemented",
+   "title": "Untrusted data delimited as JSON under a per-call nonce, never concatenated into instructions; an allow-list of fields per subject; prompt-risk scoring with named signals; invisible and bidirectional characters removed (ADR-0007, ADR-0024)"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_evidence_must_quote_the_input_verbatim"
+    },
+    {
+     "kind": "test",
+     "ref": "test_hostile_answers_are_rejected_not_repaired"
+    },
+    {
+     "kind": "test",
+     "ref": "test_malformed_answers_are_rejected"
+    },
+    {
+     "kind": "test",
+     "ref": "test_a_compromised_model_cannot_act_or_lie_about_evidence"
+    }
+   ],
+   "evidence_text": "test_evidence_must_quote_the_input_verbatim, test_hostile_answers_are_rejected_not_repaired, test_malformed_answers_are_rejected, test_a_compromised_model_cannot_act_or_lie_about_evidence",
    "extensions": [],
    "family": "AI",
-   "implementation": "",
+   "implementation": "app/ai/contract.py",
    "layer": "AI security",
    "phase": 9,
    "ref": "C-AI-02",
-   "status": "planned",
-   "title": "Schema-bound AI output separating observed evidence from inference; non-conforming output rejected"
+   "status": "implemented",
+   "title": "Output contract: one strict JSON object; every observed-evidence item a verbatim quote of a field that was sent; inference kept apart; known controls only; anything else rejected, never repaired"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "frontend_test",
+     "ref": "ai.test.tsx"
+    }
+   ],
+   "evidence_text": "ai.test.tsx",
    "extensions": [],
    "family": "AI",
-   "implementation": "",
+   "implementation": "features/ai/, lib/api/aiValidators.ts",
    "layer": "AI security",
    "phase": 9,
    "ref": "C-AI-03",
-   "status": "planned",
-   "title": "AI text rendered as text only, never executed or used to build queries"
+   "status": "implemented",
+   "title": "AI text and quoted attacker data rendered as text only; never executed or used to build queries; the SPA validates every AI response"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_addresses_and_emails_are_pseudonymised"
+    },
+    {
+     "kind": "test",
+     "ref": "test_fields_and_the_whole_input_are_bounded"
+    }
+   ],
+   "evidence_text": "test_addresses_and_emails_are_pseudonymised, test_fields_and_the_whole_input_are_bounded",
    "extensions": [],
    "family": "AI",
-   "implementation": "",
+   "implementation": "app/ai/guardrails.py, app/services/ai.py",
    "layer": "AI security",
    "phase": 9,
    "ref": "C-AI-04",
-   "status": "planned",
-   "title": "Redaction and minimisation before data reaches the model"
+   "status": "implemented",
+   "title": "Minimisation before data reaches a model: allow-listed, bounded fields; addresses and e-mails pseudonymised; only Amazon Bedrock, which does not train on inputs"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_a_lead_approves_proposals_and_the_actions_run"
+    },
+    {
+     "kind": "test",
+     "ref": "test_an_action_that_no_longer_applies_is_refused_and_nothing_changes"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_record_cannot_be_rewritten"
+    }
+   ],
+   "evidence_text": "test_a_lead_approves_proposals_and_the_actions_run, test_an_action_that_no_longer_applies_is_refused_and_nothing_changes, test_the_record_cannot_be_rewritten",
    "extensions": [],
    "family": "AI",
-   "implementation": "",
+   "implementation": "app/services/ai.py, migration 0014",
    "layer": "AI security",
    "phase": 9,
    "ref": "C-AI-05",
-   "status": "planned",
-   "title": "No state-changing AI tools; proposals need human approval (audited)"
+   "status": "implemented",
+   "title": "No AI agency: three proposal types, tighten-only (a WAF rule to block, never weaker); a lead approves and the action runs as that person through its own workflow, in one transaction; decisions final (trigger); high prompt-risk needs a written reason"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_quotas_are_checked_before_the_call"
+    },
+    {
+     "kind": "test",
+     "ref": "test_who_may_analyse_what"
+    }
+   ],
+   "evidence_text": "test_quotas_are_checked_before_the_call, test_who_may_analyse_what",
    "extensions": [],
    "family": "AI",
-   "implementation": "",
+   "implementation": "app/services/ai.py, app/core/config.py",
    "layer": "AI security",
    "phase": 9,
    "ref": "C-AI-06",
-   "status": "planned",
-   "title": "Per-user AI quotas and token caps"
+   "status": "implemented",
+   "title": "Cost bounds checked before any call: analyses per user per day, platform tokens per day, tokens per answer; viewers (the DAST scanner) cannot run analyses; every call audited with model, usage and prompt risk"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_aws_errors_become_our_own_words"
+    },
+    {
+     "kind": "test",
+     "ref": "test_an_answer_cut_off_at_the_token_limit_is_a_failure"
+    },
+    {
+     "kind": "test",
+     "ref": "test_model_ids_cannot_be_urls_or_paths"
+    }
+   ],
+   "evidence_text": "test_aws_errors_become_our_own_words, test_an_answer_cut_off_at_the_token_limit_is_a_failure, test_model_ids_cannot_be_urls_or_paths",
+   "extensions": [],
+   "family": "AI",
+   "implementation": "app/ai/bedrock.py, scripts/bedrock-credentials.sh, docs/bedrock-setup.md",
+   "layer": "AI security",
+   "phase": 9,
+   "ref": "C-AI-07",
+   "status": "implemented",
+   "title": "Bedrock least privilege: one bedrock:InvokeModel permission on one model; short-lived session credentials locally, the task role when deployed; AWS error text never shown or stored; answers cut at the token limit are failures"
   },
   {
    "evidence": [
@@ -120,6 +215,18 @@
      "implementation": "GovernanceService, RiskGovernanceService",
      "phase": 10,
      "title": "Object-level authorization extended to threat models, exceptions and change requests (developers: own applications; 404, audited)"
+    },
+    {
+     "evidence": [
+      {
+       "kind": "test",
+       "ref": "test_who_may_analyse_what"
+      }
+     ],
+     "evidence_text": "test_who_may_analyse_what",
+     "implementation": "AiService",
+     "phase": 9,
+     "title": "Object-level authorization extended to AI analyses and proposals (developers: their own applications' findings and threat models only; 404, audited)"
     }
    ],
    "family": "API",
@@ -340,6 +447,18 @@
      "implementation": "tests/unit/test_frontend_contract.py",
      "phase": 10,
      "title": "Governance enumerations and PASTA stages match the SPA's validator lists"
+    },
+    {
+     "evidence": [
+      {
+       "kind": "frontend_test",
+       "ref": "ai.test.tsx"
+      }
+     ],
+     "evidence_text": "ai.test.tsx",
+     "implementation": "tests/unit/test_frontend_contract.py",
+     "phase": 9,
+     "title": "AI enumerations match the SPA's validator lists"
     }
    ],
    "family": "API",
@@ -1755,7 +1874,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "add2fe9fe54b5038600c0f7a6ca3c795b70bf27f2cae17eab8b455e7a884f937",
+ "digest": "299d240a4da8da151332b2be494cf7e4f664c34a21829b31df7a32a9aab8d93a",
  "format": 1,
  "model": {
   "elements": [
@@ -1921,6 +2040,13 @@
     "ref": "A15"
    },
    {
+    "attributes": {},
+    "description": "What the AI said about an attack and what it asked a human to do; an altered record hides a manipulated answer",
+    "kind": "asset",
+    "name": "AI analyses and proposals",
+    "ref": "A16"
+   },
+   {
     "attributes": {
      "boundaries": [
       "TB1"
@@ -2055,16 +2181,21 @@
    },
    {
     "attributes": {
-     "threats": []
+     "threats": [
+      "T-AI-02",
+      "T-AI-05",
+      "T-AI-07",
+      "T-AI-08"
+     ]
     },
-    "description": "Broken because AI output is schema-bound and advisory, proposals need approval, and real WAF changes need a Terraform PR with review.",
+    "description": "Broken because the data is delimited and scored (T-AI-02), evidence must be quoted verbatim (T-AI-07), proposals can only tighten controls and need a lead's approval (T-AI-05, T-AI-08), and real WAF changes need a Terraform PR with review.",
     "kind": "attack_path",
     "name": "Poisoned log line → AI recommends harmful change → operator applies it",
     "ref": "AP-3"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Single-maintainer project: separation of duties is enforced by role checks and a database CHECK, so it needs two lead accounts, but both belong to the same person. Accepted for a portfolio.",
     "kind": "residual_risk",
@@ -2073,7 +2204,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not be exposed. Closed in Phase 5.",
     "kind": "residual_risk",
@@ -2082,7 +2213,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.",
     "kind": "residual_risk",
@@ -2091,7 +2222,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "One HS256 signing key without kid: rotation signs everyone out (ADR-0003 addendum).",
     "kind": "residual_risk",
@@ -2100,7 +2231,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.",
     "kind": "residual_risk",
@@ -2109,7 +2240,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.",
     "kind": "residual_risk",
@@ -2118,7 +2249,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
     "kind": "residual_risk",
@@ -2127,7 +2258,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.",
     "kind": "residual_risk",
@@ -2136,7 +2267,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
     "kind": "residual_risk",
@@ -2145,7 +2276,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "HTTP analysis is detect-only. Until AWS WAF (Phase 5), nothing blocks an injection payload at the edge; parameterised queries and validation remain the protection, and detection records it.",
     "kind": "residual_risk",
@@ -2154,7 +2285,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "On one machine every request comes from one address, so local detections group into a single incident. Expected; not a weakness of the deployed design.",
     "kind": "residual_risk",
@@ -2163,7 +2294,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) is planned with Phase 12 hardening.",
     "kind": "residual_risk",
@@ -2172,7 +2303,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks). Between a decision and the next generation the gate uses the previous file; run it after every scan-finding decision. Finding-level risk acceptances (Phase 8) and exceptions remain two records with different scopes.",
     "kind": "residual_risk",
@@ -2181,7 +2312,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model. Archive is offered first.",
     "kind": "residual_risk",
@@ -2190,30 +2321,66 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
-    "description": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
+    "description": "Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded. It is a signal for the reviewer, not a defence; the defences are delimiting, the verbatim evidence contract and tighten-only proposals with human approval.",
     "kind": "residual_risk",
-    "name": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
+    "name": "Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded",
     "ref": "RR-15"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
     },
-    "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "description": "A model can still be wrong within the contract: a correct quote with a misleading inference. Inference is labelled, the platform's own verdict is never changed, and nothing runs without a lead's approval.",
     "kind": "residual_risk",
-    "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "name": "A model can still be wrong within the contract: a correct quote with a misleading inference",
     "ref": "RR-16"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 10)"
+     "heading": "5. Residual risk (after Phase 9)"
+    },
+    "description": "The offline analyser is deterministic and not a model; it proves the engine, not the quality of a real model's answers. Bedrock answers vary between runs (temperature 0 narrows, not removes).",
+    "kind": "residual_risk",
+    "name": "The offline analyser is deterministic and not a model; it proves the engine, not the quality of a real model's answers",
+    "ref": "RR-17"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 9)"
+    },
+    "description": "Limits are per day and counted from stored analyses; a burst within the limit is allowed. Bedrock spend is also bounded by the AWS budget alert the setup asks for.",
+    "kind": "residual_risk",
+    "name": "Limits are per day and counted from stored analyses; a burst within the limit is allowed",
+    "ref": "RR-18"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 9)"
+    },
+    "description": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
+    "kind": "residual_risk",
+    "name": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
+    "ref": "RR-19"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 9)"
+    },
+    "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "kind": "residual_risk",
+    "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "ref": "RR-20"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 9)"
     },
     "description": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
     "kind": "residual_risk",
     "name": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
-    "ref": "RR-17"
+    "ref": "RR-21"
    }
   ],
   "method": "stride",
@@ -3630,14 +3797,14 @@
     "group": "TB5 — API → AI provider (and attacker data into the AI)",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Input validation, prompt-risk scoring",
+    "mitigation": "Only an allow-list of record fields reaches the model (no free-text prompt); prompt-risk scoring; delimiting",
     "owasp": "",
     "phases": [
      9
     ],
     "ref": "T-AI-01",
-    "status": "planned",
-    "status_text": "Planned (P9)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested): there is no prompt box; analysts choose a record, not the words",
     "stride": "LLM01",
     "title": "Direct prompt injection by an analyst"
    },
@@ -3647,42 +3814,44 @@
     ],
     "controls": [
      "C-AI-01",
-     "C-AI-02"
+     "C-AI-02",
+     "C-AI-05"
     ],
     "group": "TB5 — API → AI provider (and attacker data into the AI)",
     "impact": 2,
     "likelihood": 3,
-    "mitigation": "Untrusted-data delimiting, output schema (ADR-0007)",
+    "mitigation": "Data delimited under a per-call nonce; signals scored and shown; verbatim-evidence contract; tighten-only proposals that a lead approves (ADR-0007, ADR-0024)",
     "owasp": "",
     "phases": [
      9
     ],
     "ref": "T-AI-02",
-    "status": "planned",
-    "status_text": "Planned (P9)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested): a fully obedient model can only produce a rejected answer or a reviewable proposal",
     "stride": "LLM01",
-    "title": "Indirect injection via WAF log or request content"
+    "title": "Indirect injection via request content, user agents, log lines or finding text"
    },
    {
     "boundaries": [
      "TB5"
     ],
     "controls": [
-     "C-AI-03"
+     "C-AI-03",
+     "C-WEB-02"
     ],
     "group": "TB5 — API → AI provider (and attacker data into the AI)",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Render as text only; schema validation",
+    "mitigation": "Rendered as text only under the strict CSP; never executed or used in queries; responses validated by the SPA",
     "owasp": "",
     "phases": [
      9
     ],
     "ref": "T-AI-03",
-    "status": "planned",
-    "status_text": "Planned (P9)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
     "stride": "LLM05",
-    "title": "Insecure output handling (XSS through AI text)"
+    "title": "Insecure output handling (XSS through AI text or quoted payloads)"
    },
    {
     "boundaries": [
@@ -3694,14 +3863,14 @@
     "group": "TB5 — API → AI provider (and attacker data into the AI)",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Redaction before send, Bedrock (no training), minimisation",
+    "mitigation": "Allow-listed, bounded fields; addresses and e-mails pseudonymised; redacted evidence; Bedrock does not train on inputs",
     "owasp": "",
     "phases": [
      9
     ],
     "ref": "T-AI-04",
-    "status": "planned",
-    "status_text": "Planned (P9)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
     "stride": "LLM02",
     "title": "Sensitive data sent to or leaked by the model"
    },
@@ -3715,16 +3884,16 @@
     "group": "TB5 — API → AI provider (and attacker data into the AI)",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "No state-changing tools; human approval (ADR-0007)",
+    "mitigation": "No tools; three proposal types, tighten-only; a lead approves and the action runs as that person; decisions final",
     "owasp": "",
     "phases": [
      9
     ],
     "ref": "T-AI-05",
-    "status": "planned",
-    "status_text": "Planned (P9)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
     "stride": "LLM06",
-    "title": "Excessive agency: AI performs destructive action"
+    "title": "Excessive agency: AI performs or triggers a destructive action"
    },
    {
     "boundaries": [
@@ -3736,16 +3905,103 @@
     "group": "TB5 — API → AI provider (and attacker data into the AI)",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Per-user quotas, token caps, audit",
+    "mitigation": "Limits checked before any call (per user per day, platform tokens per day, tokens per answer); viewers cannot run analyses; every call audited",
     "owasp": "",
     "phases": [
      9
     ],
     "ref": "T-AI-06",
-    "status": "planned",
-    "status_text": "Planned (P9)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
     "stride": "LLM10",
     "title": "Unbounded consumption (cost)"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-02"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Every observed-evidence item must be a verbatim quote of a field that was sent; inference is labelled as such; disagreements with the platform shown, never acted on",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-07",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
+    "stride": "LLM09",
+    "title": "Fabricated evidence: the model presents an invention as an observed fact"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-05",
+     "C-GOV-03"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "The contract allows only opening an incident, adding a threat, or a WAF rule to block; a change request still needs a second lead",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-08",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
+    "stride": "E",
+    "title": "A proposal used to weaken a control (a WAF rule to count, an incident closed)"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-07",
+     "C-SEC-01"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "One permission on one model; short-lived session credentials in a git-ignored, mode-600 file; task role when deployed; AWS error text kept out of responses",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-09",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9)",
+    "stride": "I",
+    "title": "AWS credentials for Bedrock leak from the developer machine or container"
+   },
+   {
+    "boundaries": [
+     "TB5"
+    ],
+    "controls": [
+     "C-AI-05",
+     "C-AUD-01"
+    ],
+    "group": "TB5 — API → AI provider (and attacker data into the AI)",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "Analyses insert-only for the app role; proposals final once decided (trigger); every call and decision in the hash-chained audit log with the prompt's SHA-256",
+    "owasp": "",
+    "phases": [
+     9
+    ],
+    "ref": "T-AI-10",
+    "status": "mitigated",
+    "status_text": "Mitigated (P9, tested)",
+    "stride": "T/R",
+    "title": "An analysis or decision rewritten to hide a manipulated answer"
    },
    {
     "boundaries": [
@@ -3989,7 +4245,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.6"
+  "version": "0.7"
  },
  "requirements": [
   {
@@ -4331,10 +4587,19 @@
    "title": "Audit tampering"
   },
   {
-   "control_text": "Delimiting, scoring, schema-bound output",
-   "evidence": [],
-   "evidence_text": "Injection corpus tests",
-   "implementation": "app/ai/guardrails",
+   "control_text": "Delimiting, scoring, verbatim-evidence contract",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_injection_corpus_scores_high"
+    },
+    {
+     "kind": "test",
+     "ref": "test_a_compromised_model_cannot_act_or_lie_about_evidence"
+    }
+   ],
+   "evidence_text": "test_injection_corpus_scores_high, test_a_compromised_model_cannot_act_or_lie_about_evidence",
+   "implementation": "ADR-0007, ADR-0024",
    "phase_text": "P9",
    "ref": "REQ-19",
    "threats": [
@@ -4344,10 +4609,19 @@
    "title": "Prompt injection"
   },
   {
-   "control_text": "Proposals + human approval",
-   "evidence": [],
-   "evidence_text": "Approval workflow tests; audit",
-   "implementation": "ai_action_proposals",
+   "control_text": "Tighten-only proposals + lead approval",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_a_lead_approves_proposals_and_the_actions_run"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_record_cannot_be_rewritten"
+    }
+   ],
+   "evidence_text": "test_a_lead_approves_proposals_and_the_actions_run, test_the_record_cannot_be_rewritten",
+   "implementation": "app/services/ai.py",
    "phase_text": "P9",
    "ref": "REQ-20",
    "threats": [

@@ -5,13 +5,13 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1, 2, 6, 7, 8 and 10 complete (v0.6.0): threat modeling and governance.**
+> **Current status: Phases 1, 2, 6, 7, 8, 10 and 9 complete (v0.7.0): AI security engine.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
-> an API Security Center, attack detection, correlation, an incident workflow with tamper-evident
-> evidence, a security dashboard, a labelled attack simulator, scanning behind a fail-closed gate,
-> SBOMs and vulnerability management run locally, and now threat modeling (STRIDE and PASTA), a
-> control catalogue maintained as code, an explainable posture score, and security exceptions and
-> change management where whoever asks cannot approve. **No AWS resources exist yet**: AWS phases are deliberately grouped late
+> an API Security Center, attack detection and incidents, a labelled attack simulator, scanning
+> behind a fail-closed gate, vulnerability management, threat modeling and governance run locally,
+> and now an AI security engine: analyses of events, incidents, findings and threat models behind
+> prompt-injection guardrails and a verbatim-evidence contract, whose proposals a human approves.
+> **No AWS resources exist yet**: AWS phases are deliberately grouped late
 > to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
 > capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
 > and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
@@ -84,7 +84,18 @@ Eighteen defense-in-depth layers, from DNS to governance, each with a stated rea
 requirement → threat → control → implementation → evidence in
 [docs/security-controls.md](docs/security-controls.md).
 
-**In place after Phase 10 (LOCAL):**
+**In place after Phase 9 (LOCAL; Amazon Bedrock calls when enabled):**
+
+- **AI security engine:** the AI explains a security event, incident, finding or threat model and
+  may propose one of three tighten-only actions; a lead approves it and it runs as that person.
+  Only allow-listed, pseudonymised fields reach the model, as delimited data scored for injection
+  signals; every quoted piece of evidence must be verbatim or the answer is rejected. Limits are
+  checked before every call; viewers (the DAST scanner) cannot run analyses
+  ([ADR-0024](docs/adr/0024-ai-security-engine.md), [docs/ai-security.md](docs/ai-security.md)).
+  A free deterministic `offline` analyser runs the same pipeline; Amazon Nova Micro on Bedrock
+  costs a fraction of a cent per analysis ([setup](docs/bedrock-setup.md)).
+
+**In place since Phase 10 (LOCAL):**
 
 - **Threat modeling:** SentinelEdge's model is read-only in the app (it changes by pull request);
   models for other applications, STRIDE or PASTA, are built in the app, each threat citing real
@@ -170,7 +181,7 @@ make env                                  # .env with random local secrets (mode
 make dev                                  # web on http://localhost:8080
 make create-admin EMAIL=you@example.com   # one-time password; you'll set your own + MFA
 make check                                # lint, types, tests, SAST, SCA — the CI gates
-make smoke                                # end-to-end test of the running stack (64 checks)
+make smoke                                # end-to-end test of the running stack (69 checks)
 ```
 
 More in [docs/local-development.md](docs/local-development.md).
@@ -202,11 +213,16 @@ More in [docs/local-development.md](docs/local-development.md).
 | `backend/tests/integration/test_governance.py` | SentinelEdge's model is read-only; threats cite real controls; developers see their own; archive and delete rules |
 | `backend/tests/integration/test_risk_governance.py` | Whoever asks cannot approve (service and database); decisions final; exceptions expire; the gate register is generated |
 | `backend/tests/integration/test_posture.py` | The score starts from coverage and every deduction names its records |
+| `backend/tests/unit/test_ai_guardrails.py` | An injection corpus scores high; data cannot close its delimiter; addresses are pseudonymised |
+| `backend/tests/unit/test_ai_contract.py` | Hostile and malformed answers are rejected, never repaired; evidence must be quoted verbatim |
+| `backend/tests/integration/test_ai.py` | A compromised model can neither act nor fake evidence; quotas before the call; approvals run as the lead |
+| `backend/tests/unit/test_ai_bedrock.py` | Bedrock requests are bounded; AWS errors never reach users; a cut-off answer is a failure |
 | `scanning/semgrep/` (`make scan-test`) | Each SentinelEdge Semgrep rule flags its bad examples and none of the good ones |
 | `make scan`, `make dast` | Semgrep, Bandit, Trivy, Gitleaks, Checkov, Syft and authenticated ZAP behind the gate |
 | `frontend/src/features/secops/secops.test.tsx` | Pages render the server's permissions; attack snippets render as text, never markup |
 | `frontend/src/features/appsec/appsec.test.tsx` | Scanner text renders as text; only https references are links; the server's allowed moves only |
 | `frontend/src/features/governance/governance.test.tsx` | Threat text renders as text; buttons follow the server's permissions; the remove dialog per role |
+| `frontend/src/features/ai/ai.test.tsx` | Quoted attacker text renders as text; evidence apart from inference; decisions need reasons where required |
 | `frontend/src/lib/auth/session.test.ts` | Token stays in memory; one refresh and one retry; concurrent refreshes share one call |
 | `frontend/src/lib/api/client.test.ts` | Client refuses cross-origin paths and redirects, and validates responses |
 | `scripts/smoke-auth.py` (`make smoke`) | The whole journey against the running stack |
@@ -230,8 +246,8 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 7 | Security operations: events, dashboard, incidents, simulator, application inventory | **Complete** (v0.4.0) |
 | 8 | Application security scanning, SBOM, vulnerability management | **Complete** (v0.5.0) |
 | 10 | Threat modeling and governance | **Complete** (v0.6.0) |
-| 9 | AI security engine on Amazon Bedrock | Next |
-| 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Planned |
+| 9 | AI security engine on Amazon Bedrock | **Complete** (v0.7.0) |
+| 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Next |
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Planned |
 | 5 | CloudFront, AWS WAF, ACM/TLS, Route 53, edge headers | Planned |
 | 11 | Automation and full DevSecOps pipeline | Planned |

@@ -171,6 +171,28 @@ make accepted-risks         # scanning/accepted-findings.toml from the approved 
 make governance-catalogue   # backend/app/governance/catalogue.json from the two documents
 ```
 
+Analyse with AI (Phase 9). The engine is off until you choose a provider. In `.env`, set
+`SENTINEL_AI_PROVIDER=offline` (free, deterministic, local), then:
+
+```
+docker compose up -d api
+make ai-check               # one synthetic event, with an injection attempt, through the contract
+```
+
+Expected: `Prompt risk 65 (instruction_override, output_steering)`, then
+`COMPLETED: classification sql_injection, ...`. Then, in the browser:
+
+1. **Threats**: select an injection event, then **Analyze with AI**. The analysis page shows the
+   input's injection signals, the observed evidence (verbatim quotes, attacker text as text) beside
+   the inference, and any proposals.
+2. As a lead, approve or reject a proposal. Rejecting needs a reason. An approved "open an
+   incident" creates the incident as you, with the event as evidence.
+3. **AI Security**: usage against the daily limits, proposals awaiting a decision, recent analyses.
+
+To use a real model, follow `docs/bedrock-setup.md`: one IAM user that can call only Nova Micro,
+a $1 budget alert, then `make bedrock-credentials` and `SENTINEL_AI_PROVIDER=bedrock`.
+`make ai-check` costs about a thousand tokens.
+
 Container hardening by hand:
 
 ```
@@ -182,24 +204,24 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: evil.example' http://localhos
 
 ## Step 8 — Ship a phase the way this project does
 
-This is the release workflow from Chapter 2, with the exact commands used for v0.6.0 (Phase 10); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
+This is the release workflow from Chapter 2, with the exact commands used for v0.7.0 (Phase 9); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
 
 ```
-git switch -c phase/10-governance                          # one branch per phase
+git switch -c phase/9-ai-security                          # one branch per phase
 # … milestone commits; make check && make smoke && make verify-hardening …
-git push -u origin phase/10-governance                     # password prompt: paste the token
+git push -u origin phase/9-ai-security                     # password prompt: paste the token
 
 read -s -g -x -P "GitHub token: " GH_TOKEN              # fish: hidden prompt, exported for gh
-gh pr create --repo Bionic-Hacker/Sentinel-Edge --base main --head phase/10-governance \
-    --title "Phase 10: threat modeling and governance" --body-file docs/releases/v0.6.0.md
-gh pr checks phase/10-governance --repo Bionic-Hacker/Sentinel-Edge --watch
-gh pr merge  phase/10-governance --repo Bionic-Hacker/Sentinel-Edge --merge
+gh pr create --repo Bionic-Hacker/Sentinel-Edge --base main --head phase/9-ai-security \
+    --title "Phase 9: AI security engine" --body-file docs/releases/v0.7.0.md
+gh pr checks phase/9-ai-security --repo Bionic-Hacker/Sentinel-Edge --watch
+gh pr merge  phase/9-ai-security --repo Bionic-Hacker/Sentinel-Edge --merge
 
 git switch main && git pull --ff-only
-git tag -a v0.6.0 -m "Phase 10: threat modeling and governance"   # SSH-signed (tag.gpgsign true)
-git push origin v0.6.0
-gh release create v0.6.0 --repo Bionic-Hacker/Sentinel-Edge \
-    --title "v0.6.0 - Phase 10: threat modeling and governance" --notes-file docs/releases/v0.6.0.md
+git tag -a v0.7.0 -m "Phase 9: AI security engine"                # SSH-signed (tag.gpgsign true)
+git push origin v0.7.0
+gh release create v0.7.0 --repo Bionic-Hacker/Sentinel-Edge \
+    --title "v0.7.0 - Phase 9: AI security engine" --notes-file docs/releases/v0.7.0.md
 set -e GH_TOKEN                                         # fish: forget the token
 ```
 
@@ -228,6 +250,8 @@ git config --global tag.gpgsign true
 | Re-apply the gate after regenerating accepted risks | `make scan-gate` |
 | Regenerate the gate's accepted risks from approved exceptions | `make accepted-risks` |
 | Regenerate the governance catalogue after editing the threat model or controls | `make governance-catalogue` |
+| Check the AI provider against the output contract | `make ai-check` |
+| Bedrock session credentials / remove them | `make bedrock-credentials` / `make bedrock-credentials-clear` |
 | Import a CI scan artifact | `make scan-import FROM=<dir> SOURCE=ci` |
 | Test the SentinelEdge Semgrep rules | `make scan-test` |
 | Reset everything, including the database | `make clean` |

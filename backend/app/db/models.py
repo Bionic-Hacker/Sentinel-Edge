@@ -1,5 +1,6 @@
 """Import point for every ORM model, so Alembic and tests see the complete metadata."""
 
+from app.models.ai import AiAnalysis, AiProposal
 from app.models.api_metrics import ApiEndpointStat
 from app.models.application import Application
 from app.models.audit import AuditLog
@@ -24,6 +25,8 @@ from app.models.user import User
 from app.models.vulnerability import RiskAcceptance, Sbom, ScanRun, Vulnerability
 
 __all__ = [
+    "AiAnalysis",
+    "AiProposal",
     "ApiEndpointStat",
     "Application",
     "AuditLog",

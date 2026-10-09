@@ -11,3 +11,5 @@ pyjwt
 pyotp
 cryptography
 email-validator
+# Amazon Bedrock runtime client (Phase 9, ADR-0024): AWS SigV4, credential chain, retries.
+boto3

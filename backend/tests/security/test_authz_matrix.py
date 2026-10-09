@@ -34,6 +34,7 @@ SECOPS_READ = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.
 INVESTIGATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST})
 REMEDIATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 LEADS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
+ANALYSERS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER, Role.ANALYST})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -121,6 +122,12 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("POST", "/api/v1/change-requests"): REMEDIATORS,
     ("GET", "/api/v1/change-requests/{change_id}"): ALL,  # plus an object-level check
     ("POST", "/api/v1/change-requests/{change_id}/transition"): REMEDIATORS,
+    ("GET", "/api/v1/ai/status"): ALL,
+    ("POST", "/api/v1/ai/analyses"): ANALYSERS,  # never VIEWER: the DAST scanner is one
+    ("GET", "/api/v1/ai/analyses"): ALL,  # developers: own applications only
+    ("GET", "/api/v1/ai/analyses/{analysis_id}"): ALL,  # plus an object-level check
+    ("GET", "/api/v1/ai/proposals"): ALL,  # developers: own applications only
+    ("POST", "/api/v1/ai/proposals/{proposal_id}/decision"): LEADS,
 }
 
 

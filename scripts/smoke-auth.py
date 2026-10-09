@@ -277,6 +277,7 @@ def main() -> None:
     security_operations(client, token)
     viewer = vulnerability_management(client, token, run)
     governance(client, token, viewer)
+    ai_engine(client, token, viewer)
 
     print(f"\nAll {passed} checks passed.")
 
@@ -528,6 +529,74 @@ def governance(client: httpx.Client, token: str, viewer: dict[str, str]) -> None
         and cancelled.status_code == 200
         and cancelled.json()["status"] == "cancelled",
     )
+
+
+def ai_engine(client: httpx.Client, token: str, viewer: dict[str, str]) -> None:
+    """Phase 9: the AI engine is advisory and bounded. Whatever the provider, a viewer (the DAST
+    scanner's role) can neither run an analysis nor decide a proposal. With the offline provider
+    the smoke test analyses the injection event and rejects whatever it proposes; it never calls
+    Bedrock, which costs money (`make ai-check` does that on purpose)."""
+    auth = bearer(token)
+    print("\nAI security engine (Phase 9)")
+    status = client.get("/api/v1/ai/status", headers=viewer)
+    info = status.json() if status.status_code == 200 else {}
+    check(
+        f"the AI engine reports its provider and limits ({info.get('provider', '?')})",
+        status.status_code == 200 and info.get("requests_per_day", 0) > 0,
+    )
+    events = client.get(
+        "/api/v1/security-events",
+        headers=auth,
+        params={"view": "live", "source": "http_analysis", "limit": 20},
+    ).json()["items"]
+    event = next((e for e in events if (e["rule_id"] or "").startswith("SQLI")), None)
+    subject = {"subject_type": "security_event", "subject_id": event["id"] if event else None}
+    denied = client.post("/api/v1/ai/analyses", headers=viewer, json=subject)
+    check(
+        "a viewer cannot run an AI analysis (the DAST scanner is a viewer)",
+        denied.status_code == 403,
+    )
+    decide = client.post(
+        f"/api/v1/ai/proposals/{uuid.uuid4()}/decision",
+        headers=viewer,
+        json={"version": 1, "decision": "approve"},
+    )
+    check("a viewer cannot decide an AI proposal", decide.status_code == 403)
+    malformed = client.post("/api/v1/ai/analyses", headers=auth, json={"subject_type": "prompt"})
+    check(
+        "a malformed analysis request is refused before any model call",
+        malformed.status_code == 422,
+    )
+
+    if info.get("provider") == "offline" and event is not None:
+        made = client.post("/api/v1/ai/analyses", headers=auth, json=subject)
+        analysis = made.json() if made.status_code == 201 else {}
+        output = analysis.get("output") or {}
+        for p in analysis.get("proposal_items", []):
+            client.post(
+                f"/api/v1/ai/proposals/{p['id']}/decision",
+                headers=auth,
+                json={
+                    "version": p["version"],
+                    "decision": "reject",
+                    "note": "Smoke test: rejected.",
+                },
+            )
+        check(
+            "an offline analysis quotes its evidence verbatim; its proposals are rejected",
+            analysis.get("status") == "completed" and bool(output.get("observed_evidence")),
+        )
+    elif info.get("provider") == "bedrock":
+        check(
+            "Bedrock is configured (REAL_AWS); the smoke test spends no tokens (make ai-check)",
+            info.get("provenance") == "REAL_AWS",
+        )
+    else:
+        off = client.post("/api/v1/ai/analyses", headers=auth, json=subject)
+        check(
+            "with AI switched off, an analysis is refused before anything is sent",
+            off.status_code == 503 and off.json()["error"]["code"] == "ai_disabled",
+        )
 
 
 if __name__ == "__main__":

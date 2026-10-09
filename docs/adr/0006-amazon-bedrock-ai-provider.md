@@ -1,6 +1,6 @@
 # ADR-0006: Amazon Bedrock as the AI provider
 
-- **Status:** Accepted (integration in Phase 9; no AI code in Phase 1)
+- **Status:** Accepted; implemented in Phase 9 (see the addendum and ADR-0024)
 - **Date:** 2026-10-06
 - **Phase:** 9
 
@@ -38,3 +38,19 @@ public egress. Kept as a drop-in alternative behind the provider interface.
 ## Consequences
 Bedrock model access must be enabled per account and region. Local development uses the
 `offline` provider, so tests never call a paid model.
+
+## Addendum (Phase 9, 2026-10-09): model and local credentials
+
+- **Default model: Amazon Nova Micro** (`amazon.nova-micro-v1:0`), set by `SENTINEL_AI_MODEL`.
+  It is an Amazon model, so new-account AWS credits apply and no AWS Marketplace subscription
+  is involved. It is also the cheapest model that meets the output contract. Anthropic Claude models remain
+  supported through the same Converse API (the decision above), but are billed through AWS
+  Marketplace. The model ID is validated by pattern, so it cannot be a URL or a path.
+- **Local credentials:** `make bedrock-credentials` exchanges an AWS CLI profile for a session of
+  1 to 12 hours, written to `.env.bedrock` (git-ignored, mode 600) and loaded by the API container
+  only if present. Long-lived keys never enter a container. The IAM user behind the profile holds
+  one permission: `bedrock:InvokeModel` on that one model ([setup](../bedrock-setup.md)).
+- **Network:** locally, the API reaches Bedrock over the internet from the `edge` network; the
+  database network stays internal. The Phase 4 choice between NAT and a VPC endpoint stands.
+- **Not built:** no infrastructure exists for Bedrock. Calls are on demand, and `disabled` stays
+  the default.

@@ -27,6 +27,7 @@ import {
   type Severity,
 } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
+import { AnalyzePanel } from "../ai/ai";
 
 const READERS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER", "ANALYST", "VIEWER"];
 const INVESTIGATORS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER", "ANALYST"];
@@ -431,6 +432,8 @@ function EventDetail({ eventId, canInvestigate }: { eventId: string; canInvestig
         <h3 className="text-sm font-medium">Evidence</h3>
         <EvidenceText value={event.evidence} />
       </section>
+
+      <AnalyzePanel subjectType="security_event" subjectId={event.id} />
 
       <footer className="flex flex-wrap items-center gap-3">
         {findingLink(event)}

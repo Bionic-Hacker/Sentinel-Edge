@@ -93,6 +93,10 @@ class AuditAction(StrEnum):
     CHANGE_VALIDATED = "change_request.validated"
     CHANGE_ROLLED_BACK = "change_request.rolled_back"
     POSTURE_SNAPSHOT_TAKEN = "posture.snapshot_taken"
+    AI_ANALYSIS_RUN = "ai.analysis_run"
+    AI_QUOTA_EXCEEDED = "ai.quota_exceeded"
+    AI_PROPOSAL_APPROVED = "ai.proposal_approved"
+    AI_PROPOSAL_REJECTED = "ai.proposal_rejected"
 
 
 @dataclass(frozen=True)

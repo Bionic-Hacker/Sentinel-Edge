@@ -33,6 +33,7 @@ import {
   type TimelineEntry,
 } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
+import { AnalyzePanel } from "../ai/ai";
 
 const READERS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER", "ANALYST", "VIEWER"];
 const RESOLUTION_LABEL: Record<Resolution, string> = {
@@ -110,6 +111,7 @@ function IncidentView({ incidentId }: { incidentId: string }) {
           {incident.category ? ` · ${categoryLabel(incident.category)}` : ""}
         </p>
       </header>
+      <AnalyzePanel subjectType="incident" subjectId={incident.id} />
       {simulated && (
         <SimulatedBanner>
           This incident was opened from attack-simulator output. Work it like a real one to practise the workflow; its

@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SENTINEL_", extra="ignore")
 
     environment: Environment = Environment.LOCAL
-    app_version: str = Field(default="0.6.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    app_version: str = Field(default="0.7.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     log_level: LogLevel = LogLevel.INFO
     enable_api_docs: bool = False
     trusted_hosts: Annotated[list[str], NoDecode] = Field(
@@ -128,6 +128,18 @@ class Settings(BaseSettings):
     # Attack-pattern detection on every request (Phase 7, detect-only). Like rate limiting it may
     # be switched off only outside deployed environments.
     http_analysis_enabled: bool = True
+
+    # AI security engine (Phase 9; ADR-0006, ADR-0007, ADR-0024). Every limit bounds cost
+    # (OWASP LLM10): a call is refused before it is made once a limit is reached.
+    # Bedrock model ID. Amazon Nova Micro by default: an AWS model, so promotional credits apply.
+    ai_model: str = Field(
+        default="amazon.nova-micro-v1:0", pattern=r"^[a-z0-9-]+(\.[a-z0-9-]+)+(:[0-9]+)?$"
+    )
+    ai_max_output_tokens: int = Field(default=800, ge=100, le=4000)
+    ai_requests_per_user_per_day: int = Field(default=20, ge=1, le=1000)
+    # Tokens (input + output) all users together may spend in 24 hours.
+    ai_tokens_per_day: int = Field(default=200_000, ge=1_000, le=10_000_000)
+    ai_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
     @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
     @classmethod

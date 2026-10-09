@@ -34,7 +34,7 @@ The SPA and the API share one hostname. CloudFront (locally, nginx) routes `/api
 A dashboard holding `wafv2:Update*` permissions would be a high-value target and would make Terraform state drift from reality. The application gets a **read-only** WAF role. A requested change becomes a change request. Once approved, it is applied by a pull request that updates Terraform variables, and CI plans and applies it. In-dashboard rule toggling exists only in the simulator and is labelled SIMULATED. Real changes take minutes, not seconds. That is how mature teams operate.
 
 ### Amazon Bedrock via IAM role (ADR-0006)
-The AI engine uses Amazon Bedrock (Anthropic Claude models) behind a provider interface. The ECS task role is granted `bedrock:InvokeModel` on specific model ARNs only. No API key exists, so there is no AI secret to store or leak. Prompts can stay off the public internet through a Bedrock runtime VPC endpoint, and CloudTrail records every invocation. Locally an `offline` provider gives deterministic results for tests, and configuration validation rejects it in production.
+The AI engine uses Amazon Bedrock behind a provider interface (Amazon Nova Micro by default since Phase 9; Anthropic Claude models through the same API). The ECS task role is granted `bedrock:InvokeModel` on specific model ARNs only. No API key exists, so there is no AI secret to store or leak. Prompts can stay off the public internet through a Bedrock runtime VPC endpoint, and CloudTrail records every invocation. Locally an `offline` provider gives deterministic results for tests, and configuration validation rejects it in production.
 
 ### Security headers at two layers (ADR-0011)
 Headers are set by the API middleware (strictest CSP: `default-src 'none'`) and by the edge (nginx locally, a CloudFront response-headers policy on AWS) with the SPA's policy. If the edge is misconfigured or bypassed, the application still protects itself. If the application regresses, the edge still applies headers.
@@ -107,7 +107,7 @@ Primary keys are UUIDs, so record IDs are not enumerable. Timestamps are UTC. Ev
 | Edge and WAF | waf_rules (mirror of AWS), waf_exceptions, ip_lists | 5 |
 | Vulnerabilities and supply chain | scan_runs (insert-only), vulnerabilities, risk_acceptances (decision immutable by column grants), sboms (components and the CycloneDX document) | 8 ✓ |
 | Certificates | certificates | 5 |
-| AI | ai_analyses, ai_action_proposals | 9 |
+| AI | ai_analyses (insert-only), ai_proposals (final once decided) | 9 ✓ |
 | Governance and posture | controls, requirements, threat_models, model_elements, threats and their links; exceptions and change_requests (approver never the requester, decisions final); posture_snapshots (insert-only) | 10 ✓ |
 
 ## Environments

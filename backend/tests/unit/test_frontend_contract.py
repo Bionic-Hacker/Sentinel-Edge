@@ -10,7 +10,9 @@ from pathlib import Path
 
 import pytest
 
+from app.ai.contract import Classification
 from app.core.provenance import Provenance
+from app.models.ai import AnalysisStatus, ProposalStatus, ProposalType, SubjectType
 from app.models.governance import (
     PASTA_STAGES,
     ControlStatus,
@@ -38,6 +40,7 @@ from app.models.vulnerability import (
     ScanTool,
     VulnStatus,
 )
+from app.schemas.ai import RiskLevel as AiRiskLevel
 from app.schemas.posture import CategoryState, FactorKind
 
 TYPES_TS = Path(__file__).resolve().parents[3] / "frontend" / "src" / "lib" / "types.ts"
@@ -69,6 +72,12 @@ CONTRACT: dict[str, type[StrEnum]] = {
     "CHANGE_STATUSES": ChangeStatus,
     "CATEGORY_STATES": CategoryState,
     "FACTOR_KINDS": FactorKind,
+    "AI_SUBJECT_TYPES": SubjectType,
+    "AI_ANALYSIS_STATUSES": AnalysisStatus,
+    "AI_PROPOSAL_TYPES": ProposalType,
+    "AI_PROPOSAL_STATUSES": ProposalStatus,
+    "AI_RISK_LEVELS": AiRiskLevel,
+    "AI_CLASSIFICATIONS": Classification,
 }
 
 

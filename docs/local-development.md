@@ -30,7 +30,7 @@ Settings → Users; their invitation (and any password-reset email) lands in the
 ```bash
 make outbox         # show recent "emails" with their one-time links
 make verify-audit   # check the audit log hash chain
-make smoke          # 64-check end-to-end test of the running stack
+make smoke          # 69-check end-to-end test of the running stack
 ```
 
 `make smoke` creates its own uniquely named synthetic users and locks one of them on purpose. It
@@ -42,6 +42,34 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
+
+## Upgrading from v0.6.0 (Phase 10) to v0.7.0 (Phase 9)
+
+Your data is kept. Phase 9 adds a Python dependency (`boto3`, for Bedrock), so refresh the local
+tool environment first (otherwise `make check` stops with `No module named 'boto3'`), then
+`make dev` rebuilds the images and applies one migration:
+
+```bash
+make install       # with the project's virtual environment active
+make dev
+docker compose logs migrate | grep "Running upgrade"   # 0013 -> 0014
+```
+
+| Migration | Adds |
+|---|---|
+| `0014_ai_engine` | AI analyses (insert-only) and proposals (final once decided, by trigger) |
+
+AI stays off until you choose a provider in `.env`:
+
+```bash
+SENTINEL_AI_PROVIDER=offline   # free, deterministic, local; or bedrock (docs/bedrock-setup.md)
+docker compose up -d api
+make ai-check                  # one synthetic analysis through the provider and the contract
+```
+
+Then use **Analyze with AI** on an event, incident, finding or threat model, and decide its
+proposals on the **AI Security** page. `make smoke` now runs 69 checks; with `offline` it also
+analyses an injection event and rejects whatever it proposes. It never calls Bedrock.
 
 ## Upgrading from v0.5.0 (Phase 8) to v0.6.0 (Phase 10)
 
@@ -178,6 +206,8 @@ make create-admin EMAIL=you@example.com
 | Generate simulated attack activity | Automation page (admin or security engineer), or `POST /api/v1/simulator/runs` |
 | Regenerate the governance catalogue after editing the threat model or controls | `make governance-catalogue` |
 | Regenerate the scan gate's accepted risks from approved exceptions (stack running) | `make accepted-risks` |
+| Check the AI provider against the output contract (stack running) | `make ai-check` |
+| Short-lived AWS credentials for Bedrock / remove them | `make bedrock-credentials` / `make bedrock-credentials-clear` |
 
 ## Exposure rules
 
@@ -209,3 +239,7 @@ make create-admin EMAIL=you@example.com
 | "This incident changed since you loaded it" | Someone (or another tab) changed it first | Select Reload, then repeat the action |
 | `test_the_shipped_catalogue_is_exactly_what_the_documents_produce` fails | The threat model or controls document changed without regenerating | `make governance-catalogue` and commit the JSON |
 | No Approve button on your own exception or change request | Separation of duties: whoever asks cannot approve | A different lead decides |
+| `ModuleNotFoundError: No module named 'boto3'` (or another package) in `make check` | The local virtual environment predates a new dependency | `make install` with the virtual environment active |
+| `AI analysis is switched off` | `SENTINEL_AI_PROVIDER=disabled` (the default) | Set `offline` or `bedrock` in `.env`, then `docker compose up -d api` |
+| `AI quota reached` | A daily AI limit was reached | Wait, or raise the limit in `.env` deliberately |
+| `make ai-check` says `No AWS credentials` or `expired` | No Bedrock session, or it ended | `make bedrock-credentials`, then `docker compose up -d api` |

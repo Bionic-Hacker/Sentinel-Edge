@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { AuditLogsPage } from "../features/admin/AuditLogsPage";
+import { AiSecurityPage } from "../features/ai/AiSecurityPage";
+import { AnalysisPage } from "../features/ai/AnalysisPage";
 import { SettingsPage } from "../features/admin/SettingsPage";
 import { ApiSecurityPage } from "../features/api-security/ApiSecurityPage";
 import { SbomPage } from "../features/appsec/SbomPage";
@@ -42,6 +44,7 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   "/sbom": SbomPage,
   "/threat-modeling": ThreatModelingPage,
   "/compliance": CompliancePage,
+  "/ai-security": AiSecurityPage,
 };
 
 export function AppRoutes() {
@@ -71,6 +74,7 @@ export function AppRoutes() {
           <Route path="/threat-modeling/:modelId" element={<ThreatModelPage />} />
           <Route path="/compliance/exceptions/:exceptionId" element={<ExceptionDetailPage />} />
           <Route path="/compliance/changes/:changeId" element={<ChangeDetailPage />} />
+          <Route path="/ai-security/analyses/:analysisId" element={<AnalysisPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

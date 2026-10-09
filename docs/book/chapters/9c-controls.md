@@ -56,6 +56,13 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-GOV-08 | Governance decisions final (triggers); nothing deletable by the app role | `test_the_database_refuses_self_approval_and_rewritten_decisions` |
 | C-GOV-09 | The scan gate's accepted risks generated from approved exceptions | `test_approved_scan_finding_exceptions_become_the_gate_register` |
 | C-GOV-10 | Explainable posture score: coverage minus named signals, method published | `test_the_method_is_published_with_the_score`, `test_live_signals_deduct_points_and_name_their_records` |
+| C-AI-01 | Untrusted data delimited under a per-call nonce; allow-listed fields; prompt-risk scoring | `test_injection_corpus_scores_high`, `test_untrusted_data_cannot_close_its_delimiter` |
+| C-AI-02 | Output contract: verbatim evidence, known controls, allowed actions; rejected, never repaired | `test_evidence_must_quote_the_input_verbatim`, `test_a_compromised_model_cannot_act_or_lie_about_evidence` |
+| C-AI-03 | AI text and quoted attacker data rendered as text only; responses validated | `ai.test.tsx` |
+| C-AI-04 | Minimisation and pseudonymisation before a model sees anything | `test_addresses_and_emails_are_pseudonymised` |
+| C-AI-05 | Tighten-only proposals; a lead approves, the action runs as that person; decisions final | `test_a_lead_approves_proposals_and_the_actions_run`, `test_the_record_cannot_be_rewritten` |
+| C-AI-06 | Limits checked before every call; viewers cannot analyse; every call audited | `test_quotas_are_checked_before_the_call`, `test_who_may_analyse_what` |
+| C-AI-07 | Bedrock least privilege; session credentials; AWS errors kept out | `test_aws_errors_become_our_own_words` |
 | C-SO-01 | Append-only security events; write-once incident links | `test_app_role_cannot_alter_or_remove_events`, `test_evidence_links_are_write_once` |
 | C-SO-02 | Detect-only HTTP analysis, redaction, inspection exclusions | `test_http_analysis.py`, `test_inspection_exclusions_name_real_routes_and_fields` |
 | C-SO-03 | ReDoS-safe detection patterns | `test_rules_are_linear_on_adversarial_input` |

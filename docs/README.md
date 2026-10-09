@@ -7,7 +7,7 @@ system that doesn't exist yet as if it did.
 |---|---|---|
 | [book/](book/) | **The engineering book (PDF):** build plan, blueprint, phases as built, reproduction guide | Rebuilt every release |
 | [architecture.md](architecture.md) | Target and local architecture, components, data model, roles | Phase 1 |
-| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.6 (Phase 10) |
+| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.7 (Phase 9) |
 | [security-controls.md](security-controls.md) | Defense-in-depth layers, control catalogue, control matrix | Phase 1; updated every phase |
 | [feature-classification.md](feature-classification.md) | REAL_AWS / LOCAL / SIMULATED / DEMO rules and register | Phase 1 |
 | [security-headers.md](security-headers.md) | Every header and why it is set | Phase 1 |
@@ -16,8 +16,9 @@ system that doesn't exist yet as if it did.
 | [authorization.md](authorization.md) | Roles and the endpoint permission matrix | Phase 2 |
 | [governance/exceptions.md](governance/exceptions.md) | Where security exceptions live now (the application) and the rules they follow | Phase 2; moved to the app in Phase 10 |
 | [api-security.md](api-security.md) | API Security Center, metrics, OWASP API Top 10 coverage, SSRF guard | Phase 6 |
-| [adr/](adr/) | Architecture decision records 0001–0023 | Phase 1–10 |
-| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); governance (Phase 10) | Phase 2, 7, 8, 10 |
+| [bedrock-setup.md](bedrock-setup.md) | Using Amazon Bedrock for the AI engine: least-privilege IAM, short-lived credentials, cost bounds | Phase 9 |
+| [adr/](adr/) | Architecture decision records 0001–0024 | Phase 1–10 |
+| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); AI prompt injection (Phase 9); governance (Phase 10) | Phase 2, 7–10 |
 | aws-security.md | IAM roles, network, KMS, CloudTrail | Phase 3–4 |
 | terraform-security.md | Module design, state, Checkov policy | Phase 3 |
 | cost.md | Resource inventory, estimates, destroy procedure | Phase 3–4 |
@@ -28,5 +29,5 @@ system that doesn't exist yet as if it did.
 | vulnerability-management.md | Sources, severity, SLAs, statuses | Phase 8 |
 | sbom.md | Generation, storage, use | Phase 8 |
 | devsecops.md | Pipeline stages and gates | Phase 8, 11 |
-| ai-security.md | Bedrock integration, guardrails, approval | Phase 9 |
+| [ai-security.md](ai-security.md) | The AI engine: what it sends, providers, limits, roles, safeguards, endpoints | Phase 9 |
 | disaster-recovery.md | Backups, restore, RTO/RPO | Phase 12 |

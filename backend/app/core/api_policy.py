@@ -92,6 +92,8 @@ CREDENTIAL_CHANGE = RateLimitPolicy("credential_change", 10, 300, LimitScope.USE
 READ = RateLimitPolicy("read", 120, 60, LimitScope.USER)
 ADMIN_WRITE = RateLimitPolicy("admin_write", 30, 60, LimitScope.USER)
 EXPENSIVE = RateLimitPolicy("expensive", 6, 60, LimitScope.USER)
+# AI analyses: each one may call a paid model; daily quotas apply on top (app.services.ai).
+AI_ANALYSIS = RateLimitPolicy("ai_analysis", 5, 60, LimitScope.USER)
 # Incident work: notes, transitions, assignment and evidence links by an investigator.
 INVESTIGATION = RateLimitPolicy("investigation", 60, 60, LimitScope.USER)
 # Not an endpoint policy: bounds how many attack-detection events one source IP can create, so a
@@ -110,6 +112,7 @@ ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     READ,
     ADMIN_WRITE,
     EXPENSIVE,
+    AI_ANALYSIS,
     INVESTIGATION,
     DETECTION_EVENTS,
 )
@@ -670,6 +673,55 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         "Planned security changes; simulated WAF state",
         object_rule="Approval and rejection by a lead other than the requester; validation "
         "by a lead; moves that end work need a note; version must match",
+    ),
+    ("GET", "/api/v1/ai/status"): EndpointPolicy(
+        "AI engine status: provider, model and your remaining quota",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API4),
+        "Usage counts",
+    ),
+    ("POST", "/api/v1/ai/analyses"): EndpointPolicy(
+        "Analyse a security event, incident, finding or threat model with the AI engine",
+        Risk.HIGH,
+        AI_ANALYSIS,
+        (A.API1, A.API4, A.API6, A.API10),
+        "Minimised, pseudonymised security data sent to the model",
+        object_rule="Subject visibility as on its own page; developers: findings and threat "
+        "models of their own applications; per-user and platform daily quotas",
+    ),
+    ("GET", "/api/v1/ai/analyses"): EndpointPolicy(
+        "AI analyses with their outcome and prompt-risk score",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "AI output about security data",
+        object_rule="Developers see only analyses of their own applications",
+    ),
+    ("GET", "/api/v1/ai/analyses/{analysis_id}"): EndpointPolicy(
+        "Read an AI analysis: evidence, inference, proposals",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "AI output about security data",
+        object_rule="Developers see only analyses of their own applications",
+    ),
+    ("GET", "/api/v1/ai/proposals"): EndpointPolicy(
+        "Actions the AI proposed, awaiting or after a human decision",
+        Risk.MEDIUM,
+        READ,
+        (A.API1, A.API3),
+        "Proposed actions",
+        object_rule="Developers see only proposals from their own applications' analyses",
+    ),
+    ("POST", "/api/v1/ai/proposals/{proposal_id}/decision"): EndpointPolicy(
+        "Approve (and run) or reject an AI-proposed action",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API5, A.API6),
+        "Incidents, change requests, threats created on approval",
+        object_rule="Decided once; the action is re-checked and runs as the approver; a high "
+        "prompt-risk input needs a written reason; version must match",
     ),
     ("GET", "/api/v1/audit-logs/verify"): EndpointPolicy(
         "Verify the audit hash chain",

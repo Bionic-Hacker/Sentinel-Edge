@@ -14,7 +14,7 @@ from it in either direction.
 | ANALYST | Incident investigation | No |
 | VIEWER | Read-only | No |
 
-## Endpoint matrix (Phase 10)
+## Endpoint matrix (Phase 9)
 
 ✓ = allowed. "Setup" = any signed-in user, even before finishing forced setup.
 
@@ -54,6 +54,10 @@ from it in either direction.
 | `POST /exceptions`, `/change-requests` | | | ✓ | ✓ | ✓ own⁵ | | |
 | `POST /exceptions/{id}/decision` | | | ✓⁸ | ✓⁸ | | | |
 | `POST /exceptions/{id}/close`, `/change-requests/{id}/transition` | | | ✓⁸ | ✓⁸ | ✓ own⁸ | | |
+| `GET /ai/status` | | | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `POST /ai/analyses` | | | ✓⁹ | ✓⁹ | ✓ own⁹ | ✓⁹ | |
+| `GET /ai/analyses`, `/ai/analyses/{id}`, `/ai/proposals` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
+| `POST /ai/proposals/{id}/decision` | | | ✓¹⁰ | ✓¹⁰ | | | |
 
 1. Same-origin only: requires an allowed `Origin` and the `X-SentinelEdge-CSRF` header.
 2. Object-level check (OWASP API1): any other ID returns the same 404 as a non-existent one, and
@@ -62,12 +66,18 @@ from it in either direction.
    admin can't be removed.
 4. Object-level workflow rules apply on top of the role check; see the incident matrix below.
 5. Developers see only the applications they own, and only those applications' findings, scans,
-   SBOMs, threat models, exceptions and change requests. Any other ID returns 404, audited as
+   SBOMs, threat models, exceptions, change requests, and AI analyses and proposals about them. Any
+   other ID returns 404, audited as
    `authz.denied`.
 6. Status rules apply on top of the role check; see the finding matrix below.
 7. Not on SentinelEdge's own threat model, which is maintained as code (409 `maintained_as_code`).
 8. Separation of duties and workflow rules apply on top of the role check; see the governance
    matrix below.
+9. The subject must be visible to the caller on its own page; developers analyse only findings
+   and threat models of their own applications. Never a VIEWER: the DAST scanner is one, so a scan
+   cannot spend AI tokens. Daily limits apply before any model call (429).
+10. Approval runs the proposed action as the approving lead, through its own workflow; a
+    proposal from a high prompt-risk input needs a written reason; rejection always does.
 
 ## Incident permission matrix (Phase 7)
 

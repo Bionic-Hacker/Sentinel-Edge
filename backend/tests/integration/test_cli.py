@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
 
 from app.cli import main
+from app.core.config import AIProvider
 from app.services.audit import AuditAction
 from tests.conftest import make_settings
 from tests.helpers import audit_entries, bearer, create_user, get_user, login
@@ -108,3 +109,23 @@ def test_prune_rate_limits(db_app: FastAPI, migrator_engine: Engine) -> None:
     code, output = _run("prune-rate-limits")
     assert code == 0
     assert output.strip() == "Removed 1 idle rate-limit buckets."
+
+
+def test_ai_check_runs_the_synthetic_analysis_through_the_contract(db_app: FastAPI) -> None:
+    out = io.StringIO()
+    code = main(["ai-check"], settings=make_settings(ai_provider=AIProvider.OFFLINE), out=out)
+    text_out = out.getvalue()
+    assert code == 0, text_out
+    assert "Provider offline" in text_out
+    # The synthetic input carries an instruction override, which the guardrails score.
+    assert "instruction_override" in text_out
+    assert "COMPLETED: classification sql_injection" in text_out
+    entries = audit_entries(db_app, AuditAction.AI_ANALYSIS_RUN)
+    assert entries[-1].actor_label == "system:ai-check"
+    assert entries[-1].details["usage"]["input"] > 0
+
+
+def test_ai_check_with_ai_disabled(db_app: FastAPI) -> None:
+    code, output = _run("ai-check")
+    assert code == 2
+    assert "AI is disabled" in output
