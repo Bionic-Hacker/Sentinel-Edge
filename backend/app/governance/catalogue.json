@@ -79,7 +79,7 @@
      "ref": "test_users_can_read_only_their_own_record"
     }
    ],
-   "evidence_text": "`test_users_can_read_only_their_own_record`",
+   "evidence_text": "test_users_can_read_only_their_own_record",
    "extensions": [
     {
      "evidence": [
@@ -88,8 +88,8 @@
        "ref": "test_developers_see_only_their_own_applications"
       }
      ],
-     "evidence_text": "`test_developers_see_only_their_own_applications`",
-     "implementation": "`app/services/applications.py`",
+     "evidence_text": "test_developers_see_only_their_own_applications",
+     "implementation": "app/services/applications.py",
      "phase": 7,
      "title": "Object-level authorization extended to applications (developers see only their own; 404, audited)"
     },
@@ -100,14 +100,14 @@
        "ref": "test_developers_work_only_on_their_own_applications"
       }
      ],
-     "evidence_text": "`test_developers_work_only_on_their_own_applications`",
-     "implementation": "`VulnerabilityService`",
+     "evidence_text": "test_developers_work_only_on_their_own_applications",
+     "implementation": "VulnerabilityService",
      "phase": 8,
      "title": "Object-level authorization extended to findings, scans and SBOMs (developers: own applications; 404, audited)"
     }
    ],
    "family": "API",
-   "implementation": "`UserService.get_user`",
+   "implementation": "UserService.get_user",
    "layer": "API authorization",
    "phase": 2,
    "ref": "C-API-01",
@@ -121,10 +121,10 @@
      "ref": "test_authz_matrix.py"
     }
    ],
-   "evidence_text": "`tests/security/test_authz_matrix.py` (incl. mutation check); [authorization.md](authorization.md)",
+   "evidence_text": "tests/security/test_authz_matrix.py (incl. mutation check); [authorization.md](authorization.md)",
    "extensions": [],
    "family": "API",
-   "implementation": "`require_roles`, `public_endpoint`, `authenticated_setup`",
+   "implementation": "require_roles, public_endpoint, authenticated_setup",
    "layer": "API authorization",
    "phase": 2,
    "ref": "C-API-02",
@@ -142,10 +142,10 @@
      "ref": "make smoke"
     }
    ],
-   "evidence_text": "`test_rate_limiting.py` (incl. 40-thread concurrency), `make smoke`",
+   "evidence_text": "test_rate_limiting.py (incl. 40-thread concurrency), make smoke",
    "extensions": [],
    "family": "API",
-   "implementation": "`app/security/rate_limit.py`, `app/core/rate_limiting.py`, ADR-0017",
+   "implementation": "app/security/rate_limit.py, app/core/rate_limiting.py, ADR-0017",
    "layer": null,
    "phase": 6,
    "ref": "C-API-03",
@@ -159,10 +159,10 @@
      "ref": "test_mass_assignment_style_extra_field_rejected"
     }
    ],
-   "evidence_text": "`test_mass_assignment_style_extra_field_rejected`",
+   "evidence_text": "test_mass_assignment_style_extra_field_rejected",
    "extensions": [],
    "family": "API",
-   "implementation": "Pydantic `extra=\"forbid\"` pattern",
+   "implementation": "Pydantic extra=\"forbid\" pattern",
    "layer": "Application validation",
    "phase": 1,
    "ref": "C-API-04",
@@ -176,10 +176,10 @@
      "ref": "client.test.ts"
     }
    ],
-   "evidence_text": "`client.test.ts`",
+   "evidence_text": "client.test.ts",
    "extensions": [],
    "family": "API",
-   "implementation": "`frontend/src/lib/api/client.ts`",
+   "implementation": "frontend/src/lib/api/client.ts",
    "layer": null,
    "phase": 1,
    "ref": "C-API-05",
@@ -193,10 +193,10 @@
      "ref": "test_error_handling.py"
     }
    ],
-   "evidence_text": "`tests/security/test_error_handling.py`",
+   "evidence_text": "tests/security/test_error_handling.py",
    "extensions": [],
    "family": "API",
-   "implementation": "`backend/app/core/errors.py`",
+   "implementation": "backend/app/core/errors.py",
    "layer": "Application validation",
    "phase": 1,
    "ref": "C-API-06",
@@ -214,10 +214,10 @@
      "ref": "test_config.py"
     }
    ],
-   "evidence_text": "`test_trusted_host.py`, `test_config.py`",
+   "evidence_text": "test_trusted_host.py, test_config.py",
    "extensions": [],
    "family": "API",
-   "implementation": "`TrustedHostMiddleware`, config validator",
+   "implementation": "TrustedHostMiddleware, config validator",
    "layer": null,
    "phase": 1,
    "ref": "C-API-07",
@@ -231,10 +231,10 @@
      "ref": "test_api_docs_forced_off_when_deployed"
     }
    ],
-   "evidence_text": "`test_api_docs_forced_off_when_deployed`",
+   "evidence_text": "test_api_docs_forced_off_when_deployed",
    "extensions": [],
    "family": "API",
-   "implementation": "`Settings._enforce_secure_defaults`",
+   "implementation": "Settings._enforce_secure_defaults",
    "layer": null,
    "phase": 1,
    "ref": "C-API-08",
@@ -248,10 +248,10 @@
      "ref": "test_registry_matches_the_route_table"
     }
    ],
-   "evidence_text": "`test_registry_matches_the_route_table`",
+   "evidence_text": "test_registry_matches_the_route_table",
    "extensions": [],
    "family": "API",
-   "implementation": "`app/core/api_policy.py`",
+   "implementation": "app/core/api_policy.py",
    "layer": null,
    "phase": 6,
    "ref": "C-API-09",
@@ -265,10 +265,10 @@
      "ref": "test_api_inventory.py"
     }
    ],
-   "evidence_text": "`test_api_inventory.py`",
+   "evidence_text": "test_api_inventory.py",
    "extensions": [],
    "family": "API",
-   "implementation": "`app/services/api_inventory.py`, `app/core/api_metrics.py`",
+   "implementation": "app/services/api_inventory.py, app/core/api_metrics.py",
    "layer": null,
    "phase": 6,
    "ref": "C-API-10",
@@ -282,7 +282,7 @@
      "ref": "test_api_protections.py"
     }
    ],
-   "evidence_text": "`test_api_protections.py`",
+   "evidence_text": "test_api_protections.py",
    "extensions": [],
    "family": "API",
    "implementation": "—",
@@ -299,10 +299,10 @@
      "ref": "test_egress.py"
     }
    ],
-   "evidence_text": "`test_egress.py`",
+   "evidence_text": "test_egress.py",
    "extensions": [],
    "family": "API",
-   "implementation": "`app/security/egress.py`",
+   "implementation": "app/security/egress.py",
    "layer": null,
    "phase": 6,
    "ref": "C-API-12",
@@ -314,7 +314,7 @@
    "evidence_text": "CI",
    "extensions": [],
    "family": "API",
-   "implementation": "`tests/unit/test_frontend_contract.py`",
+   "implementation": "tests/unit/test_frontend_contract.py",
    "layer": null,
    "phase": 8,
    "ref": "C-API-13",
@@ -328,10 +328,10 @@
      "ref": "test_audit_log.py"
     }
    ],
-   "evidence_text": "`test_audit_log.py` (tamper detection, 8 concurrent writers)",
+   "evidence_text": "test_audit_log.py (tamper detection, 8 concurrent writers)",
    "extensions": [],
    "family": "AUD",
-   "implementation": "`app/services/audit.py`",
+   "implementation": "app/services/audit.py",
    "layer": "Logging",
    "phase": 2,
    "ref": "C-AUD-01",
@@ -349,7 +349,7 @@
      "ref": "test_trigger_blocks_even_the_table_owner"
     }
    ],
-   "evidence_text": "`test_app_role_cannot_alter_audit_history`, `test_trigger_blocks_even_the_table_owner`",
+   "evidence_text": "test_app_role_cannot_alter_audit_history, test_trigger_blocks_even_the_table_owner",
    "extensions": [],
    "family": "AUD",
    "implementation": "Migration 0002",
@@ -376,19 +376,19 @@
    "evidence_text": "CI job \"backend\"",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`pyproject.toml`, CI",
+   "implementation": "pyproject.toml, CI",
    "layer": "CI/CD security",
    "phase": 1,
    "ref": "C-CICD-01",
    "status": "implemented",
-   "title": "SAST: Bandit + Ruff `S` rules"
+   "title": "SAST: Bandit + Ruff S rules"
   },
   {
    "evidence": [],
    "evidence_text": "No known vulnerabilities at commit time",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`requirements.txt`, `package-lock.json`, CI",
+   "implementation": "requirements.txt, package-lock.json, CI",
    "layer": "CI/CD security",
    "phase": 1,
    "ref": "C-CICD-02",
@@ -400,7 +400,7 @@
    "evidence_text": "Workflow file",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`.github/workflows/ci.yml`",
+   "implementation": ".github/workflows/ci.yml",
    "layer": "CI/CD security",
    "phase": 1,
    "ref": "C-CICD-03",
@@ -412,7 +412,7 @@
    "evidence_text": "CI output",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`pytest --cov-fail-under=90`",
+   "implementation": "pytest --cov-fail-under=90",
    "layer": "CI/CD security",
    "phase": 1,
    "ref": "C-CICD-04",
@@ -424,12 +424,12 @@
    "evidence_text": "CI job output",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`ci.yml`, `Makefile`",
+   "implementation": "ci.yml, Makefile",
    "layer": null,
    "phase": 2,
    "ref": "C-CICD-05",
    "status": "implemented",
-   "title": "Schema drift gate (`alembic check`) in CI and `make test-backend`"
+   "title": "Schema drift gate (alembic check) in CI and make test-backend"
   },
   {
    "evidence": [
@@ -438,10 +438,10 @@
      "ref": "make scan"
     }
    ],
-   "evidence_text": "CI artifact `security-scans-<run>`; `make scan` output",
+   "evidence_text": "CI artifact security-scans-<run>; make scan output",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`scripts/scan.sh`, `make scan`, `make dast`, CI job `security-scans`",
+   "implementation": "scripts/scan.sh, make scan, make dast, CI job security-scans",
    "layer": null,
    "phase": 8,
    "ref": "C-CICD-06",
@@ -455,10 +455,10 @@
      "ref": "make scan-test"
     }
    ],
-   "evidence_text": "`make scan-test` (CI job `semgrep-rules`)",
+   "evidence_text": "make scan-test (CI job semgrep-rules)",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`scanning/semgrep/`",
+   "implementation": "scanning/semgrep/",
    "layer": null,
    "phase": 8,
    "ref": "C-CICD-07",
@@ -472,10 +472,10 @@
      "ref": "test_scanning.py"
     }
    ],
-   "evidence_text": "`test_scanning.py` (gate, expiry, `--expect`, coverage)",
+   "evidence_text": "test_scanning.py (gate, expiry, --expect, coverage)",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`app/scanning/gate.py`, `scanning/accepted-findings.toml`",
+   "implementation": "app/scanning/gate.py, scanning/accepted-findings.toml",
    "layer": null,
    "phase": 8,
    "ref": "C-CICD-08",
@@ -489,10 +489,10 @@
      "ref": "make image-digests"
     }
    ],
-   "evidence_text": "`make image-digests`",
+   "evidence_text": "make image-digests",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`scripts/scan.sh`, `scripts/image-digests.sh`",
+   "implementation": "scripts/scan.sh, scripts/image-digests.sh",
    "layer": null,
    "phase": 8,
    "ref": "C-CICD-09",
@@ -504,7 +504,7 @@
    "evidence_text": "Trivy image reports (CVE-2026-4775 fixed)",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`backend/Dockerfile`, `frontend/Dockerfile`",
+   "implementation": "backend/Dockerfile, frontend/Dockerfile",
    "layer": null,
    "phase": 8,
    "ref": "C-CICD-10",
@@ -522,10 +522,10 @@
      "ref": "test_openapi_document_lists_every_endpoint"
     }
    ],
-   "evidence_text": "`test_dast_scanner_session_is_read_only_and_revocable`, `test_openapi_document_lists_every_endpoint`",
+   "evidence_text": "test_dast_scanner_session_is_read_only_and_revocable, test_openapi_document_lists_every_endpoint",
    "extensions": [],
    "family": "CICD",
-   "implementation": "`app/cli.py` (`dast-session`, `openapi --server`), `scripts/scan.sh dast`",
+   "implementation": "app/cli.py (dast-session, openapi --server), scripts/scan.sh dast",
    "layer": null,
    "phase": 8,
    "ref": "C-CICD-11",
@@ -539,15 +539,15 @@
      "ref": "make verify-hardening"
     }
    ],
-   "evidence_text": "`make verify-hardening` against the running stack; Trivy in P8",
+   "evidence_text": "make verify-hardening against the running stack; Trivy in P8",
    "extensions": [],
    "family": "CNT",
-   "implementation": "`backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml`",
+   "implementation": "backend/Dockerfile, frontend/Dockerfile, docker-compose.yml",
    "layer": null,
    "phase": 1,
    "ref": "C-CNT-01",
    "status": "implemented",
-   "title": "Hardened containers: non-root, read-only FS, `cap_drop: ALL`, no-new-privileges, multi-stage, health checks"
+   "title": "Hardened containers: non-root, read-only FS, cap_drop: ALL, no-new-privileges, multi-stage, health checks"
   },
   {
    "evidence": [
@@ -556,10 +556,10 @@
      "ref": "test_database_roles.py"
     }
    ],
-   "evidence_text": "`test_database_roles.py` (privilege matrix)",
+   "evidence_text": "test_database_roles.py (privilege matrix)",
    "extensions": [],
    "family": "DB",
-   "implementation": "`db/bootstrap-roles.sh`, migrations, ADR-0015",
+   "implementation": "db/bootstrap-roles.sh, migrations, ADR-0015",
    "layer": "Database security",
    "phase": 2,
    "ref": "C-DB-01",
@@ -576,7 +576,7 @@
    "phase": 4,
    "ref": "C-DB-02",
    "status": "planned",
-   "title": "Encryption at rest (KMS) and in transit (`rds.force_ssl`)"
+   "title": "Encryption at rest (KMS) and in transit (rds.force_ssl)"
   },
   {
    "evidence": [
@@ -585,7 +585,7 @@
      "ref": "test_deployed_environments_require_verified_database_tls"
     }
    ],
-   "evidence_text": "`test_deployed_environments_require_verified_database_tls`",
+   "evidence_text": "test_deployed_environments_require_verified_database_tls",
    "extensions": [],
    "family": "DB",
    "implementation": "Config validator",
@@ -629,7 +629,7 @@
    "phase": 5,
    "ref": "C-EDGE-01",
    "status": "planned",
-   "title": "CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge"
+   "title": "CloudFront TLS policy TLSv1.2_2021 and HSTS at the edge"
   },
   {
    "evidence": [],
@@ -662,10 +662,10 @@
      "ref": "test_capabilities.py"
     }
    ],
-   "evidence_text": "`tests/unit/test_capabilities.py`",
+   "evidence_text": "tests/unit/test_capabilities.py",
    "extensions": [],
    "family": "GOV",
-   "implementation": "`app/core/capabilities.py`",
+   "implementation": "app/core/capabilities.py",
    "layer": null,
    "phase": 1,
    "ref": "C-GOV-01",
@@ -677,7 +677,7 @@
    "evidence_text": "Branch protection (configured on GitHub)",
    "extensions": [],
    "family": "GOV",
-   "implementation": "`.github/CODEOWNERS`, PR template",
+   "implementation": ".github/CODEOWNERS, PR template",
    "layer": null,
    "phase": 1,
    "ref": "C-GOV-02",
@@ -703,13 +703,13 @@
     {
      "evidence": [],
      "evidence_text": "EXC-0001, EXC-0002",
-     "implementation": "`docs/governance/exceptions.md`",
+     "implementation": "docs/governance/exceptions.md",
      "phase": 2,
      "title": "Security exceptions recorded with justification, compensating control and expiry"
     }
    ],
    "family": "GOV",
-   "implementation": "`docs/governance/exceptions.md`; exception IDs in implementing config",
+   "implementation": "docs/governance/exceptions.md; exception IDs in implementing config",
    "layer": null,
    "phase": 1,
    "ref": "C-GOV-04",
@@ -723,10 +723,10 @@
      "ref": "test_owasp_coverage.py"
     }
    ],
-   "evidence_text": "`test_owasp_coverage.py`",
+   "evidence_text": "test_owasp_coverage.py",
    "extensions": [],
    "family": "GOV",
-   "implementation": "`app/core/owasp_coverage.py`",
+   "implementation": "app/core/owasp_coverage.py",
    "layer": null,
    "phase": 6,
    "ref": "C-GOV-05",
@@ -743,7 +743,7 @@
    "phase": 3,
    "ref": "C-IAC-01",
    "status": "planned",
-   "title": "Per-environment Terraform roots with `allowed_account_ids` guards (ADR-0014)"
+   "title": "Per-environment Terraform roots with allowed_account_ids guards (ADR-0014)"
   },
   {
    "evidence": [],
@@ -804,10 +804,10 @@
      "ref": "test_config.py"
     }
    ],
-   "evidence_text": "`test_security_primitives.py`, `test_config.py`",
+   "evidence_text": "test_security_primitives.py, test_config.py",
    "extensions": [],
    "family": "ID",
-   "implementation": "`app/security/passwords.py`, config validator",
+   "implementation": "app/security/passwords.py, config validator",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-01",
@@ -821,10 +821,10 @@
      "ref": "test_forged_or_invalid_tokens_rejected"
     }
    ],
-   "evidence_text": "`test_forged_or_invalid_tokens_rejected` (alg none, substitution, wrong key/aud/iss/type, expired)",
+   "evidence_text": "test_forged_or_invalid_tokens_rejected (alg none, substitution, wrong key/aud/iss/type, expired)",
    "extensions": [],
    "family": "ID",
-   "implementation": "`app/security/tokens.py`, `app/core/authz.py`",
+   "implementation": "app/security/tokens.py, app/core/authz.py",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-02",
@@ -842,15 +842,15 @@
      "ref": "make smoke"
     }
    ],
-   "evidence_text": "`test_auth_sessions.py`, `make smoke`",
+   "evidence_text": "test_auth_sessions.py, make smoke",
    "extensions": [],
    "family": "ID",
-   "implementation": "`app/services/auth.py`, `app/api/v1/auth.py`",
+   "implementation": "app/services/auth.py, app/api/v1/auth.py",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-03",
    "status": "implemented",
-   "title": "Rotating refresh tokens, `__Host-` HttpOnly Secure SameSite=Strict cookie, reuse revokes session"
+   "title": "Rotating refresh tokens, __Host- HttpOnly Secure SameSite=Strict cookie, reuse revokes session"
   },
   {
    "evidence": [
@@ -859,10 +859,10 @@
      "ref": "test_auth_mfa.py"
     }
    ],
-   "evidence_text": "`test_auth_mfa.py`",
+   "evidence_text": "test_auth_mfa.py",
    "extensions": [],
    "family": "ID",
-   "implementation": "`app/security/mfa.py`",
+   "implementation": "app/security/mfa.py",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-04",
@@ -876,10 +876,10 @@
      "ref": "test_auth_login.py"
     }
    ],
-   "evidence_text": "`test_auth_login.py`",
+   "evidence_text": "test_auth_login.py",
    "extensions": [],
    "family": "ID",
-   "implementation": "`AuthService.login`",
+   "implementation": "AuthService.login",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-05",
@@ -893,10 +893,10 @@
      "ref": "test_cross_site_requests_rejected"
     }
    ],
-   "evidence_text": "`test_cross_site_requests_rejected`",
+   "evidence_text": "test_cross_site_requests_rejected",
    "extensions": [],
    "family": "ID",
-   "implementation": "`require_same_origin`",
+   "implementation": "require_same_origin",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-06",
@@ -914,10 +914,10 @@
      "ref": "auth-flows.test.tsx"
     }
    ],
-   "evidence_text": "`test_auth_password_reset.py`, `auth-flows.test.tsx`",
+   "evidence_text": "test_auth_password_reset.py, auth-flows.test.tsx",
    "extensions": [],
    "family": "ID",
-   "implementation": "`request_password_reset`, `reset_password`; SPA strips the fragment",
+   "implementation": "request_password_reset, reset_password; SPA strips the fragment",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-07",
@@ -935,10 +935,10 @@
      "ref": "test_users_mid_setup_are_held_at_setup"
     }
    ],
-   "evidence_text": "`test_cli.py`, `test_users_mid_setup_are_held_at_setup`",
+   "evidence_text": "test_cli.py, test_users_mid_setup_are_held_at_setup",
    "extensions": [],
    "family": "ID",
-   "implementation": "`app/cli.py`, `pending_steps`",
+   "implementation": "app/cli.py, pending_steps",
    "layer": null,
    "phase": 2,
    "ref": "C-ID-08",
@@ -952,10 +952,10 @@
      "ref": "session.test.ts"
     }
    ],
-   "evidence_text": "`session.test.ts`; Chromium check: empty web storage, cookie invisible to JS",
+   "evidence_text": "session.test.ts; Chromium check: empty web storage, cookie invisible to JS",
    "extensions": [],
    "family": "ID",
-   "implementation": "`frontend/src/lib/auth/session.ts`",
+   "implementation": "frontend/src/lib/auth/session.ts",
    "layer": null,
    "phase": 2,
    "ref": "C-ID-09",
@@ -985,10 +985,10 @@
      "ref": "test_correlation_id.py"
     }
    ],
-   "evidence_text": "`test_logging.py`, `test_correlation_id.py`",
+   "evidence_text": "test_logging.py, test_correlation_id.py",
    "extensions": [],
    "family": "LOG",
-   "implementation": "`backend/app/core/logging.py`, `correlation.py`",
+   "implementation": "backend/app/core/logging.py, correlation.py",
    "layer": "Logging",
    "phase": 1,
    "ref": "C-LOG-01",
@@ -1002,10 +1002,10 @@
      "ref": "test_logging.py"
     }
    ],
-   "evidence_text": "`test_logging.py`",
+   "evidence_text": "test_logging.py",
    "extensions": [],
    "family": "LOG",
-   "implementation": "`redact()`",
+   "implementation": "redact()",
    "layer": "Logging",
    "phase": 1,
    "ref": "C-LOG-02",
@@ -1017,7 +1017,7 @@
    "evidence_text": "Code review; access log fields",
    "extensions": [],
    "family": "LOG",
-   "implementation": "`SecurityMiddleware`",
+   "implementation": "SecurityMiddleware",
    "layer": "Logging",
    "phase": 1,
    "ref": "C-LOG-03",
@@ -1043,10 +1043,10 @@
      "ref": "make verify-hardening"
     }
    ],
-   "evidence_text": "`make verify-hardening`",
+   "evidence_text": "make verify-hardening",
    "extensions": [],
    "family": "NET",
-   "implementation": "`docker-compose.yml`",
+   "implementation": "docker-compose.yml",
    "layer": null,
    "phase": 1,
    "ref": "C-NET-00",
@@ -1088,22 +1088,22 @@
      "ref": "make smoke"
     }
    ],
-   "evidence_text": "`test_client_ip.py`, `make smoke`",
+   "evidence_text": "test_client_ip.py, make smoke",
    "extensions": [],
    "family": "NET",
-   "implementation": "`app/core/client_ip.py`, pinned edge subnet, nginx overwrite",
+   "implementation": "app/core/client_ip.py, pinned edge subnet, nginx overwrite",
    "layer": null,
    "phase": 6,
    "ref": "C-NET-03",
    "status": "implemented",
-   "title": "Client IP from `X-Forwarded-For` only via trusted proxy networks, chain walked right to left"
+   "title": "Client IP from X-Forwarded-For only via trusted proxy networks, chain walked right to left"
   },
   {
    "evidence": [],
    "evidence_text": "Gitleaks run: no leaks",
    "extensions": [],
    "family": "SEC",
-   "implementation": "`.gitleaks.toml`, `.pre-commit-config.yaml`, `ci.yml`",
+   "implementation": ".gitleaks.toml, .pre-commit-config.yaml, ci.yml",
    "layer": "Secrets management",
    "phase": 1,
    "ref": "C-SEC-01",
@@ -1112,10 +1112,10 @@
   },
   {
    "evidence": [],
-   "evidence_text": "`.gitignore`; Gitleaks",
+   "evidence_text": ".gitignore; Gitleaks",
    "extensions": [],
    "family": "SEC",
-   "implementation": "`.env.example` placeholders, `make env` (random, mode 600)",
+   "implementation": ".env.example placeholders, make env (random, mode 600)",
    "layer": "Secrets management",
    "phase": 1,
    "ref": "C-SEC-02",
@@ -1124,10 +1124,10 @@
   },
   {
    "evidence": [],
-   "evidence_text": "`docker compose config` review",
+   "evidence_text": "docker compose config review",
    "extensions": [],
    "family": "SEC",
-   "implementation": "`docker-compose.yml`",
+   "implementation": "docker-compose.yml",
    "layer": null,
    "phase": 2,
    "ref": "C-SEC-03",
@@ -1145,15 +1145,15 @@
      "ref": "test_evidence_links_are_write_once"
     }
    ],
-   "evidence_text": "`test_app_role_cannot_alter_or_remove_events`, `test_evidence_links_are_write_once`",
+   "evidence_text": "test_app_role_cannot_alter_or_remove_events, test_evidence_links_are_write_once",
    "extensions": [],
    "family": "SO",
-   "implementation": "Migrations 0006 and 0007, `app/models/security_event.py`",
+   "implementation": "Migrations 0006 and 0007, app/models/security_event.py",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-01",
    "status": "implemented",
-   "title": "Append-only security events; `incident_id` write-once (trigger)"
+   "title": "Append-only security events; incident_id write-once (trigger)"
   },
   {
    "evidence": [
@@ -1170,10 +1170,10 @@
      "ref": "test_inspection_exclusions_name_real_routes_and_fields"
     }
    ],
-   "evidence_text": "`test_http_analysis.py`, `test_sensitive_query_parameters_are_redacted`, `test_inspection_exclusions_name_real_routes_and_fields`",
+   "evidence_text": "test_http_analysis.py, test_sensitive_query_parameters_are_redacted, test_inspection_exclusions_name_real_routes_and_fields",
    "extensions": [],
    "family": "SO",
-   "implementation": "`app/security/http_analysis.py`, `app/core/http_inspection.py`",
+   "implementation": "app/security/http_analysis.py, app/core/http_inspection.py",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-02",
@@ -1187,7 +1187,7 @@
      "ref": "test_rules_are_linear_on_adversarial_input"
     }
    ],
-   "evidence_text": "`test_rules_are_linear_on_adversarial_input`",
+   "evidence_text": "test_rules_are_linear_on_adversarial_input",
    "extensions": [],
    "family": "SO",
    "implementation": "Linear-time rules, input bounds",
@@ -1208,10 +1208,10 @@
      "ref": "test_detections_never_cross_provenance"
     }
    ],
-   "evidence_text": "`test_concurrent_failures_raise_exactly_one_detection_and_incident` (30 threads), `test_detections_never_cross_provenance`",
+   "evidence_text": "test_concurrent_failures_raise_exactly_one_detection_and_incident (30 threads), test_detections_never_cross_provenance",
    "extensions": [],
    "family": "SO",
-   "implementation": "`app/services/correlation.py`",
+   "implementation": "app/services/correlation.py",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-04",
@@ -1229,15 +1229,15 @@
      "ref": "secops.test.tsx"
     }
    ],
-   "evidence_text": "`test_incidents.py` (workflow table, analysts and viewers), `secops.test.tsx`",
+   "evidence_text": "test_incidents.py (workflow table, analysts and viewers), secops.test.tsx",
    "extensions": [],
    "family": "SO",
-   "implementation": "`app/services/incidents.py`",
+   "implementation": "app/services/incidents.py",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-05",
    "status": "implemented",
-   "title": "Incident workflow and role rules enforced on the server; UI renders `available_moves` and `permissions`"
+   "title": "Incident workflow and role rules enforced on the server; UI renders available_moves and permissions"
   },
   {
    "evidence": [
@@ -1254,10 +1254,10 @@
      "ref": "test_app_role_cannot_rewrite_incident_records"
     }
    ],
-   "evidence_text": "`test_tampering_with_the_timeline_is_detected`, `test_deleting_a_timeline_entry_is_detected`, `test_app_role_cannot_rewrite_incident_records`",
+   "evidence_text": "test_tampering_with_the_timeline_is_detected, test_deleting_a_timeline_entry_is_detected, test_app_role_cannot_rewrite_incident_records",
    "extensions": [],
    "family": "SO",
-   "implementation": "`verify_timeline`, migration 0007",
+   "implementation": "verify_timeline, migration 0007",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-06",
@@ -1275,15 +1275,15 @@
      "ref": "secops.test.tsx"
     }
    ],
-   "evidence_text": "`test_stale_writes_are_refused`; UI reload prompt in `secops.test.tsx`",
+   "evidence_text": "test_stale_writes_are_refused; UI reload prompt in secops.test.tsx",
    "extensions": [],
    "family": "SO",
-   "implementation": "`version` columns",
+   "implementation": "version columns",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-07",
    "status": "implemented",
-   "title": "Optimistic concurrency on incidents and applications (409 `stale_version`)"
+   "title": "Optimistic concurrency on incidents and applications (409 stale_version)"
   },
   {
    "evidence": [
@@ -1300,10 +1300,10 @@
      "ref": "test_simulations_never_appear_in_the_live_view"
     }
    ],
-   "evidence_text": "`test_a_simulation_cannot_be_given_a_target`, `test_every_scenario_produces_only_simulated_activity`, `test_simulations_never_appear_in_the_live_view`",
+   "evidence_text": "test_a_simulation_cannot_be_given_a_target, test_every_scenario_produces_only_simulated_activity, test_simulations_never_appear_in_the_live_view",
    "extensions": [],
    "family": "SO",
-   "implementation": "`app/services/simulator.py`",
+   "implementation": "app/services/simulator.py",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-08",
@@ -1317,10 +1317,10 @@
      "ref": "secops.test.tsx"
     }
    ],
-   "evidence_text": "`secops.test.tsx`: a `<script>` snippet renders as text; C-WEB-02, C-WEB-03",
+   "evidence_text": "secops.test.tsx: a <script> snippet renders as text; C-WEB-02, C-WEB-03",
    "extensions": [],
    "family": "SO",
-   "implementation": "`EvidenceText`, `ThreatsPage`",
+   "implementation": "EvidenceText, ThreatsPage",
    "layer": "Monitoring and detection",
    "phase": 7,
    "ref": "C-SO-09",
@@ -1334,10 +1334,10 @@
      "ref": "test_vulnerabilities.py"
     }
    ],
-   "evidence_text": "`test_vulnerabilities.py` (import, fixed and reopened, partial scans)",
+   "evidence_text": "test_vulnerabilities.py (import, fixed and reopened, partial scans)",
    "extensions": [],
    "family": "VM",
-   "implementation": "`app/services/vulnerabilities.py`, `app/scanning/findings.py`",
+   "implementation": "app/services/vulnerabilities.py, app/scanning/findings.py",
    "layer": "Vulnerability management",
    "phase": 8,
    "ref": "C-VM-01",
@@ -1355,10 +1355,10 @@
      "ref": "test_severity_change_keeps_the_original_sla_clock"
     }
    ],
-   "evidence_text": "`test_import_deduplicates_and_records_the_scan`, `test_severity_change_keeps_the_original_sla_clock`",
+   "evidence_text": "test_import_deduplicates_and_records_the_scan, test_severity_change_keeps_the_original_sla_clock",
    "extensions": [],
    "family": "VM",
-   "implementation": "`SLA`, overview",
+   "implementation": "SLA, overview",
    "layer": null,
    "phase": 8,
    "ref": "C-VM-02",
@@ -1380,10 +1380,10 @@
      "ref": "test_the_app_role_cannot_rewrite_the_record"
     }
    ],
-   "evidence_text": "`test_risk_acceptance_lifecycle`, `test_an_expired_acceptance_reopens_its_finding`, `test_the_app_role_cannot_rewrite_the_record`",
+   "evidence_text": "test_risk_acceptance_lifecycle, test_an_expired_acceptance_reopens_its_finding, test_the_app_role_cannot_rewrite_the_record",
    "extensions": [],
    "family": "VM",
-   "implementation": "Migration 0009 (column grants, partial unique index), `accept_risk`",
+   "implementation": "Migration 0009 (column grants, partial unique index), accept_risk",
    "layer": null,
    "phase": 8,
    "ref": "C-VM-03",
@@ -1405,10 +1405,10 @@
      "ref": "test_cli_import"
     }
    ],
-   "evidence_text": "`test_import_is_all_or_nothing`, `test_scanner_text_is_bounded_and_control_characters_replaced`, `test_cli_import`",
+   "evidence_text": "test_import_is_all_or_nothing, test_scanner_text_is_bounded_and_control_characters_replaced, test_cli_import",
    "extensions": [],
    "family": "VM",
-   "implementation": "`app/schemas/vulnerabilities.py`, `import-scan`",
+   "implementation": "app/schemas/vulnerabilities.py, import-scan",
    "layer": null,
    "phase": 8,
    "ref": "C-VM-04",
@@ -1426,10 +1426,10 @@
      "ref": "test_events_per_import_are_bounded"
     }
    ],
-   "evidence_text": "`test_new_critical_findings_are_security_events_and_fixable_ones_open_an_incident`, `test_events_per_import_are_bounded`",
+   "evidence_text": "test_new_critical_findings_are_security_events_and_fixable_ones_open_an_incident, test_events_per_import_are_bounded",
    "extensions": [],
    "family": "VM",
-   "implementation": "`_report_events`",
+   "implementation": "_report_events",
    "layer": null,
    "phase": 8,
    "ref": "C-VM-05",
@@ -1447,10 +1447,10 @@
      "ref": "appsec.test.tsx"
     }
    ],
-   "evidence_text": "`test_scans_and_sboms`, `appsec.test.tsx`",
+   "evidence_text": "test_scans_and_sboms, appsec.test.tsx",
    "extensions": [],
    "family": "VM",
-   "implementation": "`Sbom`, `/api/v1/sboms`",
+   "implementation": "Sbom, /api/v1/sboms",
    "layer": null,
    "phase": 8,
    "ref": "C-VM-06",
@@ -1512,10 +1512,10 @@
      "ref": "test_security_headers.py"
     }
    ],
-   "evidence_text": "`tests/security/test_security_headers.py` (200, 404, 400, 500)",
+   "evidence_text": "tests/security/test_security_headers.py (200, 404, 400, 500)",
    "extensions": [],
    "family": "WEB",
-   "implementation": "`backend/app/core/security_headers.py`, `middleware.py`",
+   "implementation": "backend/app/core/security_headers.py, middleware.py",
    "layer": null,
    "phase": 1,
    "ref": "C-WEB-01",
@@ -1524,22 +1524,22 @@
   },
   {
    "evidence": [],
-   "evidence_text": "Build output has no inline scripts or styles; `docs/security-headers.md`",
+   "evidence_text": "Build output has no inline scripts or styles; docs/security-headers.md",
    "extensions": [],
    "family": "WEB",
-   "implementation": "`frontend/security-headers.conf`, `nginx.conf`",
+   "implementation": "frontend/security-headers.conf, nginx.conf",
    "layer": null,
    "phase": 1,
    "ref": "C-WEB-02",
    "status": "implemented",
-   "title": "SPA security headers, strict CSP (no `unsafe-inline`/`unsafe-eval`)"
+   "title": "SPA security headers, strict CSP (no unsafe-inline/unsafe-eval)"
   },
   {
    "evidence": [],
-   "evidence_text": "`npm run lint` in CI",
+   "evidence_text": "npm run lint in CI",
    "extensions": [],
    "family": "WEB",
-   "implementation": "`frontend/eslint.config.js` (`dangerouslySetInnerHTML`, `innerHTML`, `eval`, web storage)",
+   "implementation": "frontend/eslint.config.js (dangerouslySetInnerHTML, innerHTML, eval, web storage)",
    "layer": null,
    "phase": 1,
    "ref": "C-WEB-03",
@@ -1553,18 +1553,18 @@
      "ref": "make verify-hardening"
     }
    ],
-   "evidence_text": "`make verify-hardening`; ZAP rule 90004",
+   "evidence_text": "make verify-hardening; ZAP rule 90004",
    "extensions": [],
    "family": "WEB",
-   "implementation": "`security-headers.conf`, `security_headers.py`",
+   "implementation": "security-headers.conf, security_headers.py",
    "layer": null,
    "phase": 8,
    "ref": "C-WEB-04",
    "status": "implemented",
-   "title": "Cross-origin isolation: COOP `same-origin` and COEP `require-corp` on the SPA and the API"
+   "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "6355a0bbd519045efa62374b453962aecaaea2db9b1b04874d34eb2de538164b",
+ "digest": "372b57151470a54e2f37622784403ceefc7c306ed26e7b3bf5e701dc13719d64",
  "format": 1,
  "model": {
   "elements": [
@@ -1876,9 +1876,9 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 8)"
     },
-    "description": "One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).",
+    "description": "One HS256 signing key without kid: rotation signs everyone out (ADR-0003 addendum).",
     "kind": "residual_risk",
-    "name": "One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).",
+    "name": "One HS256 signing key without kid: rotation signs everyone out (ADR-0003 addendum).",
     "ref": "RR-4"
    },
    {
@@ -1957,18 +1957,18 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 8)"
     },
-    "description": "Accepted risks exist in two places until Phase 10: the gate's file register (`scanning/accepted-findings.toml`) and the in-application acceptances.",
+    "description": "Accepted risks exist in two places until Phase 10: the gate's file register (scanning/accepted-findings.toml) and the in-application acceptances.",
     "kind": "residual_risk",
-    "name": "Accepted risks exist in two places until Phase 10: the gate's file register (`scanning/accepted-findings.toml`) and the in-application acceptances.",
+    "name": "Accepted risks exist in two places until Phase 10: the gate's file register (scanning/accepted-findings.toml) and the in-application acceptances.",
     "ref": "RR-13"
    },
    {
     "attributes": {
      "heading": "5. Residual risk (after Phase 8)"
     },
-    "description": "Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
     "kind": "residual_risk",
-    "name": "Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
     "ref": "RR-14"
    },
    {
@@ -2016,7 +2016,7 @@
     "group": "TB1 — Internet → Edge",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "`TLSv1.2_2021` policy, HSTS",
+    "mitigation": "TLSv1.2_2021 policy, HSTS",
     "owasp": "",
     "phases": [
      5
@@ -2060,7 +2060,7 @@
     "group": "TB1 — Internet → Edge",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "`/api/*` uncached, `Cache-Control: no-store`, Host allow-list",
+    "mitigation": "/api/* uncached, Cache-Control: no-store, Host allow-list",
     "owasp": "",
     "phases": [
      1,
@@ -2159,7 +2159,7 @@
     "status": "partly_mitigated",
     "status_text": "Mitigated locally (P6, tested): trusted local proxy network, nginx overwrites the header; ALB subnets in P4",
     "stride": "S",
-    "title": "Spoofed `X-Forwarded-For` to evade IP controls"
+    "title": "Spoofed X-Forwarded-For to evade IP controls"
    },
    {
     "boundaries": [
@@ -2352,7 +2352,7 @@
     "group": "TB3 — Browser session → API",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "`extra=\"forbid\"` request models",
+    "mitigation": "extra=\"forbid\" request models",
     "owasp": "API3",
     "phases": [
      2
@@ -2656,7 +2656,7 @@
     "group": "Identity threats added in Phase 2",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "No defaults: `create-admin` one-time password; admins invite, never set passwords",
+    "mitigation": "No defaults: create-admin one-time password; admins invite, never set passwords",
     "owasp": "",
     "phases": [
      2
@@ -2700,7 +2700,7 @@
     "group": "Identity threats added in Phase 2",
     "impact": 1,
     "likelihood": 2,
-    "mitigation": "ASCII-only `[0-9]`; regression test",
+    "mitigation": "ASCII-only [0-9]; regression test",
     "owasp": "",
     "phases": [
      2
@@ -2709,7 +2709,7 @@
     "status": "mitigated",
     "status_text": "Mitigated (P2) — found by the test suite",
     "stride": "D",
-    "title": "Non-ASCII digits pass `\\d` validation and crash a comparison (500)"
+    "title": "Non-ASCII digits pass \\d validation and crash a comparison (500)"
    },
    {
     "boundaries": [
@@ -2721,7 +2721,7 @@
     "group": "Identity threats added in Phase 2",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Enum-typed column; `==` comparisons; authorization sweep",
+    "mitigation": "Enum-typed column; == comparisons; authorization sweep",
     "owasp": "",
     "phases": [
      2
@@ -2730,7 +2730,7 @@
     "status": "mitigated",
     "status_text": "Mitigated (P2) — found by the test suite",
     "stride": "E",
-    "title": "Role compared by identity (`is`) against a string from the DB, silently failing open or closed"
+    "title": "Role compared by identity (is) against a string from the DB, silently failing open or closed"
    },
    {
     "boundaries": [
@@ -2743,7 +2743,7 @@
     "group": "Security operations threats added in Phase 7",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Events append-only for the app role; `incident_id` write-once (trigger); timeline append-only with each entry's SHA-256 in the audit chain, verified on every read; incidents never deleted (ADR-0018)",
+    "mitigation": "Events append-only for the app role; incident_id write-once (trigger); timeline append-only with each entry's SHA-256 in the audit chain, verified on every read; incidents never deleted (ADR-0018)",
     "owasp": "",
     "phases": [
      7
@@ -2832,7 +2832,7 @@
     "group": "Security operations threats added in Phase 7",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Evidence rendered as text only, strict CSP (no inline script or style), test with a `<script>` snippet",
+    "mitigation": "Evidence rendered as text only, strict CSP (no inline script or style), test with a <script> snippet",
     "owasp": "",
     "phases": [
      7
@@ -2854,7 +2854,7 @@
     "group": "Security operations threats added in Phase 7",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Workflow and role rules enforced on the server; UI renders `available_moves` and `permissions` only; authorization matrix tests",
+    "mitigation": "Workflow and role rules enforced on the server; UI renders available_moves and permissions only; authorization matrix tests",
     "owasp": "",
     "phases": [
      7
@@ -2875,7 +2875,7 @@
     "group": "Security operations threats added in Phase 7",
     "impact": 1,
     "likelihood": 2,
-    "mitigation": "Optimistic concurrency (`version`); stale writes get 409 and a reload prompt",
+    "mitigation": "Optimistic concurrency (version); stale writes get 409 and a reload prompt",
     "owasp": "",
     "phases": [
      7
@@ -2896,7 +2896,7 @@
     "group": "Security operations threats added in Phase 7",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "No network I/O and no target input; RFC 5737 addresses and `.example` names; leads only; every run audited and rate limited (ADR-0019)",
+    "mitigation": "No network I/O and no target input; RFC 5737 addresses and .example names; leads only; every run audited and rate limited (ADR-0019)",
     "owasp": "",
     "phases": [
      7
@@ -2918,7 +2918,7 @@
     "group": "Security operations threats added in Phase 7",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Snippets from sensitive fields replaced with `[REDACTED]`; bounded snippets; incident free text excluded from inspection",
+    "mitigation": "Snippets from sensitive fields replaced with [REDACTED]; bounded snippets; incident free text excluded from inspection",
     "owasp": "",
     "phases": [
      7
@@ -2940,7 +2940,7 @@
     "group": "Application security threats added in Phase 8",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Every imported string bounded and control characters replaced; rendered as text only; links only for `https:` references",
+    "mitigation": "Every imported string bounded and control characters replaced; rendered as text only; links only for https: references",
     "owasp": "",
     "phases": [
      8
@@ -3003,7 +3003,7 @@
     "group": "Application security threats added in Phase 8",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Gate fails closed: every expected report required (`--expect`), unreadable reports and an empty scan exit 2",
+    "mitigation": "Gate fails closed: every expected report required (--expect), unreadable reports and an empty scan exit 2",
     "owasp": "",
     "phases": [
      8
@@ -3111,7 +3111,7 @@
     "group": "TB4 — API → Database",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "Isolated subnets, `publicly_accessible=false`, SG, Checkov",
+    "mitigation": "Isolated subnets, publicly_accessible=false, SG, Checkov",
     "owasp": "",
     "phases": [
      1,
@@ -3177,7 +3177,7 @@
     "group": "TB4 — API → Database",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "KMS, `rds.force_ssl`",
+    "mitigation": "KMS, rds.force_ssl",
     "owasp": "",
     "phases": [
      4
@@ -3376,7 +3376,7 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images",
+    "mitigation": "Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, --ignore-scripts; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images",
     "owasp": "",
     "phases": [
      1,
@@ -3401,7 +3401,7 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Gitleaks pre-commit + CI (full history), `.gitignore`",
+    "mitigation": "Gitleaks pre-commit + CI (full history), .gitignore",
     "owasp": "",
     "phases": [
      1
@@ -3424,7 +3424,7 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "Per-env roots, `allowed_account_ids` (ADR-0014)",
+    "mitigation": "Per-env roots, allowed_account_ids (ADR-0014)",
     "owasp": "",
     "phases": [
      3
@@ -3545,7 +3545,7 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "Non-root, read-only FS, `cap_drop: ALL`, no-new-privileges",
+    "mitigation": "Non-root, read-only FS, cap_drop: ALL, no-new-privileges",
     "owasp": "",
     "phases": [
      1
@@ -3572,8 +3572,8 @@
      "ref": "make smoke"
     }
    ],
-   "evidence_text": "Query-param validation tests; `test_sql_injection_in_a_query_parameter_is_recorded`; `make smoke`; WAF logs (P5)",
-   "implementation": "`waf` module; Pydantic schemas; SQLAlchemy ORM only; HTTP analysis and COR-003",
+   "evidence_text": "Query-param validation tests; test_sql_injection_in_a_query_parameter_is_recorded; make smoke; WAF logs (P5)",
+   "implementation": "waf module; Pydantic schemas; SQLAlchemy ORM only; HTTP analysis and COR-003",
    "phase_text": "P2 (app), P7 (detection), P5",
    "ref": "REQ-01",
    "threats": [
@@ -3585,7 +3585,7 @@
    "control_text": "React escaping + strict CSP + lint bans + Semgrep rules + WAF XSS rules",
    "evidence": [],
    "evidence_text": "Lint in CI; header tests; ZAP active XSS rules passed (SCAN-0003)",
-   "implementation": "`security-headers.conf`; `eslint.config.js`; `scanning/semgrep/frontend.yml`; WAF",
+   "implementation": "security-headers.conf; eslint.config.js; scanning/semgrep/frontend.yml; WAF",
    "phase_text": "P1, P8, P5",
    "ref": "REQ-02",
    "threats": [
@@ -3610,8 +3610,8 @@
      "ref": "test_credential_stuffing_fires_at_threshold_and_not_before"
     }
    ],
-   "evidence_text": "`test_account_locks_after_repeated_failures`, `test_login_is_limited_per_ip_with_retry_after`, `test_credential_stuffing_fires_at_threshold_and_not_before`; WAF match counts (P5)",
-   "implementation": "WAF module; auth service; `api_policy.LOGIN`; COR-001, COR-007",
+   "evidence_text": "test_account_locks_after_repeated_failures, test_login_is_limited_per_ip_with_retry_after, test_credential_stuffing_fires_at_threshold_and_not_before; WAF match counts (P5)",
+   "implementation": "WAF module; auth service; api_policy.LOGIN; COR-001, COR-007",
    "phase_text": "P2, P6, P7, P5",
    "ref": "REQ-03",
    "threats": [
@@ -3631,8 +3631,8 @@
      "ref": "test_developers_see_only_their_own_applications"
     }
    ],
-   "evidence_text": "`test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications`",
-   "implementation": "`UserService.get_user`, `ApplicationService`; COR-004",
+   "evidence_text": "test_users_can_read_only_their_own_record, test_developers_see_only_their_own_applications",
+   "implementation": "UserService.get_user, ApplicationService; COR-004",
    "phase_text": "P2, P7",
    "ref": "REQ-04",
    "threats": [
@@ -3652,7 +3652,7 @@
      "ref": "test_evidence_links_are_write_once"
     }
    ],
-   "evidence_text": "`test_tampering_with_the_timeline_is_detected`, `test_evidence_links_are_write_once`",
+   "evidence_text": "test_tampering_with_the_timeline_is_detected, test_evidence_links_are_write_once",
    "implementation": "ADR-0018",
    "phase_text": "P7",
    "ref": "REQ-05",
@@ -3673,7 +3673,7 @@
      "ref": "make smoke"
     }
    ],
-   "evidence_text": "`test_simulations_never_appear_in_the_live_view`, `make smoke`",
+   "evidence_text": "test_simulations_never_appear_in_the_live_view, make smoke",
    "implementation": "ADR-0009, ADR-0019",
    "phase_text": "P7",
    "ref": "REQ-06",
@@ -3690,8 +3690,8 @@
      "ref": "test_authz_matrix.py"
     }
    ],
-   "evidence_text": "`test_authz_matrix.py`",
-   "implementation": "`core/authz.py`",
+   "evidence_text": "test_authz_matrix.py",
+   "implementation": "core/authz.py",
    "phase_text": "P2",
    "ref": "REQ-07",
    "threats": [
@@ -3700,14 +3700,14 @@
    "title": "Broken function authorization"
   },
   {
-   "control_text": "`extra=\"forbid\"`",
+   "control_text": "extra=\"forbid\"",
    "evidence": [
     {
      "kind": "test",
      "ref": "test_every_request_body_rejects_unknown_fields"
     }
    ],
-   "evidence_text": "`test_every_request_body_rejects_unknown_fields` (sweep)",
+   "evidence_text": "test_every_request_body_rejects_unknown_fields (sweep)",
    "implementation": "Request schemas",
    "phase_text": "P1, P6",
    "ref": "REQ-08",
@@ -3728,7 +3728,7 @@
      "ref": "test_no_response_model_exposes_secret_fields"
     }
    ],
-   "evidence_text": "`test_every_json_route_declares_a_response_model`, `test_no_response_model_exposes_secret_fields`",
+   "evidence_text": "test_every_json_route_declares_a_response_model, test_no_response_model_exposes_secret_fields",
    "implementation": "ADR-0012",
    "phase_text": "P1, P6",
    "ref": "REQ-09",
@@ -3745,8 +3745,8 @@
      "ref": "test_error_handling.py"
     }
    ],
-   "evidence_text": "`test_error_handling.py`",
-   "implementation": "`errors.py`",
+   "evidence_text": "test_error_handling.py",
+   "implementation": "errors.py",
    "phase_text": "P1",
    "ref": "REQ-10",
    "threats": [
@@ -3758,7 +3758,7 @@
    "control_text": "Internal ALB + VPC origin",
    "evidence": [],
    "evidence_text": "External connection test fails; Checkov",
-   "implementation": "`alb`, `cloudfront` modules",
+   "implementation": "alb, cloudfront modules",
    "phase_text": "P4–5",
    "ref": "REQ-11",
    "threats": [
@@ -3767,10 +3767,10 @@
    "title": "Origin bypass"
   },
   {
-   "control_text": "Isolated subnets, SG, `publicly_accessible=false`",
+   "control_text": "Isolated subnets, SG, publicly_accessible=false",
    "evidence": [],
    "evidence_text": "Checkov; plan review",
-   "implementation": "`rds`, `vpc` modules",
+   "implementation": "rds, vpc modules",
    "phase_text": "P3–4",
    "ref": "REQ-12",
    "threats": [
@@ -3782,7 +3782,7 @@
    "control_text": "Gitleaks + Secrets Manager",
    "evidence": [],
    "evidence_text": "Gitleaks report",
-   "implementation": "`.gitleaks.toml`; `secrets-manager` module",
+   "implementation": ".gitleaks.toml; secrets-manager module",
    "phase_text": "P1, P4",
    "ref": "REQ-13",
    "threats": [
@@ -3793,7 +3793,7 @@
   {
    "control_text": "Pinned deps + SCA + SBOM + image scan + build-time OS fixes",
    "evidence": [],
-   "evidence_text": "CI artifact `security-scans-<run>`; Vulnerabilities and SBOM pages",
+   "evidence_text": "CI artifact security-scans-<run>; Vulnerabilities and SBOM pages",
    "implementation": "Lock files; Syft; Trivy; Dockerfiles",
    "phase_text": "P1, P8",
    "ref": "REQ-14",
@@ -3814,7 +3814,7 @@
      "ref": "test_vulnerabilities.py"
     }
    ],
-   "evidence_text": "`test_scanning.py`, `test_vulnerabilities.py`; [runbook](runbooks/vulnerability-remediation.md)",
+   "evidence_text": "test_scanning.py, test_vulnerabilities.py; [runbook](runbooks/vulnerability-remediation.md)",
    "implementation": "ADR-0020, ADR-0021",
    "phase_text": "P8",
    "ref": "REQ-15",
@@ -3836,7 +3836,7 @@
      "ref": "make verify-audit"
     }
    ],
-   "evidence_text": "`test_audit_log.py`, `make verify-audit`",
+   "evidence_text": "test_audit_log.py, make verify-audit",
    "implementation": "ADR-0005",
    "phase_text": "P2, P4",
    "ref": "REQ-16",
@@ -3849,7 +3849,7 @@
    "control_text": "Delimiting, scoring, schema-bound output",
    "evidence": [],
    "evidence_text": "Injection corpus tests",
-   "implementation": "`app/ai/guardrails`",
+   "implementation": "app/ai/guardrails",
    "phase_text": "P9",
    "ref": "REQ-17",
    "threats": [
@@ -3862,7 +3862,7 @@
    "control_text": "Proposals + human approval",
    "evidence": [],
    "evidence_text": "Approval workflow tests; audit",
-   "implementation": "`ai_action_proposals`",
+   "implementation": "ai_action_proposals",
    "phase_text": "P9",
    "ref": "REQ-18",
    "threats": [

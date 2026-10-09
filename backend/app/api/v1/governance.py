@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.core.authz import Principal, any_role, require_roles
 from app.core.request_context import request_context
 from app.db.session import get_db
+from app.models.audit import AuditResult
 from app.models.governance import ControlStatus
 from app.models.user import Role
 from app.schemas.governance import (
@@ -30,6 +31,9 @@ from app.schemas.governance import (
     ThreatModelUpdate,
     ThreatUpdate,
 )
+from app.schemas.posture import Posture
+from app.services import audit, posture
+from app.services.audit import AuditAction
 from app.services.governance import GovernanceService
 
 router = APIRouter(tags=["governance"])
@@ -141,3 +145,34 @@ def update_threat(
     service: GovernanceService = Depends(get_service),  # noqa: B008
 ) -> ThreatModelDetail:
     return service.update_threat(principal, model_id, threat_id, body)
+
+
+@router.get("/governance/posture", response_model=Posture)
+def get_posture(
+    _: Principal = Depends(any_role),  # noqa: B008
+    db: Session = Depends(get_db),  # noqa: B008
+) -> Posture:
+    return posture.posture(db)
+
+
+@router.post("/governance/posture/snapshots", response_model=Posture, status_code=201)
+def take_snapshot(
+    request: Request,
+    principal: Principal = Depends(leads),  # noqa: B008
+    db: Session = Depends(get_db),  # noqa: B008
+) -> Posture:
+    """Record the score now (for example before and after a change), in addition to the
+    automatic daily snapshot."""
+    snap = posture.snapshot(db, principal.user.email)
+    audit.record(
+        db,
+        action=AuditAction.POSTURE_SNAPSHOT_TAKEN,
+        result=AuditResult.SUCCESS,
+        actor=principal.user,
+        ctx=request_context(request),
+        resource_type="posture_snapshot",
+        resource_id=str(snap.id),
+        details={"overall": snap.overall, "built_scope": snap.built_scope},
+    )
+    db.commit()
+    return posture.posture(db)

@@ -108,6 +108,8 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("PATCH", "/api/v1/threat-models/{model_id}/elements/{element_id}"): LEADS,
     ("POST", "/api/v1/threat-models/{model_id}/threats"): LEADS,
     ("PATCH", "/api/v1/threat-models/{model_id}/threats/{threat_id}"): LEADS,
+    ("GET", "/api/v1/governance/posture"): ALL,
+    ("POST", "/api/v1/governance/posture/snapshots"): LEADS,
     ("GET", "/api/v1/exceptions"): ALL,  # developers: own applications only
     ("POST", "/api/v1/exceptions"): REMEDIATORS,
     ("GET", "/api/v1/exceptions/{exception_id}"): ALL,  # plus an object-level check

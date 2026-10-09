@@ -53,6 +53,7 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     # Decided records are final (trigger); ended, never deleted (0011).
     "exceptions": {"SELECT", "INSERT", "UPDATE"},
     "change_requests": {"SELECT", "INSERT", "UPDATE"},
+    "posture_snapshots": {"SELECT", "INSERT"},  # what the score was, never edited (0012)
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.

@@ -563,6 +563,20 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         object_rule="Application models only; the threat must belong to the model; version "
         "must match",
     ),
+    ("GET", "/api/v1/governance/posture"): EndpointPolicy(
+        "Explainable security posture score by category, with its trend",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API4),
+        "Aggregated posture (counts and references)",
+    ),
+    ("POST", "/api/v1/governance/posture/snapshots"): EndpointPolicy(
+        "Record the posture score now",
+        Risk.LOW,
+        EXPENSIVE,
+        (A.API4, A.API5),
+        "Aggregated posture",
+    ),
     ("GET", "/api/v1/exceptions"): EndpointPolicy(
         "Security exceptions with their status and expiry",
         Risk.MEDIUM,

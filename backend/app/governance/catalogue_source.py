@@ -38,8 +38,9 @@ def _cells(line: str) -> list[str]:
 
 
 def _plain(text: str) -> str:
-    """Markdown cell text without emphasis markers, collapsed whitespace."""
-    return re.sub(r"\s+", " ", text.replace("**", "")).strip()
+    """Markdown cell text as plain text: no emphasis or code markers, collapsed whitespace.
+    (Evidence is parsed from the raw cell first, where the backticks mark what to verify.)"""
+    return re.sub(r"\s+", " ", text.replace("**", "").replace("`", "")).strip()
 
 
 def _tables(lines: list[str]) -> list[tuple[int, list[str], list[list[str]]]]:

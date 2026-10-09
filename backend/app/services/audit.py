@@ -90,6 +90,7 @@ class AuditAction(StrEnum):
     CHANGE_IMPLEMENTED = "change_request.implemented"
     CHANGE_VALIDATED = "change_request.validated"
     CHANGE_ROLLED_BACK = "change_request.rolled_back"
+    POSTURE_SNAPSHOT_TAKEN = "posture.snapshot_taken"
 
 
 @dataclass(frozen=True)

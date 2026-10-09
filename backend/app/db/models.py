@@ -14,6 +14,7 @@ from app.models.governance import (
 )
 from app.models.incident import Incident, IncidentTimelineEntry
 from app.models.outbox import OutboxMessage
+from app.models.posture import PostureSnapshot
 from app.models.rate_limit import RateLimitBucket
 from app.models.risk_governance import ChangeRequest, SecurityException
 from app.models.security_event import SecurityEvent
@@ -35,6 +36,7 @@ __all__ = [
     "ModelElement",
     "OutboxMessage",
     "PasswordResetToken",
+    "PostureSnapshot",
     "RateLimitBucket",
     "RefreshToken",
     "Requirement",

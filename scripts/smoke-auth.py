@@ -275,7 +275,8 @@ def main() -> None:
     check("inventory counts the throttled probes", ready["metrics"]["throttled"] > 0)
 
     security_operations(client, token)
-    vulnerability_management(client, token, run)
+    viewer = vulnerability_management(client, token, run)
+    governance(client, token, viewer)
 
     print(f"\nAll {passed} checks passed.")
 
@@ -387,7 +388,7 @@ def security_operations(client: httpx.Client, token: str) -> None:
     )
 
 
-def vulnerability_management(client: httpx.Client, token: str, run: str) -> None:
+def vulnerability_management(client: httpx.Client, token: str, run: str) -> dict[str, str]:
     """Phase 8: the findings, scan and SBOM endpoints answer and enforce their rules. Read-only:
     the smoke test never imports scans, so it leaves the local findings untouched."""
     auth = bearer(token)
@@ -433,6 +434,100 @@ def vulnerability_management(client: httpx.Client, token: str, run: str) -> None
     )
     bogus = client.get("/api/v1/vulnerabilities", headers=auth, params={"min_severity": "bogus"})
     check("an invalid filter is rejected", bogus.status_code == 422)
+    return viewer
+
+
+def governance(client: httpx.Client, token: str, viewer: dict[str, str]) -> None:
+    """Phase 10: the catalogue and SentinelEdge's own threat model are in the application and
+    read-only there; the posture score explains itself; nobody approves their own exception or
+    change. Each run leaves one withdrawn exception and one cancelled change request."""
+    auth = bearer(token)
+    print("\nThreat modeling and governance (Phase 10)")
+    controls = client.get("/api/v1/governance/controls", headers=viewer).json()
+    check(
+        "the control catalogue is loaded from the reviewed documents",
+        len(controls.get("items", [])) >= 90 and controls["counts"]["implemented"] > 0,
+    )
+    models = client.get("/api/v1/threat-models", headers=auth).json().get("items", [])
+    own = next((m for m in models if m["origin"] == "catalogue"), None)
+    check("SentinelEdge's own threat model is in the application", own is not None)
+    if own is not None:
+        edit = client.patch(
+            f"/api/v1/threat-models/{own['id']}",
+            headers=auth,
+            json={"version": own["version"], "name": "Edited in the UI"},
+        )
+        check(
+            "SentinelEdge's own threat model is read-only (maintained as code)",
+            edit.status_code == 409 and edit.json()["error"]["code"] == "maintained_as_code",
+        )
+    posture = client.get("/api/v1/governance/posture", headers=viewer).json()
+    check(
+        "the posture score explains every category",
+        len(posture.get("categories", [])) == 11
+        and all(c["factors"] for c in posture["categories"]),
+    )
+    expires = (datetime.now(UTC).date() + timedelta(days=20)).isoformat()
+    exception = client.post(
+        "/api/v1/exceptions",
+        headers=auth,
+        json={
+            "title": "Smoke test exception (withdrawn immediately)",
+            "scope": "other",
+            "scope_ref": "smoke test",
+            "risk_level": "low",
+            "risk": "None: created by the smoke test to exercise the workflow.",
+            "justification": "Exercises separation of duties on every smoke run.",
+            "compensating_control": "Withdrawn immediately by the same smoke run.",
+            "expires_on": expires,
+        },
+    ).json()
+    own_decision = client.post(
+        f"/api/v1/exceptions/{exception.get('id')}/decision",
+        headers=auth,
+        json={"approve": True, "version": 1},
+    )
+    check(
+        "an exception cannot be approved by its requester (separation of duties)",
+        own_decision.status_code == 409
+        and own_decision.json()["error"]["code"] == "separation_of_duties",
+    )
+    withdrawn = client.post(
+        f"/api/v1/exceptions/{exception.get('id')}/close",
+        headers=auth,
+        json={"note": "Smoke test: withdrawn.", "version": 1},
+    )
+    check(
+        "the request is withdrawn with a reason",
+        withdrawn.status_code == 200 and withdrawn.json()["status"] == "withdrawn",
+    )
+    denied = client.post("/api/v1/exceptions", headers=viewer, json={})
+    check("a viewer cannot request an exception", denied.status_code == 403)
+    change = client.post(
+        "/api/v1/change-requests",
+        headers=auth,
+        json={
+            "title": "Smoke test change (cancelled immediately)",
+            "change_type": "waf_rule",
+            "description": "Count SQLI-001 in the simulated WAF; never approved.",
+            "risk_level": "low",
+            "impact": "None: cancelled by the same smoke run before any decision.",
+            "rollback_plan": "Nothing to roll back: it is never implemented.",
+            "validation_plan": "None needed: it is cancelled immediately.",
+            "target": {"rule_id": "SQLI-001", "mode": "count"},
+        },
+    ).json()
+    url = f"/api/v1/change-requests/{change.get('id')}/transition"
+    own_approval = client.post(url, headers=auth, json={"to": "approved", "version": 1})
+    cancelled = client.post(
+        url, headers=auth, json={"to": "cancelled", "note": "Smoke test: cancelled.", "version": 1}
+    )
+    check(
+        "a change request cannot be approved by its requester, and is cancelled",
+        own_approval.status_code == 409
+        and cancelled.status_code == 200
+        and cancelled.json()["status"] == "cancelled",
+    )
 
 
 if __name__ == "__main__":
