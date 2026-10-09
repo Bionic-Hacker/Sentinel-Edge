@@ -1,10 +1,20 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { BarList } from "../../components/charts";
+import { TrashIcon } from "../../components/ConfirmDialog";
 import { Button, FormError } from "../../components/forms";
 import { StatTile } from "../../components/secops";
 import { ApiError } from "../../lib/api/client";
-import { addElement, addThreat, getThreatModel, updateElement, updateThreat, updateThreatModel } from "../../lib/api/governance";
+import {
+  addElement,
+  addThreat,
+  archiveThreatModel,
+  deleteThreatModel,
+  getThreatModel,
+  updateElement,
+  updateThreat,
+  updateThreatModel,
+} from "../../lib/api/governance";
 import {
   ELEMENT_KINDS,
   PASTA_STAGES,
@@ -17,6 +27,7 @@ import {
 } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
 import { RiskMatrix, ThreatStatusBadge, selectBox, textArea, threatStatusLabel } from "./governance";
+import { RemoveModelDialog } from "./RemoveModelDialog";
 
 const CARRYING: readonly ThreatStatus[] = ["open", "planned", "partly_mitigated"];
 const ELEMENT_LABEL: Record<ElementKind, string> = {
@@ -45,6 +56,10 @@ interface Loaded {
 export function ThreatModelPage() {
   const { modelId = "" } = useParams();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeBusy, setRemoveBusy] = useState(false);
+  const [removeError, setRemoveError] = useState<ApiError | null>(null);
+  const navigate = useNavigate();
   const current = loaded?.id === modelId ? loaded : null;
 
   useEffect(() => {
@@ -73,6 +88,26 @@ export function ThreatModelPage() {
   const model = current?.data;
   if (!model) return <p className="text-ink-muted">Loading the threat model…</p>;
   const update = (data: ThreatModelDetail) => setLoaded({ id: modelId, data, error: null });
+  const { version } = model;
+
+  async function remove(how: "archive" | "delete") {
+    setRemoveBusy(true);
+    setRemoveError(null);
+    try {
+      if (how === "delete") {
+        await deleteThreatModel(modelId);
+        void navigate("/threat-modeling", { replace: true });
+        return;
+      }
+      update(await archiveThreatModel(modelId, version));
+      setRemoving(false);
+    } catch (err) {
+      setRemoveError(asApiError(err));
+      setRemoving(false);
+    } finally {
+      setRemoveBusy(false);
+    }
+  }
   const live = model.threats.filter((t) => !t.retired);
   const carrying = live.filter((t) => CARRYING.includes(t.status));
 
@@ -88,7 +123,31 @@ export function ThreatModelPage() {
           {model.status}
         </p>
         {model.scope && <p className="mt-2 max-w-prose whitespace-pre-wrap break-words text-sm">{model.scope}</p>}
+        {(model.permissions.can_archive || model.permissions.can_delete) && (
+          <Button variant="danger" className="mt-3 gap-2" onClick={() => setRemoving(true)}>
+            <TrashIcon />
+            Delete
+          </Button>
+        )}
+        <FormError error={removeError} />
       </header>
+      {removing && (
+        <RemoveModelDialog
+          reference={model.reference}
+          name={model.name}
+          canArchive={model.permissions.can_archive}
+          canDelete={model.permissions.can_delete}
+          busy={removeBusy}
+          onArchive={() => void remove("archive")}
+          onDelete={() => void remove("delete")}
+          onCancel={() => setRemoving(false)}
+        />
+      )}
+      {model.status === "archived" && (
+        <p className="rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
+          Archived: kept with its history, marked out of use.
+        </p>
+      )}
       {model.permissions.maintained_as_code && (
         <p className="rounded-md border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
           Maintained as code: this model is loaded from <code className="font-mono text-ink">docs/threat-model.md</code> and

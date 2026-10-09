@@ -23,6 +23,7 @@ from app.schemas.governance import (
     ControlList,
     ElementCreate,
     ElementUpdate,
+    ModelArchive,
     RequirementList,
     ThreatCreate,
     ThreatModelCreate,
@@ -38,6 +39,8 @@ from app.services.governance import GovernanceService
 
 router = APIRouter(tags=["governance"])
 leads = require_roles(Role.ADMIN, Role.SECURITY_ENGINEER)
+# Developers archive their own applications' models (checked in the service).
+archivers = require_roles(Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER)
 
 Family = Annotated[str | None, Query(pattern=r"^[A-Z]{2,8}$")]
 Search = Annotated[str | None, Query(min_length=1, max_length=100)]
@@ -113,6 +116,27 @@ def add_element(
     service: GovernanceService = Depends(get_service),  # noqa: B008
 ) -> ThreatModelDetail:
     return service.add_element(principal, model_id, body)
+
+
+@router.post("/threat-models/{model_id}/archive", response_model=ThreatModelDetail)
+def archive_threat_model(
+    model_id: uuid.UUID,
+    body: ModelArchive,
+    principal: Principal = Depends(archivers),  # noqa: B008  (developers: own applications)
+    service: GovernanceService = Depends(get_service),  # noqa: B008
+) -> ThreatModelDetail:
+    return service.archive_model(principal, model_id, body)
+
+
+@router.delete("/threat-models/{model_id}", status_code=204)
+def delete_threat_model(
+    model_id: uuid.UUID,
+    principal: Principal = Depends(leads),  # noqa: B008
+    service: GovernanceService = Depends(get_service),  # noqa: B008
+) -> None:
+    """Permanently delete an application model (SentinelEdge's own refuses with 409). The audit
+    log keeps a summary of what was deleted."""
+    service.delete_model(principal, model_id)
 
 
 @router.patch("/threat-models/{model_id}/elements/{element_id}", response_model=ThreatModelDetail)

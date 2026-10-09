@@ -97,7 +97,12 @@ def test_the_catalogue_is_loaded_once_on_first_use(
     model = catalogue_model(db_client, people["viewer"]["h"])
     assert model["version_label"] == cat["model"]["version"]
     assert len(model["threats"]) == len(cat["model"]["threats"])
-    assert model["permissions"] == {"can_edit": False, "maintained_as_code": True}
+    assert model["permissions"] == {
+        "can_edit": False,
+        "maintained_as_code": True,
+        "can_archive": False,
+        "can_delete": False,
+    }
     t_id_01 = next(t for t in model["threats"] if t["ref"] == "T-ID-01")
     assert t_id_01["risk"] == 9
     assert {c["ref"] for c in t_id_01["controls"]} >= {"C-ID-04", "C-ID-05", "C-API-03"}
@@ -227,7 +232,12 @@ def test_a_lead_builds_a_stride_model(
     app = register(db_client, people["admin"]["h"])
     model = new_model(db_client, h, app["id"])
     assert (model["reference"], model["status"], model["origin"]) == ("TM-0002", "draft", "app")
-    assert model["permissions"] == {"can_edit": True, "maintained_as_code": False}
+    assert model["permissions"] == {
+        "can_edit": True,
+        "maintained_as_code": False,
+        "can_archive": True,
+        "can_delete": True,
+    }
     url = f"/api/v1/threat-models/{model['id']}"
 
     for kind, name in (("boundary", "Internet to API"), ("asset", "Card tokens")):
@@ -415,12 +425,33 @@ def test_developers_see_only_their_own_applications_models(
 
     listed = db_client.get("/api/v1/threat-models", headers=dev).json()["items"]
     assert [m["id"] for m in listed] == [mine["id"]]
-    assert db_client.get(f"/api/v1/threat-models/{mine['id']}", headers=dev).json()[
-        "permissions"
-    ] == {"can_edit": False, "maintained_as_code": False}
+    seen = db_client.get(f"/api/v1/threat-models/{mine['id']}", headers=dev).json()
+    assert seen["permissions"] == {
+        "can_edit": False,
+        "maintained_as_code": False,
+        "can_archive": True,
+        "can_delete": False,
+    }
     denied = db_client.get(f"/api/v1/threat-models/{other['id']}", headers=dev)
     assert denied.status_code == 404
     assert audit_entries(db_app, "authz.denied")[-1].resource_type == "threat_model"
+
+    # A developer archives their own application's model, never another's, and cannot delete.
+    others = db_client.post(
+        f"/api/v1/threat-models/{other['id']}/archive", json={"version": 1}, headers=dev
+    )
+    assert others.status_code == 404
+    assert db_client.delete(f"/api/v1/threat-models/{mine['id']}", headers=dev).status_code == 403
+    archived = db_client.post(
+        f"/api/v1/threat-models/{mine['id']}/archive",
+        json={"version": seen["version"]},
+        headers=dev,
+    )
+    assert archived.status_code == 200, archived.text
+    assert archived.json()["status"] == "archived"
+    assert archived.json()["permissions"]["can_archive"] is False
+    (entry,) = audit_entries(db_app, "threat_model.archived")
+    assert entry.details["before"] == "draft"
 
     everyone = db_client.get("/api/v1/threat-models", headers=people["viewer"]["h"]).json()
     assert len(everyone["items"]) == 3  # the catalogue model and both application models
@@ -452,10 +483,69 @@ def test_a_model_needs_an_active_application(db_client: TestClient, people: dict
     assert retired.status_code == 409
 
 
-def test_the_app_role_cannot_delete_governance_records(
+def test_the_app_role_cannot_delete_the_catalogue(
     db_app: FastAPI, db_client: TestClient, people: dict[str, Any]
 ) -> None:
     db_client.get("/api/v1/governance/controls", headers=people["viewer"]["h"])
-    for table in ("controls", "threats", "threat_models", "model_elements", "requirements"):
+    for table in ("controls", "requirements"):
         with db_app.state.session_factory() as db, pytest.raises(ProgrammingError):
             db.execute(text(f"DELETE FROM sentinel.{table}"))  # noqa: S608 - constant names
+
+
+def test_a_lead_deletes_an_application_model_and_the_audit_log_keeps_it(
+    db_app: FastAPI, db_client: TestClient, people: dict[str, Any]
+) -> None:
+    lead = people["lead"]["h"]
+    model = new_model(db_client, lead, register(db_client, people["admin"]["h"])["id"])
+    url = f"/api/v1/threat-models/{model['id']}"
+    db_client.post(f"{url}/elements", json={"kind": "boundary", "name": "Edge"}, headers=lead)
+    db_client.post(
+        f"{url}/threats",
+        json={
+            "title": "Token replay",
+            "stride": "S",
+            "likelihood": 3,
+            "impact": 3,
+            "controls": ["C-ID-03"],
+            "boundaries": ["TB1"],
+        },
+        headers=lead,
+    )
+    assert db_client.delete(url, headers=people["viewer"]["h"]).status_code == 403
+    gone = db_client.delete(url, headers=lead)
+    assert gone.status_code == 204, gone.text
+    assert db_client.get(url, headers=lead).status_code == 404
+    listed = db_client.get("/api/v1/threat-models", headers=lead).json()["items"]
+    assert [m for m in listed if m["origin"] == "app"] == []
+    (deleted,) = audit_entries(db_app, "threat_model.deleted")
+    assert deleted.resource_id == model["id"]
+    assert deleted.details["threats"] == [
+        {"ref": "TH-001", "title": "Token replay", "risk": 9, "status": "open"}
+    ]
+    assert deleted.details["elements"] == {"boundary": 1}
+
+    own = catalogue_model(db_client, lead)
+    refused = db_client.delete(f"/api/v1/threat-models/{own['id']}", headers=people["admin"]["h"])
+    assert refused.status_code == 409
+    assert refused.json()["error"]["code"] == "maintained_as_code"
+
+
+def test_analysts_and_viewers_cannot_archive(db_client: TestClient, people: dict[str, Any]) -> None:
+    admin = people["admin"]["h"]
+    model = new_model(db_client, admin, register(db_client, admin)["id"])
+    for who in ("analyst", "viewer"):
+        r = db_client.post(
+            f"/api/v1/threat-models/{model['id']}/archive",
+            json={"version": model["version"]},
+            headers=people[who]["h"],
+        )
+        assert r.status_code == 403
+        detail = db_client.get(f"/api/v1/threat-models/{model['id']}", headers=people[who]["h"])
+        assert detail.json()["permissions"]["can_archive"] is False
+    own = catalogue_model(db_client, admin)
+    refused = db_client.post(
+        f"/api/v1/threat-models/{own['id']}/archive",
+        json={"version": own["version"]},
+        headers=admin,
+    )
+    assert refused.json()["error"]["code"] == "maintained_as_code"

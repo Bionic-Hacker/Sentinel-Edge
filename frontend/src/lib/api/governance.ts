@@ -60,6 +60,12 @@ export const updateThreatModel = (
   body: { version: number; name?: string; scope?: string; status?: ModelStatus; pasta?: Partial<Record<PastaStage, string>> },
 ) => apiRequest(`/api/v1/threat-models/${id(modelId)}`, isThreatModelDetail, { method: "PATCH", body });
 
+export const archiveThreatModel = (modelId: string, version: number) =>
+  apiRequest(`/api/v1/threat-models/${id(modelId)}/archive`, isThreatModelDetail, { method: "POST", body: { version } });
+
+export const deleteThreatModel = (modelId: string) =>
+  apiRequest(`/api/v1/threat-models/${id(modelId)}`, null, { method: "DELETE" });
+
 export const addElement = (
   modelId: string,
   body: { kind: ElementKind; name: string; description: string; boundaries: string[] },

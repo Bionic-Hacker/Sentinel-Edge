@@ -530,6 +530,24 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         object_rule="Application models only (SentinelEdge's own is maintained as code); "
         "version must match",
     ),
+    ("POST", "/api/v1/threat-models/{model_id}/archive"): EndpointPolicy(
+        "Archive an application threat model (kept, marked out of use)",
+        Risk.MEDIUM,
+        ADMIN_WRITE,
+        (A.API1, A.API5),
+        "Threat models",
+        object_rule="Application models only; developers only for applications they own "
+        "(other IDs 404, audited); version must match",
+    ),
+    ("DELETE", "/api/v1/threat-models/{model_id}"): EndpointPolicy(
+        "Permanently delete an application threat model",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API1, A.API5),
+        "Threat models",
+        object_rule="Application models only (SentinelEdge's own is maintained as code); the "
+        "audit log keeps a summary of what was deleted",
+    ),
     ("POST", "/api/v1/threat-models/{model_id}/elements"): EndpointPolicy(
         "Add an asset, trust boundary, data flow, attack path or residual risk",
         Risk.MEDIUM,

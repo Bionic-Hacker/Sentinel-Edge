@@ -130,7 +130,7 @@ function model(over: Partial<ThreatModelDetail> = {}): ThreatModelDetail {
       unmapped: [],
       only_planned_controls: [],
     },
-    permissions: { can_edit: false, maintained_as_code: true },
+    permissions: { can_edit: false, maintained_as_code: true, can_archive: false, can_delete: false },
     created_by_label: "system:governance",
     created_at: NOW,
     updated_at: NOW,
@@ -275,7 +275,7 @@ describe("Threat Modeling", () => {
   });
 
   it("lets a lead re-rate a threat in an application model, sending the version it read", async () => {
-    const editable = model({ origin: "app", permissions: { can_edit: true, maintained_as_code: false } });
+    const editable = model({ origin: "app", permissions: { can_edit: true, maintained_as_code: false, can_archive: true, can_delete: true } });
     const updated = model({ ...editable, threats: [threat({ status: "open", version: 4 })] });
     const calls = await renderAs("SECURITY_ENGINEER", `/threat-modeling/${MODEL_ID}`, {
       [`GET /api/v1/threat-models/${MODEL_ID}`]: () => jsonResponse(editable),
@@ -290,6 +290,51 @@ describe("Threat Modeling", () => {
       }),
     );
     expect(await screen.findByRole("heading", { name: "Add a threat" })).toBeInTheDocument();
+  });
+});
+
+describe("Removing a threat model", () => {
+  const appModel = (can_archive: boolean, can_delete: boolean) =>
+    model({ origin: "app", name: "Payments API", reference: "TM-0002", status: "draft", permissions: { can_edit: can_delete, maintained_as_code: false, can_archive, can_delete } });
+
+  it("shows no Delete button to a viewer", async () => {
+    await renderAs("VIEWER", `/threat-modeling/${MODEL_ID}`, {
+      [`/api/v1/threat-models/${MODEL_ID}`]: () => jsonResponse(appModel(false, false)),
+    });
+    expect(await screen.findByRole("heading", { name: "TM-0002: Payments API" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
+  it("offers a developer only Archive, and archives with the version it read", async () => {
+    const calls = await renderAs("DEVELOPER", `/threat-modeling/${MODEL_ID}`, {
+      [`GET /api/v1/threat-models/${MODEL_ID}`]: () => jsonResponse(appModel(true, false)),
+      [`POST /api/v1/threat-models/${MODEL_ID}/archive`]: () =>
+        jsonResponse({ ...appModel(false, false), status: "archived", version: 3 }),
+    });
+    await userEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Remove TM-0002?" });
+    expect(within(dialog).queryByRole("button", { name: "Delete permanently" })).not.toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Archive" }));
+    await waitFor(() =>
+      expect(callsTo(calls, "POST", `/api/v1/threat-models/${MODEL_ID}/archive`)[0]?.body).toEqual({ version: 2 }),
+    );
+    expect(await screen.findByText(/Archived: kept with its history/)).toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("lets a lead delete permanently, then returns to the list", async () => {
+    const calls = await renderAs("ADMIN", `/threat-modeling/${MODEL_ID}`, {
+      [`GET /api/v1/threat-models/${MODEL_ID}`]: () => jsonResponse(appModel(true, true)),
+      [`DELETE /api/v1/threat-models/${MODEL_ID}`]: () => new Response(null, { status: 204 }),
+      "GET /api/v1/threat-models": () => jsonResponse({ items: [summary()] }),
+    });
+    await userEvent.click(await screen.findByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Remove TM-0002?" });
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    expect(within(dialog).getByRole("button", { name: "Archive" })).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete permanently" }));
+    await waitFor(() => expect(callsTo(calls, "DELETE", `/api/v1/threat-models/${MODEL_ID}`)).toHaveLength(1));
+    expect(await screen.findByRole("heading", { name: "Threat Modeling" })).toBeInTheDocument();
   });
 });
 

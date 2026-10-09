@@ -823,7 +823,7 @@ export interface ThreatModelDetail {
     unmapped: string[];
     only_planned_controls: string[];
   };
-  permissions: { can_edit: boolean; maintained_as_code: boolean };
+  permissions: { can_edit: boolean; maintained_as_code: boolean; can_archive: boolean; can_delete: boolean };
   created_by_label: string;
   created_at: string;
   updated_at: string;

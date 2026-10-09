@@ -77,6 +77,8 @@ class AuditAction(StrEnum):
     THREAT_MODEL_ELEMENT_UPDATED = "threat_model.element_updated"
     THREAT_ADDED = "threat_model.threat_added"
     THREAT_UPDATED = "threat_model.threat_updated"
+    THREAT_MODEL_DELETED = "threat_model.deleted"
+    THREAT_MODEL_ARCHIVED = "threat_model.archived"
     EXCEPTION_REQUESTED = "exception.requested"
     EXCEPTION_APPROVED = "exception.approved"
     EXCEPTION_REJECTED = "exception.rejected"

@@ -44,9 +44,10 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     # Loaded from the reviewed catalogue; retired, never deleted (0010).
     "controls": {"SELECT", "INSERT", "UPDATE"},
     "requirements": {"SELECT", "INSERT", "UPDATE"},
-    "threat_models": {"SELECT", "INSERT", "UPDATE"},  # archived, never deleted (0010)
-    "model_elements": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0010)
-    "threats": {"SELECT", "INSERT", "UPDATE"},  # retired, never deleted (0010)
+    # Leads delete application models; the service refuses SentinelEdge's own (0010, 0013).
+    "threat_models": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    "model_elements": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    "threats": {"SELECT", "INSERT", "UPDATE", "DELETE"},
     # Link tables: re-linking a threat's controls replaces its links (audited) (0010).
     "threat_controls": {"SELECT", "INSERT", "DELETE"},
     "requirement_threats": {"SELECT", "INSERT", "DELETE"},

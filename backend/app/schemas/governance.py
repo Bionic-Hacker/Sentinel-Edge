@@ -192,6 +192,8 @@ class ModelStats(BaseModel):
 class ModelPermissions(BaseModel):
     can_edit: bool
     maintained_as_code: bool
+    can_archive: bool  # leads, and developers on their own applications
+    can_delete: bool  # leads only: permanent, audited
 
 
 class ThreatModelDetail(BaseModel):
@@ -243,6 +245,10 @@ class ThreatModelUpdate(StrictModel):
     pasta: dict[str, str] | None = None
 
     _check_pasta = field_validator("pasta")(_pasta)
+
+
+class ModelArchive(StrictModel):
+    version: Version
 
 
 class ElementCreate(StrictModel):

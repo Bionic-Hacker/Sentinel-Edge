@@ -24,7 +24,10 @@ export function ThreatModelingPage() {
     return () => controller.abort();
   }, []);
 
-  const models = result?.items ?? [];
+  const [showArchived, setShowArchived] = useState(false);
+  const all = result?.items ?? [];
+  const archived = all.filter((m) => m.status === "archived").length;
+  const models = showArchived ? all : all.filter((m) => m.status !== "archived");
   return (
     <div className="max-w-6xl space-y-6">
       <header>
@@ -37,6 +40,12 @@ export function ThreatModelingPage() {
       </header>
       {result?.error && <FormError error={result.error} />}
       {!result && <p className="text-sm text-ink-muted">Loading threat models…</p>}
+      {archived > 0 && (
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          Show archived models ({archived})
+        </label>
+      )}
       {result?.items && !models.length && <p className="text-sm text-ink-muted">No threat models you can see yet.</p>}
       {models.length > 0 && (
         <div className="overflow-x-auto rounded-md border border-line">

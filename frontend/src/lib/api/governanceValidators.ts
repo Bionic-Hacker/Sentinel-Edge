@@ -191,6 +191,8 @@ export function isThreatModelDetail(v: unknown): v is ThreatModelDetail {
     isRecord(perms) &&
     isBool(perms.can_edit) &&
     isBool(perms.maintained_as_code) &&
+    isBool(perms.can_archive) &&
+    isBool(perms.can_delete) &&
     isString(v.created_by_label) &&
     isString(v.created_at) &&
     isString(v.updated_at) &&

@@ -63,6 +63,7 @@ from app.schemas.governance import (
     ElementOut,
     ElementUpdate,
     Evidence,
+    ModelArchive,
     ModelPermissions,
     ModelStats,
     RequirementList,
@@ -90,6 +91,9 @@ _SYNC_LOCK_KEY = 0x5E7E1ED70
 SYSTEM_ACTOR = "system:governance"
 
 LEADS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
+# Archiving hides a model without losing it; developers may archive their own applications'
+# models. Analysts and viewers stay read-only (the DAST scanner is a viewer, T-VM-06).
+ARCHIVERS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 SEES_ALL = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
 # Threats still carrying risk: what the matrix, "highest open risk" and posture count.
 ACTIVE_RISK = frozenset({ThreatStatus.OPEN, ThreatStatus.PLANNED, ThreatStatus.PARTLY_MITIGATED})
@@ -607,6 +611,10 @@ class GovernanceService:
             permissions=ModelPermissions(
                 can_edit=not catalogue and principal.user.role in LEADS,
                 maintained_as_code=catalogue,
+                can_archive=not catalogue
+                and model.status is not ModelStatus.ARCHIVED
+                and principal.user.role in ARCHIVERS,
+                can_delete=not catalogue and principal.user.role in LEADS,
             ),
             created_by_label=model.created_by_label,
             created_at=model.created_at,
@@ -942,5 +950,63 @@ class GovernanceService:
                 threat=threat.ref,
                 changes=changes,
             )
+            self.db.commit()
+        return self._detail(principal, model, app)
+
+    def delete_model(self, principal: Principal, model_id: uuid.UUID) -> None:
+        """Delete an application model with its elements and threats. The audit record keeps a
+        summary of what was removed; SentinelEdge's own model refuses (maintained as code)."""
+        model, app = self._editable(principal, model_id)
+        threats = list(
+            self.db.scalars(select(Threat).where(Threat.model_id == model.id).order_by(Threat.ref))
+        )
+        elements = list(
+            self.db.scalars(select(ModelElement).where(ModelElement.model_id == model.id))
+        )
+        summary = {
+            "model": model.reference,
+            "name": model.name,
+            "application": app.slug,
+            "method": str(model.method),
+            "status": str(model.status),
+            "threats": [
+                {"ref": t.ref, "title": t.title[:120], "risk": t.risk, "status": str(t.status)}
+                for t in threats[:50]
+            ],
+            "threat_count": len(threats),
+            "elements": dict(Counter(str(e.kind) for e in elements)),
+        }
+        if threats:
+            self.db.execute(
+                delete(ThreatControl).where(ThreatControl.threat_id.in_([t.id for t in threats]))
+            )
+        self.db.execute(delete(Threat).where(Threat.model_id == model.id))
+        self.db.execute(delete(ModelElement).where(ModelElement.model_id == model.id))
+        self.db.delete(model)
+        audit.record(
+            self.db,
+            action=AuditAction.THREAT_MODEL_DELETED,
+            result=AuditResult.SUCCESS,
+            actor=principal.user,
+            ctx=self.ctx,
+            resource_type="threat_model",
+            resource_id=str(model_id),
+            details=summary,
+        )
+        self.db.commit()
+
+    def archive_model(
+        self, principal: Principal, model_id: uuid.UUID, body: ModelArchive
+    ) -> ThreatModelDetail:
+        """Archive an application model: kept, with its history, but marked out of use. Leads,
+        and developers for applications they own (others get 404, audited, from _model)."""
+        model, app = self._editable(principal, model_id)
+        if model.version != body.version:
+            raise ApiError(409, "stale_version", "The threat model changed since you loaded it.")
+        if model.status is not ModelStatus.ARCHIVED:
+            before = model.status
+            model.status = ModelStatus.ARCHIVED
+            self._touch(model)
+            self._audit(AuditAction.THREAT_MODEL_ARCHIVED, principal, model, before=str(before))
             self.db.commit()
         return self._detail(principal, model, app)
