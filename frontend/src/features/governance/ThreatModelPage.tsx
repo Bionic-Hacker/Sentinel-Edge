@@ -28,6 +28,7 @@ import {
 import { asApiError } from "../auth/LoginPage";
 import { RiskMatrix, ThreatStatusBadge, selectBox, textArea, threatStatusLabel } from "./governance";
 import { RemoveModelDialog } from "./RemoveModelDialog";
+import { AnalyzePanel } from "../ai/ai";
 
 const CARRYING: readonly ThreatStatus[] = ["open", "planned", "partly_mitigated"];
 const ELEMENT_LABEL: Record<ElementKind, string> = {
@@ -131,6 +132,7 @@ export function ThreatModelPage() {
         )}
         <FormError error={removeError} />
       </header>
+      <AnalyzePanel subjectType="threat_model" subjectId={model.id} />
       {removing && (
         <RemoveModelDialog
           reference={model.reference}

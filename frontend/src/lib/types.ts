@@ -967,3 +967,144 @@ export interface Posture {
   trend: { taken_at: string; overall: number; built_scope: number }[];
   computed_at: string;
 }
+
+// --- AI security engine (Phase 9; ADR-0007, ADR-0024) -------------------------------------
+// Everything the AI wrote, and every quote it took from attacker-controlled data, is rendered as
+// text only. The UI shows what the server allows (`can_decide`, `note_required`) and nothing else.
+
+export const AI_SUBJECT_TYPES = ["security_event", "incident", "vulnerability", "threat_model"] as const;
+export type AiSubjectType = (typeof AI_SUBJECT_TYPES)[number];
+export const AI_ANALYSIS_STATUSES = ["completed", "rejected", "failed"] as const;
+export type AiAnalysisStatus = (typeof AI_ANALYSIS_STATUSES)[number];
+export const AI_PROPOSAL_TYPES = ["open_incident", "raise_change_request", "add_threat"] as const;
+export type AiProposalType = (typeof AI_PROPOSAL_TYPES)[number];
+export const AI_PROPOSAL_STATUSES = ["proposed", "approved", "rejected"] as const;
+export type AiProposalStatus = (typeof AI_PROPOSAL_STATUSES)[number];
+export const AI_RISK_LEVELS = ["low", "medium", "high"] as const;
+export type AiRiskLevel = (typeof AI_RISK_LEVELS)[number];
+export const AI_CLASSIFICATIONS = [
+  "sql_injection",
+  "xss",
+  "path_traversal",
+  "command_injection",
+  "ssrf",
+  "credential_attack",
+  "authorization_abuse",
+  "api_abuse",
+  "reconnaissance",
+  "vulnerable_component",
+  "code_weakness",
+  "exposed_secret",
+  "design_threat",
+  "benign",
+  "unknown",
+] as const;
+export type AiClassification = (typeof AI_CLASSIFICATIONS)[number];
+
+export interface AiStatus {
+  enabled: boolean;
+  provider: string;
+  model: string | null;
+  provenance: Provenance | null;
+  can_analyse: boolean;
+  requests_today: number;
+  requests_per_day: number;
+  tokens_today: number;
+  tokens_per_day: number;
+  max_output_tokens: number;
+}
+
+export interface AiSubjectRef {
+  type: AiSubjectType;
+  id: string;
+  reference: string;
+}
+
+export interface AiEvidence {
+  field: string;
+  quote: string;
+}
+
+export interface AiRecommendation {
+  text: string;
+  controls: string[];
+}
+
+/** One action the AI proposed: `type` plus its own fields (title, rule_id, stride...). */
+export interface AiAction {
+  type: AiProposalType;
+  rationale: string;
+  [key: string]: unknown;
+}
+
+export interface AiOutput {
+  summary: string;
+  classification: AiClassification;
+  severity: Severity;
+  confidence: number;
+  observed_evidence: AiEvidence[];
+  inference: string;
+  recommendations: AiRecommendation[];
+  proposed_actions: AiAction[];
+}
+
+export interface AiProposal {
+  id: string;
+  reference: string;
+  analysis_id: string;
+  analysis_reference: string;
+  subject: AiSubjectRef;
+  action_type: AiProposalType;
+  payload: Record<string, unknown>;
+  rationale: string;
+  status: AiProposalStatus;
+  input_risk: number;
+  note_required: boolean;
+  can_decide: boolean;
+  decided_by_label: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  result_ref: string | null;
+  created_at: string;
+  version: number;
+}
+
+export interface AiAnalysisSummary {
+  id: string;
+  reference: string;
+  subject: AiSubjectRef;
+  application: AppRef | null;
+  provenance: Provenance;
+  status: AiAnalysisStatus;
+  provider: string;
+  model: string;
+  prompt_risk: number;
+  risk_level: AiRiskLevel;
+  classification: AiClassification | null;
+  severity: Severity | null;
+  proposals: number;
+  requested_by_label: string;
+  created_at: string;
+}
+
+export interface AiAnalysisDetail extends AiAnalysisSummary {
+  failure: string | null;
+  risk_signals: string[];
+  input_sha256: string;
+  input_chars: number;
+  input_tokens: number;
+  output_tokens: number;
+  duration_ms: number;
+  output: AiOutput | null;
+  disagreements: string[];
+  proposal_items: AiProposal[];
+}
+
+export interface AiAnalysisList {
+  items: AiAnalysisSummary[];
+}
+
+export interface AiProposalList {
+  items: AiProposal[];
+  counts: Record<AiProposalStatus, number>;
+}
