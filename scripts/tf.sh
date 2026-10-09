@@ -19,7 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 STACKS=(bootstrap account dev)
-PLATFORMS=(-platform=linux_amd64 -platform=linux_arm64 -platform=darwin_arm64 -platform=darwin_amd64)
+PLATFORMS=(-platform=linux_amd64 -platform=darwin_arm64)
 
 die() { printf 'tf: %s\n' "$*" >&2; exit 2; }
 usage() { die "usage: scripts/tf.sh <bootstrap|account|dev> <init|plan|apply|destroy-plan|output|lock>"; }
@@ -84,7 +84,7 @@ write_backend_config() {
   region="$(sed -nE 's/^[[:space:]]*region[[:space:]]*=[[:space:]]*"([a-z0-9-]+)".*/\1/p' "$DIR/terraform.tfvars" | head -n1)"
   region="${region:-us-east-2}"
   bucket="sentineledge-tfstate-$account"
-  aws s3api head-bucket --bucket "$bucket" --region "$region" 2>/dev/null \
+  aws s3api head-bucket --bucket "$bucket" --region "$region" >/dev/null 2>&1 \
     || die "state bucket $bucket not found: apply the bootstrap stack first"
   # The bucket policy accepts only this key's ARN, so look it up rather than use the alias.
   key_arn="$(aws kms describe-key --key-id alias/sentineledge-tfstate --region "$region" \
@@ -124,7 +124,12 @@ case "$CMD" in
   apply)
     check_identity
     [[ -f "$DIR/tfplan" ]] || die "no saved plan: run scripts/tf.sh $STACK plan first"
-    tf apply -input=false tfplan
+    # A saved plan is used once: after a failed apply the state has moved on and the plan is
+    # stale, so it is discarded either way and the next step is always a fresh plan.
+    if ! tf apply -input=false tfplan; then
+      rm -f "$DIR/tfplan"
+      die "apply failed and the saved plan was discarded: fix the cause, then plan again"
+    fi
     rm -f "$DIR/tfplan"
     ;;
   output)
@@ -132,8 +137,8 @@ case "$CMD" in
     tf output
     ;;
   lock)
-    # Record provider checksums for every platform the stack may run on (the owner's Linux
-    # machine, CI, and macOS), so `init` on any of them verifies the same binaries.
+    # `init` already records HashiCorp's signed checksums (zh:) for every platform. This adds the
+    # package hashes (h1:) for Linux (the owner's machine and CI) and Apple silicon.
     tf providers lock "${PLATFORMS[@]}"
     ;;
   *) usage ;;

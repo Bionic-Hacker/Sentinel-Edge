@@ -15,7 +15,7 @@ changes a few things, all checked on 2026-10-09 with read-only calls:
 |---|---|
 | The home Region is set at sign-up and cannot be changed: **us-east-2** | Every regional resource lives in us-east-2 |
 | us-east-1 is usable (a certificate request there succeeded and was deleted) | CloudFront's certificate and its WAF web ACL, which AWS requires in us-east-1, are created there in Phase 5 |
-| AWS writes the organization's guardrail policies (SCPs); custom SCPs are not available | IAM Access Analyzer is denied by one of them, so the account stack does not create it |
+| AWS writes the organization's guardrail policies (SCPs); custom SCPs are not available | They deny IAM Access Analyzer and creating an OIDC identity provider, so the account stack creates neither. Without an OIDC provider, GitHub Actions cannot assume a role here: Phase 11 must revisit ADR-0010 |
 | IAM users and roles work for programmatic access only | No IAM password policy and no IAM console-sign-in alarm: nobody signs in that way |
 | The CLI signs in with `aws login` (a browser sign-in, 12-hour sessions) | No access keys exist anywhere; `scripts/tf.sh` passes the session to Terraform |
 | CloudFront VPC origins, Nova Micro in us-east-2 (and `us.amazon.nova-micro-v1:0`) | Available, as the design (ADR-0001, ADR-0006) needs |
@@ -67,12 +67,11 @@ cp terraform/bootstrap/terraform.tfvars.example terraform/bootstrap/terraform.tf
 make tf-plan STACK=bootstrap
 # read the plan: every resource it adds, and "0 to change, 0 to destroy" on a first run
 make tf-apply STACK=bootstrap
-make tf-lock STACK=bootstrap
 ```
 
 - `tf-plan` saves the plan; `tf-apply` applies exactly that file and deletes it.
-- `tf-lock` records provider checksums for Linux, macOS and CI in `.terraform.lock.hcl`. Commit
-  the lock files.
+- `init` writes `.terraform.lock.hcl` with HashiCorp's signed checksums for every platform; commit
+  it. `tf-lock` adds package hashes for Linux and Apple silicon, if you ever need them.
 - `bootstrap` keeps its state in `terraform/bootstrap/terraform.tfstate` on your machine
   (git-ignored). It holds names and ARNs only. Keep a copy: losing it means importing the
   resources again, not losing them.

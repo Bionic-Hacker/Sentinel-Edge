@@ -17,8 +17,3 @@ output "cloudtrail_log_group" {
   description = "CloudWatch log group the trail streams to."
   value       = aws_cloudwatch_log_group.cloudtrail.name
 }
-
-output "github_oidc_provider_arn" {
-  description = "GitHub Actions OIDC provider (no roles trust it until Phase 11)."
-  value       = aws_iam_openid_connect_provider.github.arn
-}

@@ -11,7 +11,7 @@ and [ADR-0016](../docs/adr/0016-local-first-phase-order.md) (when AWS money is s
 | Stack | Path | State | Holds | Standing cost |
 |---|---|---|---|---|
 | `bootstrap` | `bootstrap/` | Local file (it creates the bucket the others use) | State bucket, access-log bucket, state KMS key, cost budget | ≈ $1/month (the key) |
-| `account` | `account/` | S3, key `account/terraform.tfstate` | Account guardrails, CloudTrail, security alarms, platform KMS key, GitHub OIDC provider | ≈ $1/month (the key) |
+| `account` | `account/` | S3, key `account/terraform.tfstate` | Account guardrails, CloudTrail, security alarms, platform KMS key | ≈ $1/month (the key) |
 | `dev` | `environments/dev/` | S3, key `dev/terraform.tfstate` | The environment (Part 2) | Foundation ≈ $0; the deploy window is billed by the hour |
 
 Apply in that order. Destroy in the reverse order; `bootstrap`'s state bucket refuses to be
@@ -29,8 +29,8 @@ destroyed until `prevent_destroy` is removed on purpose.
   `make tf-apply STACK=…` applies only that file. There is no auto-approve.
 - **Remote state is encrypted and locked.** SSE-KMS under the state key (the bucket refuses any
   other key), versioned, TLS-only, access-logged, with S3-native locking (`use_lockfile`).
-- **Pinned providers.** `~> 6.66` in each stack; the lock files (`make tf-lock STACK=…`) record
-  checksums for Linux, macOS and CI and are committed.
+- **Pinned providers.** `~> 6.66` in each stack; the committed lock files hold HashiCorp's signed
+  checksums for every platform, so `init` verifies the same binaries everywhere.
 - **Scanned before it is applied.** `make tf-check` (fmt, validate, TFLint) and Checkov in
   `make scan` and CI. Checkov exceptions are written in place as
   `# checkov:skip=<id>: <reason>`.
@@ -41,7 +41,7 @@ destroyed until `prevent_destroy` is removed on purpose.
 terraform/
 ├── .tflint.hcl
 ├── bootstrap/          # state bucket, access logs, state key, budget (local state)
-├── account/            # guardrails, CloudTrail, alarms, platform key, GitHub OIDC
+├── account/            # guardrails, CloudTrail, alarms, platform key
 ├── modules/            # reusable modules (Part 2)
 └── environments/
     └── dev/            # the one environment; staging and production would be copies with
