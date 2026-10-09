@@ -45,9 +45,12 @@ Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentine
 
 ## Upgrading from v0.6.0 (Phase 10) to v0.7.0 (Phase 9)
 
-Your data is kept. `make dev` rebuilds the images and applies one migration:
+Your data is kept. Phase 9 adds a Python dependency (`boto3`, for Bedrock), so refresh the local
+tool environment first (otherwise `make check` stops with `No module named 'boto3'`), then
+`make dev` rebuilds the images and applies one migration:
 
 ```bash
+make install       # with the project's virtual environment active
 make dev
 docker compose logs migrate | grep "Running upgrade"   # 0013 -> 0014
 ```
@@ -236,6 +239,7 @@ make create-admin EMAIL=you@example.com
 | "This incident changed since you loaded it" | Someone (or another tab) changed it first | Select Reload, then repeat the action |
 | `test_the_shipped_catalogue_is_exactly_what_the_documents_produce` fails | The threat model or controls document changed without regenerating | `make governance-catalogue` and commit the JSON |
 | No Approve button on your own exception or change request | Separation of duties: whoever asks cannot approve | A different lead decides |
+| `ModuleNotFoundError: No module named 'boto3'` (or another package) in `make check` | The local virtual environment predates a new dependency | `make install` with the virtual environment active |
 | `AI analysis is switched off` | `SENTINEL_AI_PROVIDER=disabled` (the default) | Set `offline` or `bedrock` in `.env`, then `docker compose up -d api` |
 | `AI quota reached` | A daily AI limit was reached | Wait, or raise the limit in `.env` deliberately |
 | `make ai-check` says `No AWS credentials` or `expired` | No Bedrock session, or it ended | `make bedrock-credentials`, then `docker compose up -d api` |
