@@ -89,3 +89,4 @@ A git bundle carries commits with their IDs, authorship and parents intact. Veri
 | v0.3.0 | 6 | M0–M5 | Rate limiting, trusted client IPs, API Security Center, OWASP API Top 10 coverage |
 | v0.4.0 | 7 | M0–M5 | Detect-only HTTP analysis, correlation, incidents with tamper-evident evidence, security dashboard, attack simulator and simulated WAF |
 | v0.5.0 | 8 | M0–M4 | One scan pipeline and fail-closed gate, authenticated DAST, SBOMs, vulnerability management with SLAs and risk acceptance |
+| v0.6.0 | 10 | M1–M4 | Threat model and controls as code in the app, application threat models, explainable posture score, exceptions and change management with separation of duties |

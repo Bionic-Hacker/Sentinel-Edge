@@ -1,6 +1,6 @@
 # Threat Register
 
-Condensed from `docs/threat-model.md` (version 0.5). L×I is likelihood × impact, each from 1 to 3.
+Condensed from `docs/threat-model.md` (version 0.6). L×I is likelihood × impact, each from 1 to 3.
 
 | ID | STRIDE | Threat | L×I | Status |
 |---|---|---|---|---|
@@ -67,3 +67,12 @@ Condensed from `docs/threat-model.md` (version 0.5). L×I is likelihood × impac
 | T-VM-06 | T | Authenticated DAST changes platform data | 2×2 | **Mitigated (P8)** |
 | T-VM-07 | I | Developers read other teams' findings | 2×2 | **Mitigated (P8)** |
 | T-VM-08 | D | Hostile import exhausts the API or floods events | 1×2 | **Mitigated (P8)** |
+| T-GOV-01 | E/R | Requester approves their own exception or change | 2×3 | **Mitigated (P10)** |
+| T-GOV-02 | T/R | Decision rewritten, or a closed request revived | 2×3 | **Mitigated (P10)** |
+| T-GOV-03 | R | Accepted risk outlives its justification | 2×2 | **Mitigated (P10)** |
+| T-GOV-04 | T | In-app catalogue drifts from the reviewed documents | 2×2 | **Mitigated (P10)** |
+| T-GOV-05 | T | Posture score unexplainable or counting planned controls | 2×2 | **Mitigated (P10)** |
+| T-GOV-06 | I | Developers read other teams' models and exceptions | 2×2 | **Mitigated (P10)** |
+| T-GOV-07 | T/R | Threat model deleted to hide threats, or by the wrong role | 2×2 | **Mitigated (P10)** |
+| T-GOV-08 | E | Change request used to change the real WAF | 1×3 | **Mitigated (P10)**: simulated WAF only |
+| T-GOV-09 | T | Stored XSS through governance text | 2×3 | **Mitigated (P10)** |

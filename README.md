@@ -5,12 +5,13 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1, 2, 6, 7 and 8 complete (v0.5.0): application security scanning.**
+> **Current status: Phases 1, 2, 6, 7, 8 and 10 complete (v0.6.0): threat modeling and governance.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
 > an API Security Center, attack detection, correlation, an incident workflow with tamper-evident
-> evidence, a security dashboard and a labelled attack simulator run locally, and now SAST, SCA,
-> secrets, IaC, container and authenticated DAST scanning behind a fail-closed gate, SBOMs, and
-> vulnerability management with SLAs and risk acceptance. **No AWS resources exist yet**: AWS phases are deliberately grouped late
+> evidence, a security dashboard, a labelled attack simulator, scanning behind a fail-closed gate,
+> SBOMs and vulnerability management run locally, and now threat modeling (STRIDE and PASTA), a
+> control catalogue maintained as code, an explainable posture score, and security exceptions and
+> change management where whoever asks cannot approve. **No AWS resources exist yet**: AWS phases are deliberately grouped late
 > to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
 > capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
 > and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
@@ -73,15 +74,35 @@ Full detail: [docs/architecture.md](docs/architecture.md).
 STRIDE per trust boundary (internet → edge → origin → API → database, plus AI, CI/CD, and operator
 paths), mapped to the OWASP Top 10, API Security Top 10, and LLM Top 10. Each threat carries a
 risk rating, controls, and a status of *Mitigated*, *Planned (phase)*, or *Accepted (interim)*.
-See [docs/threat-model.md](docs/threat-model.md).
+See [docs/threat-model.md](docs/threat-model.md). Since Phase 10 the same document is loaded into
+the application as SentinelEdge's own threat model, linked to its controls and evidence, and a
+test fails if the two disagree ([ADR-0022](docs/adr/0022-threat-modeling-catalogue-and-posture.md)).
 
 ## Security controls
 
-Seventeen defense-in-depth layers, from DNS to AI security, each with a stated reason, are mapped
+Eighteen defense-in-depth layers, from DNS to governance, each with a stated reason, are mapped
 requirement → threat → control → implementation → evidence in
 [docs/security-controls.md](docs/security-controls.md).
 
-**In place after Phase 7 (LOCAL, plus labelled SIMULATED):**
+**In place after Phase 10 (LOCAL):**
+
+- **Threat modeling:** SentinelEdge's model is read-only in the app (it changes by pull request);
+  models for other applications, STRIDE or PASTA, are built in the app, each threat citing real
+  controls. Archive or delete with role rules; deletions are audited with a summary.
+- **Control catalogue and posture:** 101 controls and the requirement matrix, generated from the
+  reviewed documents; a posture score of coverage minus live signals, every point traceable, with
+  daily snapshots.
+- **Exceptions and change management:** whoever asks cannot approve (service and database);
+  exceptions expire within their risk's limit; decisions are final; the scan gate's accepted
+  risks are generated from approved exceptions
+  ([ADR-0023](docs/adr/0023-exceptions-change-management-separation-of-duties.md)).
+
+**In place since Phase 8 (LOCAL):** SAST, SCA, secrets, IaC, container and authenticated DAST
+scanning behind a fail-closed gate, SBOMs, and vulnerability management with SLAs and risk
+acceptance ([ADR-0020](docs/adr/0020-application-security-scan-gate.md),
+[ADR-0021](docs/adr/0021-vulnerability-management.md)).
+
+**In place since Phase 7 (LOCAL, plus labelled SIMULATED):**
 
 - **Security events and detection:** append-only events from authentication, authorization,
   rate limiting and 17 detect-only HTTP attack rules; seven correlation rules (credential
@@ -149,7 +170,7 @@ make env                                  # .env with random local secrets (mode
 make dev                                  # web on http://localhost:8080
 make create-admin EMAIL=you@example.com   # one-time password; you'll set your own + MFA
 make check                                # lint, types, tests, SAST, SCA — the CI gates
-make smoke                                # end-to-end test of the running stack (48 checks)
+make smoke                                # end-to-end test of the running stack (64 checks)
 ```
 
 More in [docs/local-development.md](docs/local-development.md).
@@ -177,10 +198,15 @@ More in [docs/local-development.md](docs/local-development.md).
 | `backend/tests/unit/test_scanning.py` | The gate blocks fixable critical/high, honours unexpired acceptances, and fails closed on missing reports |
 | `backend/tests/integration/test_vulnerabilities.py` | Findings de-duplicate, are fixed only by covering scans, reopen; acceptances expire; developers see only their own; the record cannot be rewritten |
 | `backend/tests/unit/test_frontend_contract.py` | The SPA's allowed values match every backend enumeration |
+| `backend/tests/unit/test_governance_catalogue.py` | The shipped catalogue equals the documents; every threat has a control; cited evidence exists |
+| `backend/tests/integration/test_governance.py` | SentinelEdge's model is read-only; threats cite real controls; developers see their own; archive and delete rules |
+| `backend/tests/integration/test_risk_governance.py` | Whoever asks cannot approve (service and database); decisions final; exceptions expire; the gate register is generated |
+| `backend/tests/integration/test_posture.py` | The score starts from coverage and every deduction names its records |
 | `scanning/semgrep/` (`make scan-test`) | Each SentinelEdge Semgrep rule flags its bad examples and none of the good ones |
 | `make scan`, `make dast` | Semgrep, Bandit, Trivy, Gitleaks, Checkov, Syft and authenticated ZAP behind the gate |
 | `frontend/src/features/secops/secops.test.tsx` | Pages render the server's permissions; attack snippets render as text, never markup |
 | `frontend/src/features/appsec/appsec.test.tsx` | Scanner text renders as text; only https references are links; the server's allowed moves only |
+| `frontend/src/features/governance/governance.test.tsx` | Threat text renders as text; buttons follow the server's permissions; the remove dialog per role |
 | `frontend/src/lib/auth/session.test.ts` | Token stays in memory; one refresh and one retry; concurrent refreshes share one call |
 | `frontend/src/lib/api/client.test.ts` | Client refuses cross-origin paths and redirects, and validates responses |
 | `scripts/smoke-auth.py` (`make smoke`) | The whole journey against the running stack |
@@ -203,8 +229,8 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 6 | API security: inventory, OWASP API mapping, rate limiting | **Complete** (v0.3.0) |
 | 7 | Security operations: events, dashboard, incidents, simulator, application inventory | **Complete** (v0.4.0) |
 | 8 | Application security scanning, SBOM, vulnerability management | **Complete** (v0.5.0) |
-| 10 | Threat modeling and governance | Next |
-| 9 | AI security engine on Amazon Bedrock | Planned |
+| 10 | Threat modeling and governance | **Complete** (v0.6.0) |
+| 9 | AI security engine on Amazon Bedrock | Next |
 | 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Planned |
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Planned |
 | 5 | CloudFront, AWS WAF, ACM/TLS, Route 53, edge headers | Planned |

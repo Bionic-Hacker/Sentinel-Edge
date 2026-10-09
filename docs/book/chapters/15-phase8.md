@@ -101,7 +101,7 @@ The gate decides about one build and has no memory. Vulnerability management (AD
 A lead may accept a risk with a justification, a compensating control and an expiry no further away than the severity allows: 30 days for critical, 90 for high, a year otherwise. The decision itself is **immutable**: the application's database role may update only how an acceptance ended (revoked, expired or fixed), and a partial unique index allows one acceptance in force per finding. An expired acceptance reopens its finding, and the expiry check runs on every import, read and write, so it never depends on a scheduler.
 
 :::why Why acceptance is in the database, not only in the TOML file
-The gate's file-based register stops one build. An acceptance in the application is tied to the finding's history, its approver and the audit log, and it expires visibly. Phase 10's change management will make the in-application record the only one.
+The gate's file-based register stops one build. An acceptance in the application is tied to the finding's history, its approver and the audit log, and it expires visibly. Since Phase 10 the file is generated from approved exceptions in the application (Chapter 11).
 :::
 
 ### Findings feed security operations

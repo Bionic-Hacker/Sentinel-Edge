@@ -6,10 +6,12 @@ Top 10 (2023) is addressed. Everything here is **LOCAL**: no AWS resources are i
 ## The API Security Center
 
 `/apis` in the app (ADMIN, SECURITY_ENGINEER, DEVELOPER), backed by the endpoints below. At
-v0.5.0 the inventory lists **56 endpoints**: 23 from Phases 1 to 6, 22 for security operations
+v0.6.0 the inventory lists **79 endpoints**: 23 from Phases 1 to 6, 22 for security operations
 (Phase 7: security events, incidents, the dashboard overview, applications and the attack
-simulator) and 11 for vulnerability management (Phase 8: findings, risk acceptances, scans and
-SBOMs). Their roles are in [authorization.md](authorization.md).
+simulator), 11 for vulnerability management (Phase 8: findings, risk acceptances, scans and
+SBOMs) and 23 for threat modeling and governance (Phase 10: the control catalogue,
+requirements, threat models, the posture score, exceptions and change requests). Their roles are
+in [authorization.md](authorization.md).
 
 | Endpoint | Returns |
 |---|---|

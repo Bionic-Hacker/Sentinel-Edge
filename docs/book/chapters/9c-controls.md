@@ -8,7 +8,7 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-WEB-02 | SPA strict CSP, no `unsafe-inline` / `unsafe-eval` | No inline code in build output; hardening check |
 | C-WEB-03 | XSS-prone patterns banned at lint time | ESLint in CI |
 | C-WEB-04 | Cross-origin isolation: COOP `same-origin`, COEP `require-corp` | `make verify-hardening`; ZAP rule 90004 |
-| C-API-01 | Object-level authorization (404, audited): users, applications, incidents, findings, scans, SBOMs | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications`, `test_developers_work_only_on_their_own_applications` |
+| C-API-01 | Object-level authorization (404, audited): users, applications, incidents, findings, scans, SBOMs, threat models, exceptions, change requests | `test_users_can_read_only_their_own_record`, `test_developers_see_only_their_own_applications`, `test_developers_work_only_on_their_own_applications`, `test_developers_see_only_their_own_applications_models` |
 | C-API-02 | Function-level authorization on every route | `test_authz_matrix.py` (with mutation check) |
 | C-API-03 | Token-bucket rate limiting per IP and per account | `test_rate_limiting.py` (40-thread), `make smoke` |
 | C-API-04 | Unknown request fields rejected | `test_every_request_body_rejects_unknown_fields` |
@@ -48,8 +48,14 @@ Every control below is implemented and has evidence a reviewer can run or read. 
 | C-CICD-11 | Authenticated DAST as a read-only viewer with a one-scan session | `test_dast_scanner_session_is_read_only_and_revocable` |
 | C-GOV-01 | Provenance register with enforcement tests | `test_capabilities.py` |
 | C-GOV-02 | Code-owner review on sensitive paths | CODEOWNERS, branch protection |
-| C-GOV-04 | Exceptions with justification, compensation and expiry | EXC-0001, EXC-0002 |
+| C-GOV-03 | Change management: rollback and validation plans, an approver other than the requester, implemented then validated or rolled back | `test_a_change_goes_from_request_to_validation`, `test_a_waf_change_drives_the_simulated_waf_and_rolls_back` |
+| C-GOV-04 | Exceptions with justification, compensation and an expiry within the risk's limit; separation of duties; held in the app | `test_whoever_asks_cannot_approve`, `test_an_approved_exception_expires_on_its_date` |
 | C-GOV-05 | OWASP API coverage with evidence that must exist | `test_owasp_coverage.py` |
+| C-GOV-06 | Threat model and controls as code, checked against the documents; cited evidence must exist | `test_the_shipped_catalogue_is_exactly_what_the_documents_produce`, `test_every_cited_piece_of_evidence_exists` |
+| C-GOV-07 | Application threat models: real controls cited, elements retired, archive and delete by role, audited | `test_threats_must_cite_real_controls_and_boundaries`, `test_a_lead_deletes_an_application_model_and_the_audit_log_keeps_it` |
+| C-GOV-08 | Governance decisions final (triggers); nothing deletable by the app role | `test_the_database_refuses_self_approval_and_rewritten_decisions` |
+| C-GOV-09 | The scan gate's accepted risks generated from approved exceptions | `test_approved_scan_finding_exceptions_become_the_gate_register` |
+| C-GOV-10 | Explainable posture score: coverage minus named signals, method published | `test_the_method_is_published_with_the_score`, `test_live_signals_deduct_points_and_name_their_records` |
 | C-SO-01 | Append-only security events; write-once incident links | `test_app_role_cannot_alter_or_remove_events`, `test_evidence_links_are_write_once` |
 | C-SO-02 | Detect-only HTTP analysis, redaction, inspection exclusions | `test_http_analysis.py`, `test_inspection_exclusions_name_real_routes_and_fields` |
 | C-SO-03 | ReDoS-safe detection patterns | `test_rules_are_linear_on_adversarial_input` |

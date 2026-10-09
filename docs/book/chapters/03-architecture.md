@@ -108,7 +108,7 @@ Primary keys are UUIDs, so record IDs are not enumerable. Timestamps are UTC. Ev
 | Vulnerabilities and supply chain | scan_runs (insert-only), vulnerabilities, risk_acceptances (decision immutable by column grants), sboms (components and the CycloneDX document) | 8 ✓ |
 | Certificates | certificates | 5 |
 | AI | ai_analyses, ai_action_proposals | 9 |
-| Governance and posture | threat_models, threats, controls, control_mappings, risk_exceptions, change_requests, posture_snapshots | 10 |
+| Governance and posture | controls, requirements, threat_models, model_elements, threats and their links; exceptions and change_requests (approver never the requester, decisions final); posture_snapshots (insert-only) | 10 ✓ |
 
 ## Environments
 

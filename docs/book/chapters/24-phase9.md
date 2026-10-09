@@ -1,6 +1,6 @@
 # Phase 9 — AI Security Engine
 
-<p class="lead">AI in SentinelEdge is a security-intelligence component, not a chatbot. It analyzes events and findings, explains risk and recommends controls, and it is never allowed to act on its own. <span class="status plan">Planned</span></p>
+<p class="lead">AI in SentinelEdge is a security-intelligence component, not a chatbot. It analyzes events and findings, explains risk and recommends controls, and it is never allowed to act on its own. <span class="status next">Next</span></p>
 
 ## Scope
 

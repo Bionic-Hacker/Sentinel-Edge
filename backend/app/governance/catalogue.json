@@ -104,6 +104,22 @@
      "implementation": "VulnerabilityService",
      "phase": 8,
      "title": "Object-level authorization extended to findings, scans and SBOMs (developers: own applications; 404, audited)"
+    },
+    {
+     "evidence": [
+      {
+       "kind": "test",
+       "ref": "test_developers_see_only_their_own_applications_models"
+      },
+      {
+       "kind": "test",
+       "ref": "test_developers_raise_requests_only_for_their_own_applications"
+      }
+     ],
+     "evidence_text": "test_developers_see_only_their_own_applications_models, test_developers_raise_requests_only_for_their_own_applications",
+     "implementation": "GovernanceService, RiskGovernanceService",
+     "phase": 10,
+     "title": "Object-level authorization extended to threat models, exceptions and change requests (developers: own applications; 404, audited)"
     }
    ],
    "family": "API",
@@ -312,7 +328,20 @@
   {
    "evidence": [],
    "evidence_text": "CI",
-   "extensions": [],
+   "extensions": [
+    {
+     "evidence": [
+      {
+       "kind": "frontend_test",
+       "ref": "governance.test.tsx"
+      }
+     ],
+     "evidence_text": "governance.test.tsx",
+     "implementation": "tests/unit/test_frontend_contract.py",
+     "phase": 10,
+     "title": "Governance enumerations and PASTA stages match the SPA's validator lists"
+    }
+   ],
    "family": "API",
    "implementation": "tests/unit/test_frontend_contract.py",
    "layer": null,
@@ -666,7 +695,7 @@
    "extensions": [],
    "family": "GOV",
    "implementation": "app/core/capabilities.py",
-   "layer": null,
+   "layer": "Governance",
    "phase": 1,
    "ref": "C-GOV-01",
    "status": "implemented",
@@ -678,23 +707,36 @@
    "extensions": [],
    "family": "GOV",
    "implementation": ".github/CODEOWNERS, PR template",
-   "layer": null,
+   "layer": "Governance",
    "phase": 1,
    "ref": "C-GOV-02",
    "status": "implemented",
    "title": "Security-sensitive paths require code-owner review"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_a_change_goes_from_request_to_validation"
+    },
+    {
+     "kind": "test",
+     "ref": "test_a_waf_change_drives_the_simulated_waf_and_rolls_back"
+    },
+    {
+     "kind": "test",
+     "ref": "test_whoever_asks_cannot_approve"
+    }
+   ],
+   "evidence_text": "test_a_change_goes_from_request_to_validation, test_a_waf_change_drives_the_simulated_waf_and_rolls_back, test_whoever_asks_cannot_approve",
    "extensions": [],
    "family": "GOV",
-   "implementation": "",
-   "layer": null,
+   "implementation": "app/services/risk_governance.py, migration 0011",
+   "layer": "Governance",
    "phase": 10,
    "ref": "C-GOV-03",
-   "status": "planned",
-   "title": "Change management: security-sensitive changes need an approver other than the requester, a rollback plan and validation"
+   "status": "implemented",
+   "title": "Change management: a security-sensitive change needs a rollback plan and a validation plan, an approver other than the requester (service and database CHECK), an implementation reference, then validation or rollback; a waf_rule change drives the simulated WAF (ADR-0023)"
   },
   {
    "evidence": [],
@@ -706,11 +748,35 @@
      "implementation": "docs/governance/exceptions.md",
      "phase": 2,
      "title": "Security exceptions recorded with justification, compensating control and expiry"
+    },
+    {
+     "evidence": [
+      {
+       "kind": "test",
+       "ref": "test_whoever_asks_cannot_approve"
+      },
+      {
+       "kind": "test",
+       "ref": "test_an_approved_exception_expires_on_its_date"
+      },
+      {
+       "kind": "test",
+       "ref": "test_rejection_withdrawal_and_closure_need_reasons"
+      },
+      {
+       "kind": "test",
+       "ref": "test_migration_imports_the_documented_exceptions"
+      }
+     ],
+     "evidence_text": "test_whoever_asks_cannot_approve, test_an_approved_exception_expires_on_its_date, test_rejection_withdrawal_and_closure_need_reasons, test_migration_imports_the_documented_exceptions",
+     "implementation": "SecurityException, migration 0011",
+     "phase": 10,
+     "title": "Security exceptions held in the application: separation of duties, expiry no later than the risk allows (critical 30, high 90, medium 180, low 365 days), expiry on the date without a scheduler, reasons for rejection, withdrawal and closure; EXC-0001 and EXC-0002 migrated, not retyped"
     }
    ],
    "family": "GOV",
    "implementation": "docs/governance/exceptions.md; exception IDs in implementing config",
-   "layer": null,
+   "layer": "Governance",
    "phase": 1,
    "ref": "C-GOV-04",
    "status": "implemented",
@@ -727,11 +793,136 @@
    "extensions": [],
    "family": "GOV",
    "implementation": "app/core/owasp_coverage.py",
-   "layer": null,
+   "layer": "Governance",
    "phase": 6,
    "ref": "C-GOV-05",
    "status": "implemented",
    "title": "OWASP API Top 10 coverage with cited test evidence that must exist"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_the_shipped_catalogue_is_exactly_what_the_documents_produce"
+    },
+    {
+     "kind": "test",
+     "ref": "test_every_cited_piece_of_evidence_exists"
+    },
+    {
+     "kind": "test",
+     "ref": "test_sentineledge_s_own_model_is_maintained_as_code"
+    }
+   ],
+   "evidence_text": "test_the_shipped_catalogue_is_exactly_what_the_documents_produce, test_every_cited_piece_of_evidence_exists, test_sentineledge_s_own_model_is_maintained_as_code",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "app/governance/catalogue_source.py, make governance-catalogue",
+   "layer": "Governance",
+   "phase": 10,
+   "ref": "C-GOV-06",
+   "status": "implemented",
+   "title": "Threat model and control catalogue maintained as code: generated from the reviewed documents, shipped with the API, refused by a test if they differ; cited evidence must exist; SentinelEdge's own model is read-only in the application (ADR-0022)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_threats_must_cite_real_controls_and_boundaries"
+    },
+    {
+     "kind": "test",
+     "ref": "test_elements_are_retired_not_deleted"
+    },
+    {
+     "kind": "test",
+     "ref": "test_a_lead_deletes_an_application_model_and_the_audit_log_keeps_it"
+    },
+    {
+     "kind": "test",
+     "ref": "test_analysts_and_viewers_cannot_archive"
+    }
+   ],
+   "evidence_text": "test_threats_must_cite_real_controls_and_boundaries, test_elements_are_retired_not_deleted, test_a_lead_deletes_an_application_model_and_the_audit_log_keeps_it, test_analysts_and_viewers_cannot_archive",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "app/services/governance.py, migration 0013",
+   "layer": "Governance",
+   "phase": 10,
+   "ref": "C-GOV-07",
+   "status": "implemented",
+   "title": "Application threat models: threats cite real controls and boundaries; elements are retired, never deleted; models archived (leads, developers on their own applications) or deleted (leads only), each audited, a deletion with a summary of what it removed"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_the_database_refuses_self_approval_and_rewritten_decisions"
+    },
+    {
+     "kind": "test",
+     "ref": "test_a_cancelled_change_cannot_be_revived_or_rewritten"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_app_role_cannot_delete_governance_decisions"
+    }
+   ],
+   "evidence_text": "test_the_database_refuses_self_approval_and_rewritten_decisions, test_a_cancelled_change_cannot_be_revived_or_rewritten, test_the_app_role_cannot_delete_governance_decisions",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "Migration 0011",
+   "layer": "Governance",
+   "phase": 10,
+   "ref": "C-GOV-08",
+   "status": "implemented",
+   "title": "Governance decisions are final: database triggers refuse a rewritten decision or a revived request; the app role cannot delete exceptions or change requests; each record's history is read from the hash-chained audit log"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_approved_scan_finding_exceptions_become_the_gate_register"
+    }
+   ],
+   "evidence_text": "test_approved_scan_finding_exceptions_become_the_gate_register",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "accepted_risks_toml, make accepted-risks",
+   "layer": "Governance",
+   "phase": 10,
+   "ref": "C-GOV-09",
+   "status": "implemented",
+   "title": "The scan gate's accepted-risk register is generated from approved scan-finding exceptions: the application is the system of record"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_every_control_family_belongs_to_exactly_one_category"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_method_is_published_with_the_score"
+    },
+    {
+     "kind": "test",
+     "ref": "test_live_signals_deduct_points_and_name_their_records"
+    },
+    {
+     "kind": "test",
+     "ref": "test_leads_take_snapshots_and_the_trend_records_them"
+    }
+   ],
+   "evidence_text": "test_every_control_family_belongs_to_exactly_one_category, test_the_method_is_published_with_the_score, test_live_signals_deduct_points_and_name_their_records, test_leads_take_snapshots_and_the_trend_records_them",
+   "extensions": [],
+   "family": "GOV",
+   "implementation": "app/services/posture.py, migration 0012",
+   "layer": "Governance",
+   "phase": 10,
+   "ref": "C-GOV-10",
+   "status": "implemented",
+   "title": "Explainable posture score: coverage minus live signals, each factor naming its records; every control family in exactly one category; the method returned with the score; daily snapshots"
   },
   {
    "evidence": [],
@@ -1359,7 +1550,7 @@
    "extensions": [],
    "family": "VM",
    "implementation": "SLA, overview",
-   "layer": null,
+   "layer": "Vulnerability management",
    "phase": 8,
    "ref": "C-VM-02",
    "status": "implemented",
@@ -1384,7 +1575,7 @@
    "extensions": [],
    "family": "VM",
    "implementation": "Migration 0009 (column grants, partial unique index), accept_risk",
-   "layer": null,
+   "layer": "Vulnerability management",
    "phase": 8,
    "ref": "C-VM-03",
    "status": "implemented",
@@ -1409,7 +1600,7 @@
    "extensions": [],
    "family": "VM",
    "implementation": "app/schemas/vulnerabilities.py, import-scan",
-   "layer": null,
+   "layer": "Vulnerability management",
    "phase": 8,
    "ref": "C-VM-04",
    "status": "implemented",
@@ -1430,7 +1621,7 @@
    "extensions": [],
    "family": "VM",
    "implementation": "_report_events",
-   "layer": null,
+   "layer": "Vulnerability management",
    "phase": 8,
    "ref": "C-VM-05",
    "status": "implemented",
@@ -1451,7 +1642,7 @@
    "extensions": [],
    "family": "VM",
    "implementation": "Sbom, /api/v1/sboms",
-   "layer": null,
+   "layer": "Vulnerability management",
    "phase": 8,
    "ref": "C-VM-06",
    "status": "implemented",
@@ -1564,7 +1755,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "372b57151470a54e2f37622784403ceefc7c306ed26e7b3bf5e701dc13719d64",
+ "digest": "add2fe9fe54b5038600c0f7a6ca3c795b70bf27f2cae17eab8b455e7a884f937",
  "format": 1,
  "model": {
   "elements": [
@@ -1716,6 +1907,20 @@
     "ref": "A13"
    },
    {
+    "attributes": {},
+    "description": "A wrong model or an inflated score hides risk from the people deciding on it",
+    "kind": "asset",
+    "name": "Threat models, the control catalogue and the posture score",
+    "ref": "A14"
+   },
+   {
+    "attributes": {},
+    "description": "The record of who accepted which risk, and who approved which change, until when",
+    "kind": "asset",
+    "name": "Security exceptions and change requests",
+    "ref": "A15"
+   },
+   {
     "attributes": {
      "boundaries": [
       "TB1"
@@ -1820,6 +2025,18 @@
    },
    {
     "attributes": {
+     "boundaries": [
+      "TB4",
+      "TB8"
+     ]
+    },
+    "description": "Scan-finding exceptions exported to scanning/accepted-findings.toml and committed",
+    "kind": "flow",
+    "name": "Approved exceptions → accepted-risk register → scan gate",
+    "ref": "F10"
+   },
+   {
+    "attributes": {
      "threats": []
     },
     "description": "Attacker finds the origin, sends payloads that WAF would block. Broken by ADR-0001 (no public origin) and by app-layer validation and parameterisation, which hold even without WAF.",
@@ -1847,16 +2064,16 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
-    "description": "Single-maintainer project: separation of duties is enforced by role checks, not by different people. Accepted for a portfolio.",
+    "description": "Single-maintainer project: separation of duties is enforced by role checks and a database CHECK, so it needs two lead accounts, but both belong to the same person. Accepted for a portfolio.",
     "kind": "residual_risk",
-    "name": "Single-maintainer project: separation of duties is enforced by role checks, not by different people",
+    "name": "Single-maintainer project: separation of duties is enforced by role checks and a database CHECK, so it needs two lead accounts, but both belong to the same person",
     "ref": "RR-1"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not be exposed. Closed in Phase 5.",
     "kind": "residual_risk",
@@ -1865,7 +2082,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.",
     "kind": "residual_risk",
@@ -1874,7 +2091,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "One HS256 signing key without kid: rotation signs everyone out (ADR-0003 addendum).",
     "kind": "residual_risk",
@@ -1883,7 +2100,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.",
     "kind": "residual_risk",
@@ -1892,7 +2109,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.",
     "kind": "residual_risk",
@@ -1901,7 +2118,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
     "kind": "residual_risk",
@@ -1910,7 +2127,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.",
     "kind": "residual_risk",
@@ -1919,7 +2136,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
     "kind": "residual_risk",
@@ -1928,7 +2145,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "HTTP analysis is detect-only. Until AWS WAF (Phase 5), nothing blocks an injection payload at the edge; parameterised queries and validation remain the protection, and detection records it.",
     "kind": "residual_risk",
@@ -1937,7 +2154,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "On one machine every request comes from one address, so local detections group into a single incident. Expected; not a weakness of the deployed design.",
     "kind": "residual_risk",
@@ -1946,7 +2163,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) is planned with Phase 12 hardening.",
     "kind": "residual_risk",
@@ -1955,30 +2172,48 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
-    "description": "Accepted risks exist in two places until Phase 10: the gate's file register (scanning/accepted-findings.toml) and the in-application acceptances.",
+    "description": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks). Between a decision and the next generation the gate uses the previous file; run it after every scan-finding decision. Finding-level risk acceptances (Phase 8) and exceptions remain two records with different scopes.",
     "kind": "residual_risk",
-    "name": "Accepted risks exist in two places until Phase 10: the gate's file register (scanning/accepted-findings.toml) and the in-application acceptances.",
+    "name": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks)",
     "ref": "RR-13"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
     },
-    "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "description": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model. Archive is offered first.",
     "kind": "residual_risk",
-    "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "name": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model",
     "ref": "RR-14"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 8)"
+     "heading": "5. Residual risk (after Phase 10)"
+    },
+    "description": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
+    "kind": "residual_risk",
+    "name": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
+    "ref": "RR-15"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 10)"
+    },
+    "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "kind": "residual_risk",
+    "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
+    "ref": "RR-16"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 10)"
     },
     "description": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
     "kind": "residual_risk",
     "name": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
-    "ref": "RR-15"
+    "ref": "RR-17"
    }
   ],
   "method": "stride",
@@ -3101,6 +3336,203 @@
    },
    {
     "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-03",
+     "C-GOV-04"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Separation of duties in the service (409 separation_of_duties) and a database CHECK; a second lead account is required (ADR-0023)",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-01",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "E/R",
+    "title": "Whoever requests an exception or a change approves it themselves"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-08",
+     "C-AUD-01"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Triggers make decisions final; the app role cannot delete governance records; history read from the hash-chained audit log",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "T/R",
+    "title": "A decision rewritten after the fact, or a rejected or cancelled request revived"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-04",
+     "C-GOV-09"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Expiry within the risk's limit; expiry on the date without a scheduler; the gate's register generated from approved exceptions, so an expired one stops covering its finding",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-03",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "R",
+    "title": "An accepted risk outlives its justification"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-06",
+     "C-GOV-01"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Catalogue generated from the documents and checked by a test; cited tests and targets must exist; SentinelEdge's model read-only in the app",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-04",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "T",
+    "title": "The threat model or control catalogue in the application drifts from the reviewed documents, or cites evidence that does not exist"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-10"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Coverage from implemented controls only; every deduction names its records; the method is returned with the score; planned categories score 0",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-05",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "T",
+    "title": "A posture score that cannot be explained, or counts planned controls as built, misleads decisions"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-API-01"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Object-level filter on models, exceptions and change requests; other IDs 404 and audited",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-06",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "I",
+    "title": "Developers read other teams' threat models and exceptions"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-07",
+     "C-API-02"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Archive offered first (leads, developers on their own applications); permanent deletion leads only, audited with a summary of the model and its threats; SentinelEdge's own model cannot be removed",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-07",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "T/R",
+    "title": "A threat model deleted to hide known threats, or by a role that should not"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-GOV-03",
+     "C-WAF-04"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "A waf_rule change drives only the simulated WAF; real rules change through reviewed Terraform with read-only app access (ADR-0008)",
+    "owasp": "",
+    "phases": [
+     5,
+     10
+    ],
+    "ref": "T-GOV-08",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10): simulated WAF only; real WAF P5",
+    "stride": "E",
+    "title": "A change request used to change the real WAF outside Terraform"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-SO-09",
+     "C-WEB-02"
+    ],
+    "group": "Governance threats added in Phase 10",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "Everything people typed rendered as text only, under the strict CSP",
+    "owasp": "",
+    "phases": [
+     10
+    ],
+    "ref": "T-GOV-09",
+    "status": "mitigated",
+    "status_text": "Mitigated (P10, tested)",
+    "stride": "T",
+    "title": "Stored XSS through threat, exception or change text"
+   },
+   {
+    "boundaries": [
      "TB4"
     ],
     "controls": [
@@ -3557,7 +3989,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.5"
+  "version": "0.6"
  },
  "requirements": [
   {
@@ -3825,6 +4257,59 @@
    "title": "Known vulnerabilities shipped"
   },
   {
+   "control_text": "Separation of duties, expiry, immutable decisions, audited history",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_whoever_asks_cannot_approve"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_database_refuses_self_approval_and_rewritten_decisions"
+    },
+    {
+     "kind": "test",
+     "ref": "test_an_approved_exception_expires_on_its_date"
+    }
+   ],
+   "evidence_text": "test_whoever_asks_cannot_approve, test_the_database_refuses_self_approval_and_rewritten_decisions, test_an_approved_exception_expires_on_its_date",
+   "implementation": "ADR-0023",
+   "phase_text": "P10",
+   "ref": "REQ-16",
+   "threats": [
+    "T-GOV-01",
+    "T-GOV-02",
+    "T-GOV-03"
+   ],
+   "title": "Risk accepted or changed without oversight"
+  },
+  {
+   "control_text": "Catalogue as code with a drift test; evidence must exist; explainable score",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_the_shipped_catalogue_is_exactly_what_the_documents_produce"
+    },
+    {
+     "kind": "test",
+     "ref": "test_every_cited_piece_of_evidence_exists"
+    },
+    {
+     "kind": "test",
+     "ref": "test_the_method_is_published_with_the_score"
+    }
+   ],
+   "evidence_text": "test_the_shipped_catalogue_is_exactly_what_the_documents_produce, test_every_cited_piece_of_evidence_exists, test_the_method_is_published_with_the_score",
+   "implementation": "ADR-0022",
+   "phase_text": "P10",
+   "ref": "REQ-17",
+   "threats": [
+    "T-GOV-04",
+    "T-GOV-05"
+   ],
+   "title": "Threat model and controls drift from what is built"
+  },
+  {
    "control_text": "Hash chain + grants + triggers + Object Lock",
    "evidence": [
     {
@@ -3839,7 +4324,7 @@
    "evidence_text": "test_audit_log.py, make verify-audit",
    "implementation": "ADR-0005",
    "phase_text": "P2, P4",
-   "ref": "REQ-16",
+   "ref": "REQ-18",
    "threats": [
     "T-AUD-01"
    ],
@@ -3851,7 +4336,7 @@
    "evidence_text": "Injection corpus tests",
    "implementation": "app/ai/guardrails",
    "phase_text": "P9",
-   "ref": "REQ-17",
+   "ref": "REQ-19",
    "threats": [
     "T-AI-01",
     "T-AI-02"
@@ -3864,7 +4349,7 @@
    "evidence_text": "Approval workflow tests; audit",
    "implementation": "ai_action_proposals",
    "phase_text": "P9",
-   "ref": "REQ-18",
+   "ref": "REQ-20",
    "threats": [
     "T-AI-05"
    ],
@@ -3876,7 +4361,7 @@
    "evidence_text": "IAM policy; Access Analyzer",
    "implementation": "ADR-0008; IAM module",
    "phase_text": "P5",
-   "ref": "REQ-19",
+   "ref": "REQ-21",
    "threats": [
     "T-WAF-02"
    ],
@@ -3888,7 +4373,7 @@
    "evidence_text": "CloudWatch alarm; dashboard",
    "implementation": "ACM module; worker poller",
    "phase_text": "P5",
-   "ref": "REQ-20",
+   "ref": "REQ-22",
    "threats": [
     "T-EDGE-02"
    ],
@@ -3900,7 +4385,7 @@
    "evidence_text": "Plan fails on wrong account",
    "implementation": "ADR-0014",
    "phase_text": "P3",
-   "ref": "REQ-21",
+   "ref": "REQ-23",
    "threats": [
     "T-IAC-01"
    ],

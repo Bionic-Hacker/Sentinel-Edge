@@ -1,9 +1,10 @@
 # SentinelEdge threat model
 
-- **Version:** 0.5 (Phase 8: application security scanning and vulnerability management)
+- **Version:** 0.6 (Phase 10: threat modeling and governance)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
-  (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Full PASTA
-  treatment and in-app modelling arrive in Phase 10.
+  (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
+  this document is loaded into the application as SentinelEdge's own threat model, read-only
+  there (ADR-0022); models for other applications, STRIDE or PASTA, are built in the app.
 - **Review trigger:** any change to a trust boundary, data flow, or role; at the end of every phase.
 
 Risk = Likelihood (1–3) × Impact (1–3). Status: **Mitigated** (control implemented and
@@ -26,6 +27,8 @@ tested), **Planned (Pn)**, or **Accepted (interim)** with an expiry.
 | A11 | Simulated WAF configuration | Changes what simulations show; must never be mistaken for real edge state |
 | A12 | Vulnerability records, risk acceptances and SBOMs | A map of known weaknesses; an altered acceptance hides a risk someone decided to carry |
 | A13 | Scanner images and the scan gate | A compromised scanner or a silently failed scan lets vulnerable code ship |
+| A14 | Threat models, the control catalogue and the posture score | A wrong model or an inflated score hides risk from the people deciding on it |
+| A15 | Security exceptions and change requests | The record of who accepted which risk, and who approved which change, until when |
 
 ## 2. Trust boundaries and data flows
 
@@ -56,6 +59,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | F7 | Developer → GitHub | Code, configuration | TB8 |
 | F8 | API → security events → correlation → incidents | Attacker-controlled request data (bounded, redacted) | TB3→TB4 |
 | F9 | Attack simulator → security events | Synthetic requests in memory, labelled SIMULATED | TB4 (no network) |
+| F10 | Approved exceptions → accepted-risk register → scan gate | Scan-finding exceptions exported to `scanning/accepted-findings.toml` and committed | TB4, TB8 |
 
 ## 3. Threats
 
@@ -140,6 +144,20 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-VM-07 | I | Developers read other teams' findings (a map of their weaknesses) | 2×2 | Object-level filter on findings, scans and SBOMs; other IDs 404 and audited | C-API-01 | **Mitigated (P8, tested)** |
 | T-VM-08 | D | A large or hostile import exhausts the API or floods the event store | 1×2 | 64 MB stdin cap, 20,000 findings and components per import, at most 50 events per import, CLI-only (no upload endpoint) | C-VM-04, C-VM-05 | **Mitigated (P8)** |
 
+### Governance threats added in Phase 10
+
+| ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
+|---|---|---|---|---|---|---|
+| T-GOV-01 | E/R | Whoever requests an exception or a change approves it themselves | 2×3 | Separation of duties in the service (409 `separation_of_duties`) and a database CHECK; a second lead account is required (ADR-0023) | C-GOV-03, C-GOV-04 | **Mitigated (P10, tested)** |
+| T-GOV-02 | T/R | A decision rewritten after the fact, or a rejected or cancelled request revived | 2×3 | Triggers make decisions final; the app role cannot delete governance records; history read from the hash-chained audit log | C-GOV-08, C-AUD-01 | **Mitigated (P10, tested)** |
+| T-GOV-03 | R | An accepted risk outlives its justification | 2×2 | Expiry within the risk's limit; expiry on the date without a scheduler; the gate's register generated from approved exceptions, so an expired one stops covering its finding | C-GOV-04, C-GOV-09 | **Mitigated (P10, tested)** |
+| T-GOV-04 | T | The threat model or control catalogue in the application drifts from the reviewed documents, or cites evidence that does not exist | 2×2 | Catalogue generated from the documents and checked by a test; cited tests and targets must exist; SentinelEdge's model read-only in the app | C-GOV-06, C-GOV-01 | **Mitigated (P10, tested)** |
+| T-GOV-05 | T | A posture score that cannot be explained, or counts planned controls as built, misleads decisions | 2×2 | Coverage from implemented controls only; every deduction names its records; the method is returned with the score; planned categories score 0 | C-GOV-10 | **Mitigated (P10, tested)** |
+| T-GOV-06 | I | Developers read other teams' threat models and exceptions | 2×2 | Object-level filter on models, exceptions and change requests; other IDs 404 and audited | C-API-01 | **Mitigated (P10, tested)** |
+| T-GOV-07 | T/R | A threat model deleted to hide known threats, or by a role that should not | 2×2 | Archive offered first (leads, developers on their own applications); permanent deletion leads only, audited with a summary of the model and its threats; SentinelEdge's own model cannot be removed | C-GOV-07, C-API-02 | **Mitigated (P10, tested)** |
+| T-GOV-08 | E | A change request used to change the real WAF outside Terraform | 1×3 | A `waf_rule` change drives only the simulated WAF; real rules change through reviewed Terraform with read-only app access (ADR-0008) | C-GOV-03, C-WAF-04 | **Mitigated (P10)**: simulated WAF only; real WAF P5 |
+| T-GOV-09 | T | Stored XSS through threat, exception or change text | 2×3 | Everything people typed rendered as text only, under the strict CSP | C-SO-09, C-WEB-02 | **Mitigated (P10, tested)** |
+
 ### TB4 — API → Database
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
@@ -187,10 +205,11 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
    output is schema-bound and advisory, proposals need approval, and real WAF changes need a
    Terraform PR with review.
 
-## 5. Residual risk (after Phase 8)
+## 5. Residual risk (after Phase 10)
 
-- Single-maintainer project: separation of duties is enforced by role checks, not by different
-  people. Accepted for a portfolio.
+- Single-maintainer project: separation of duties is enforced by role checks and a database
+  CHECK, so it needs two lead accounts, but both belong to the same person. Accepted for a
+  portfolio.
 - No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not
   be exposed. Closed in Phase 5.
 - Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash
@@ -213,8 +232,14 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   published (44 at the end of Phase 8). They are reported on every scan and block as soon as a
   fix exists; most are in packages the service never executes. A minimal base image (distroless
   or Alpine) is planned with Phase 12 hardening.
-- Accepted risks exist in two places until Phase 10: the gate's file register
-  (`scanning/accepted-findings.toml`) and the in-application acceptances.
+- The scan gate reads a committed file (`scanning/accepted-findings.toml`) generated from the
+  approved exceptions (`make accepted-risks`). Between a decision and the next generation the
+  gate uses the previous file; run it after every scan-finding decision. Finding-level risk
+  acceptances (Phase 8) and exceptions remain two records with different scopes.
+- Permanently deleting an application threat model removes its rows; the audit log keeps a
+  summary (counts and the first 50 threats), not the whole model. Archive is offered first.
+- The posture score is computed on request and snapshotted once a day on the first read; with
+  no scheduler, a day nobody opens it has no snapshot.
 - Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when
   someone imports the CI artifact, until a deployed API can receive them (Phase 11).
 - DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).

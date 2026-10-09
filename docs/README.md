@@ -7,17 +7,17 @@ system that doesn't exist yet as if it did.
 |---|---|---|
 | [book/](book/) | **The engineering book (PDF):** build plan, blueprint, phases as built, reproduction guide | Rebuilt every release |
 | [architecture.md](architecture.md) | Target and local architecture, components, data model, roles | Phase 1 |
-| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk | v0.4 (Phase 7); full in Phase 10 |
+| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.6 (Phase 10) |
 | [security-controls.md](security-controls.md) | Defense-in-depth layers, control catalogue, control matrix | Phase 1; updated every phase |
 | [feature-classification.md](feature-classification.md) | REAL_AWS / LOCAL / SIMULATED / DEMO rules and register | Phase 1 |
 | [security-headers.md](security-headers.md) | Every header and why it is set | Phase 1 |
 | [secure-sdlc.md](secure-sdlc.md) | Security definition of done for each phase | Phase 1 |
 | [local-development.md](local-development.md) | Running and testing locally | Phase 1 |
 | [authorization.md](authorization.md) | Roles and the endpoint permission matrix | Phase 2 |
-| [governance/exceptions.md](governance/exceptions.md) | Security exceptions register (requester, justification, compensating control, expiry) | Phase 2 |
+| [governance/exceptions.md](governance/exceptions.md) | Where security exceptions live now (the application) and the rules they follow | Phase 2; moved to the app in Phase 10 |
 | [api-security.md](api-security.md) | API Security Center, metrics, OWASP API Top 10 coverage, SSRF guard | Phase 6 |
-| [adr/](adr/) | Architecture decision records 0001–0021 | Phase 1–8 |
-| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); 12 by Phase 12 | Phase 2, 7 |
+| [adr/](adr/) | Architecture decision records 0001–0023 | Phase 1–10 |
+| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); governance (Phase 10) | Phase 2, 7, 8, 10 |
 | aws-security.md | IAM roles, network, KMS, CloudTrail | Phase 3–4 |
 | terraform-security.md | Module design, state, Checkov policy | Phase 3 |
 | cost.md | Resource inventory, estimates, destroy procedure | Phase 3–4 |

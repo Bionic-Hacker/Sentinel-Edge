@@ -23,12 +23,12 @@
   <p class="lead">SentinelEdge is a security engineering portfolio platform designed to read like a simplified enterprise security product. It is its own first protected workload: every control the platform reports on also protects the platform itself.</p>
   <table class="glance">
     <tr><td><div class="big">12</div><div class="lbl">approval-gated build phases</div></td>
-        <td><div class="big">5 of 12</div><div class="lbl">phases shipped (1, 2, 6, 7, 8)</div></td>
-        <td><div class="big">21</div><div class="lbl">architecture decision records</div></td>
-        <td><div class="big">17</div><div class="lbl">defense-in-depth layers designed</div></td></tr>
-    <tr><td><div class="big">765</div><div class="lbl">backend tests, 98.4% coverage, real PostgreSQL</div></td>
-        <td><div class="big">91</div><div class="lbl">frontend tests</div></td>
-        <td><div class="big">56</div><div class="lbl">end-to-end smoke checks</div></td>
+        <td><div class="big">6 of 12</div><div class="lbl">phases shipped (1, 2, 6, 7, 8, 10)</div></td>
+        <td><div class="big">23</div><div class="lbl">architecture decision records</div></td>
+        <td><div class="big">18</div><div class="lbl">defense-in-depth layers designed</div></td></tr>
+    <tr><td><div class="big">892</div><div class="lbl">backend tests, 98.3% coverage, real PostgreSQL</div></td>
+        <td><div class="big">103</div><div class="lbl">frontend tests</div></td>
+        <td><div class="big">64</div><div class="lbl">end-to-end smoke checks</div></td>
         <td><div class="big">$0</div><div class="lbl">AWS spend so far, by design</div></td></tr>
   </table>
 
@@ -41,6 +41,7 @@
     <li><strong>API security:</strong> atomic PostgreSQL token-bucket rate limiting, spoof-proof client-IP resolution, and a live API inventory generated from the route table. OWASP API Top 10 coverage is mapped, with cited test evidence.</li>
     <li><strong>Security operations:</strong> detect-only attack analysis on every request, correlation rules that fire exactly once, and an incident workflow whose evidence is append-only and whose timeline is committed to the audit chain, so it cannot be rewritten unnoticed. An attack simulator that cannot be pointed at anything, with a simulated WAF that shows block versus count.</li>
     <li><strong>Application security scanning:</strong> SAST with the project's own rules, dependency, secret, IaC and container scanning, SBOMs and authenticated DAST in one pipeline, behind a gate that fails closed; findings tracked to closure with deadlines and expiring, immutable risk acceptances.</li>
+    <li><strong>Governance that cannot drift:</strong> the threat model and control catalogue are code, loaded into the application and checked against the documents by a test; a posture score where every point traces to a control or a record; exceptions and changes where whoever asks cannot approve, enforced by the service and the database.</li>
     <li><strong>Honesty about what is real:</strong> every capability is labelled REAL_AWS, LOCAL, SIMULATED or DEMO, and tests stop anything being presented as an AWS control before it is one.</li>
     <li><strong>Cloud architecture designed ahead of spend:</strong> a private-origin AWS design (CloudFront VPC origins, internal ALB, isolated RDS, WAF changes only through Terraform), built late on purpose so no infrastructure sits idle.</li>
   </ul>
