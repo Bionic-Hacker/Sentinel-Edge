@@ -20,6 +20,8 @@
 | OAC | Origin Access Control: CloudFront's signed access to a private S3 bucket |
 | OIDC | OpenID Connect: lets CI assume a cloud role without stored keys |
 | Posture score | Per category: control coverage minus named live signals; `built_scope` averages only the measured categories |
+| Prompt injection | Text written to steer an AI model, sent directly or hidden in data the model reads (indirect) |
+| Proposal (AIP-n) | An action the AI suggests; nothing happens until a lead approves it |
 | Provenance | Whether a capability or record is REAL_AWS, LOCAL, SIMULATED or DEMO |
 | Route template | An endpoint's full path pattern, such as `/api/v1/users/{user_id}` |
 | SAST / SCA | Static analysis of source code / analysis of third-party dependencies |
@@ -42,5 +44,6 @@
 | 2 | October 7, 2026 | v0.4.0 | Phase 7 (security operations) rewritten as built, with the detection pipeline and incident workflow figures; request pipeline updated for HTTP analysis; ADR-0018 and ADR-0019; nine new threats and controls; 45-endpoint inventory; Phase 7 reproduction steps; new lessons. |
 | 3 | October 8, 2026 | v0.5.0 | Phase 8 (application security scanning) rewritten as built, with the scan pipeline and finding lifecycle figures; ADR-0020 and ADR-0021; eight new threats and fourteen new controls; 56-endpoint inventory; scanning and vulnerability management reproduction steps; new lessons. Phase 10 marked next. |
 | 4 | October 8, 2026 | v0.6.0 | Phase 10 (threat modeling and governance) moved to Part II and rewritten as built, with the catalogue and exception lifecycle figures; ADR-0022 and ADR-0023; nine new threats, six new controls and a governance layer; 79-endpoint inventory; governance reproduction steps; new lessons. Phase 9 marked next. |
+| 5 | October 9, 2026 | v0.7.0 | Phase 9 (AI security engine) moved to Part II and rewritten as built, with the analysis pipeline figure; ADR-0024 and the ADR-0006 addendum; T-AI threats mitigated and four added; seven AI controls; 85-endpoint inventory; AI and Bedrock reproduction steps; new lessons. The AWS phases marked next. |
 
 Each new phase release produces a new edition. The completed phase's chapter moves from Part III to Part II and is rewritten as built, and the status tables, figures, appendices and lessons are updated.

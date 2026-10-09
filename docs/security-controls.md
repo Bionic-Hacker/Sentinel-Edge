@@ -24,7 +24,7 @@ or read.
 | 14 | Monitoring and detection | Detects abuse and failures; turns signals into incidents | C-MON-01, C-SO-01..09 | **P7 (detection, incidents)**, P4 (alarms) |
 | 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01..06 | P8 |
 | 16 | CI/CD security | Prevents vulnerable or secret-bearing code from shipping | C-CICD-01..04 | P1 (baseline), P8, P11 |
-| 17 | AI security | Contains prompt injection and AI agency | C-AI-01..06 | P9 |
+| 17 | AI security | Contains prompt injection and AI agency | C-AI-01..07 | **P9** |
 | 18 | Governance | Risk is modelled, accepted and changed on the record, by someone other than whoever asked | C-GOV-01..10 | P1, **P10** |
 
 ## 2. Controls implemented in Phase 1
@@ -138,6 +138,20 @@ or read.
 | C-API-01 | Object-level authorization extended to threat models, exceptions and change requests (developers: own applications; 404, audited) | `GovernanceService`, `RiskGovernanceService` | `test_developers_see_only_their_own_applications_models`, `test_developers_raise_requests_only_for_their_own_applications` |
 | C-API-13 | Governance enumerations and PASTA stages match the SPA's validator lists | `tests/unit/test_frontend_contract.py` | `governance.test.tsx` |
 
+## 2f. Controls implemented in Phase 9
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-AI-01 | Untrusted data delimited as JSON under a per-call nonce, never concatenated into instructions; an allow-list of fields per subject; prompt-risk scoring with named signals; invisible and bidirectional characters removed (ADR-0007, ADR-0024) | `app/ai/guardrails.py` | `test_injection_corpus_scores_high`, `test_untrusted_data_cannot_close_its_delimiter`, `test_invisible_characters_are_removed_and_flagged`, `test_injection_cannot_change_the_offline_verdict` |
+| C-AI-02 | Output contract: one strict JSON object; every observed-evidence item a verbatim quote of a field that was sent; inference kept apart; known controls only; anything else rejected, never repaired | `app/ai/contract.py` | `test_evidence_must_quote_the_input_verbatim`, `test_hostile_answers_are_rejected_not_repaired`, `test_malformed_answers_are_rejected`, `test_a_compromised_model_cannot_act_or_lie_about_evidence` |
+| C-AI-03 | AI text and quoted attacker data rendered as text only; never executed or used to build queries; the SPA validates every AI response | `features/ai/`, `lib/api/aiValidators.ts` | `ai.test.tsx` |
+| C-AI-04 | Minimisation before data reaches a model: allow-listed, bounded fields; addresses and e-mails pseudonymised; only Amazon Bedrock, which does not train on inputs | `app/ai/guardrails.py`, `app/services/ai.py` | `test_addresses_and_emails_are_pseudonymised`, `test_fields_and_the_whole_input_are_bounded` |
+| C-AI-05 | No AI agency: three proposal types, tighten-only (a WAF rule to block, never weaker); a lead approves and the action runs as that person through its own workflow, in one transaction; decisions final (trigger); high prompt-risk needs a written reason | `app/services/ai.py`, migration 0014 | `test_a_lead_approves_proposals_and_the_actions_run`, `test_an_action_that_no_longer_applies_is_refused_and_nothing_changes`, `test_the_record_cannot_be_rewritten` |
+| C-AI-06 | Cost bounds checked before any call: analyses per user per day, platform tokens per day, tokens per answer; viewers (the DAST scanner) cannot run analyses; every call audited with model, usage and prompt risk | `app/services/ai.py`, `app/core/config.py` | `test_quotas_are_checked_before_the_call`, `test_who_may_analyse_what` |
+| C-AI-07 | Bedrock least privilege: one `bedrock:InvokeModel` permission on one model; short-lived session credentials locally, the task role when deployed; AWS error text never shown or stored; answers cut at the token limit are failures | `app/ai/bedrock.py`, `scripts/bedrock-credentials.sh`, `docs/bedrock-setup.md` | `test_aws_errors_become_our_own_words`, `test_an_answer_cut_off_at_the_token_limit_is_a_failure`, `test_model_ids_cannot_be_urls_or_paths` |
+| C-API-01 | Object-level authorization extended to AI analyses and proposals (developers: their own applications' findings and threat models only; 404, audited) | `AiService` | `test_who_may_analyse_what` |
+| C-API-13 | AI enumerations match the SPA's validator lists | `tests/unit/test_frontend_contract.py` | `ai.test.tsx` |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
@@ -160,8 +174,8 @@ or read.
 | Risk accepted or changed without oversight | T-GOV-01, T-GOV-02, T-GOV-03 | Separation of duties, expiry, immutable decisions, audited history | ADR-0023 | `test_whoever_asks_cannot_approve`, `test_the_database_refuses_self_approval_and_rewritten_decisions`, `test_an_approved_exception_expires_on_its_date` | **P10** |
 | Threat model and controls drift from what is built | T-GOV-04, T-GOV-05 | Catalogue as code with a drift test; evidence must exist; explainable score | ADR-0022 | `test_the_shipped_catalogue_is_exactly_what_the_documents_produce`, `test_every_cited_piece_of_evidence_exists`, `test_the_method_is_published_with_the_score` | **P10** |
 | Audit tampering | T-AUD-01 | Hash chain + grants + triggers + Object Lock | ADR-0005 | `test_audit_log.py`, `make verify-audit` | **P2**, P4 |
-| Prompt injection | T-AI-01, T-AI-02 | Delimiting, scoring, schema-bound output | `app/ai/guardrails` | Injection corpus tests | P9 |
-| Excessive AI agency | T-AI-05 | Proposals + human approval | `ai_action_proposals` | Approval workflow tests; audit | P9 |
+| Prompt injection | T-AI-01, T-AI-02 | Delimiting, scoring, verbatim-evidence contract | ADR-0007, ADR-0024 | `test_injection_corpus_scores_high`, `test_a_compromised_model_cannot_act_or_lie_about_evidence` | **P9** |
+| Excessive AI agency | T-AI-05 | Tighten-only proposals + lead approval | `app/services/ai.py` | `test_a_lead_approves_proposals_and_the_actions_run`, `test_the_record_cannot_be_rewritten` | **P9** |
 | WAF weakened via app | T-WAF-02 | Read-only WAF IAM; Terraform-only changes | ADR-0008; IAM module | IAM policy; Access Analyzer | P5 |
 | Certificate expiry | T-EDGE-02 | ACM managed renewal + expiry alerting | ACM module; worker poller | CloudWatch alarm; dashboard | P5 |
 | Cross-environment change | T-IAC-01 | Per-env roots, account guards | ADR-0014 | Plan fails on wrong account | P3 |
@@ -193,9 +207,3 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 | C-IAM-03 | Every IAM permission documented with its reason | 3 |
 | C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head | 4 |
 | C-MON-01 | CloudWatch alarms for errors, latency and security signals | 4 |
-| C-AI-01 | Untrusted data delimited, never concatenated into instructions; input validation and prompt-risk scoring (ADR-0007) | 9 |
-| C-AI-02 | Schema-bound AI output separating observed evidence from inference; non-conforming output rejected | 9 |
-| C-AI-03 | AI text rendered as text only, never executed or used to build queries | 9 |
-| C-AI-04 | Redaction and minimisation before data reaches the model | 9 |
-| C-AI-05 | No state-changing AI tools; proposals need human approval (audited) | 9 |
-| C-AI-06 | Per-user AI quotas and token caps | 9 |

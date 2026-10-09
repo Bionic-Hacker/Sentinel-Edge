@@ -47,7 +47,7 @@ ElastiCache would add roughly $12 or more per month and another service to secur
 | Semgrep, Checkov, Trivy, Syft, OWASP ZAP | Full scanning, SBOMs and authenticated DAST, each in a digest-pinned image | 8 ✓ |
 | Terraform ≥ 1.10 | All AWS infrastructure; S3 state with native locking | 3 |
 | AWS: CloudFront, WAF, ACM, Route 53, ECS Fargate, ALB, RDS, Secrets Manager, KMS, CloudWatch, CloudTrail | Production architecture | 3–5 |
-| Amazon Bedrock | AI analysis via IAM task role | 9 |
+| Amazon Bedrock | AI analysis (Nova Micro, Converse API via boto3); session credentials locally, IAM task role when deployed | 9 ✓ |
 | GitHub OIDC | No long-lived AWS keys in CI | 11 |
 
 ## Development environment

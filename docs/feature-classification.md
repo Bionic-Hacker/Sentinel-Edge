@@ -25,7 +25,7 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 6. When a real integration is not yet possible, the UI says "Simulation / planned API
    integration" rather than implying the action happened.
 
-## Current register (Phase 10)
+## Current register (Phase 9)
 
 | Area | Implemented now (LOCAL) | Planned LOCAL | Planned REAL_AWS | Planned SIMULATED / DEMO |
 |---|---|---|---|---|
@@ -35,11 +35,14 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 | API security | Host allow-list, mass-assignment sweep, API inventory and metrics, OWASP API mapping, rate limiting, SSRF guard, trusted client IP (P6) | — | WAF rate rules (P5) | — |
 | Security operations | Security events, HTTP attack analysis (detect-only), correlation rules, incident workflow, security dashboard, application inventory (P7) | Retention policy (P12) | WAF log ingestion (P5) | **Implemented (P7):** attack simulator, simulated WAF rule toggling |
 | AppSec / DevSecOps | Pre-commit + CI gates; scanning (Semgrep, Bandit, Trivy, Gitleaks, Checkov), scan gate, SBOMs, authenticated DAST against the local stack; vulnerability management with SLAs and risk acceptance (P8) | Automation tools (P11) | GitHub OIDC to AWS, scans of deployed environments (P11) | — |
-| AI security | — | Bedrock analysis + approval (P9) | — | — |
+| AI security | Analyses of events, incidents, findings and threat models with guardrails, a verbatim-evidence output contract and lead-approved, tighten-only proposals; the deterministic `offline` analyser (P9) | — | Amazon Bedrock calls when enabled (P9; no infrastructure); task-role access from the deployed API (P4) | — |
 | Governance | Provenance register, tamper-evident audit log (P2); threat modeling (STRIDE, PASTA) with SentinelEdge's model loaded from the reviewed documents, control catalogue and requirement matrix, explainable posture score with snapshots, security exceptions and change management with separation of duties (P10) | — | Audit archive to S3 Object Lock (P4) | **Implemented (P10):** a `waf_rule` change request drives the simulated WAF |
 | Demo | — | — | — | Demo mode, five scenarios (P12) |
 
-After Phase 10 there are still **zero** REAL_AWS capabilities; no AWS resources exist (ADR-0016).
+After Phase 9 there are still **zero** REAL_AWS capabilities; no AWS resources exist (ADR-0016).
+The AI engine is LOCAL: it runs in the local API. With `SENTINEL_AI_PROVIDER=bedrock` its model
+calls go to Amazon Bedrock (the status shows REAL_AWS for them), but nothing is deployed and the
+default is `disabled`; `offline` answers deterministically and says so.
 Governance records are LOCAL. A change request of type `waf_rule` changes only the simulated
 WAF, and says so; real WAF rules change through reviewed Terraform from Phase 5 (ADR-0008). The
 posture score counts planned controls as not built: its AWS and AI categories score 0 until those

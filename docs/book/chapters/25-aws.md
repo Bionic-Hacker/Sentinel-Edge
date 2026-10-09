@@ -1,6 +1,6 @@
 # Phases 3–5 — AWS Foundation, Deployment and Edge
 
-<p class="lead">The three AWS phases run as one focused deployment window after the local work is finished. The Terraform is written and statically scanned before anything is applied. <span class="status plan">Planned</span></p>
+<p class="lead">The three AWS phases run as one focused deployment window after the local work is finished. The Terraform is written and statically scanned before anything is applied. <span class="status next">Next</span></p>
 
 ## Phase 3 — Terraform AWS foundation
 

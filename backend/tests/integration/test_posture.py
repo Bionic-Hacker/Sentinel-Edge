@@ -35,11 +35,13 @@ def test_a_fresh_platform_scores_from_coverage_and_says_what_is_planned(
         identity["factors"][0]["label"]
         == f"{identity['implemented']} of {identity['implemented']} controls implemented"
     )
+    # Built in Phase 9: every AI control implemented, so the category is measured in full.
     ai = cats["ai"]
-    assert (ai["state"], ai["score"], ai["implemented"]) == ("planned", 0, 0)
-    assert "C-AI-01" in ai["factors"][0]["refs"]
+    assert (ai["state"], ai["score"], ai["planned"]) == ("measured", 100, 0)
+    # Still to come (Phase 5): a planned category scores 0 and names its controls.
     waf = cats["waf"]
-    assert waf["state"] == "planned"
+    assert (waf["state"], waf["score"], waf["implemented"]) == ("planned", 0, 0)
+    assert "C-WAF-01" in waf["factors"][0]["refs"]
 
     devsecops = cats["devsecops"]
     assert devsecops["factors"][-1]["label"] == "No scan imported yet"

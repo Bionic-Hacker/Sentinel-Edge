@@ -29,7 +29,7 @@ The test of each layer is simple: if the layer above it fails, does this one sti
 
 ## Threat model
 
-The method is **STRIDE per trust boundary**. The OWASP Top 10 (2021), OWASP API Security Top 10 (2023) and OWASP Top 10 for LLM Applications (2025) serve as threat catalogues. Risk is likelihood (1–3) × impact (1–3). Each threat carries a status: *Mitigated* (control implemented and tested), *Planned (phase)*, or *Accepted (interim)* with an expiry. The model is reviewed at the end of every phase and whenever a boundary, data flow or role changes. It is at version 0.6. Since Phase 10 the same document is loaded into the application as SentinelEdge's own threat model, and other applications' models (STRIDE or PASTA) are built there (Chapter 11).
+The method is **STRIDE per trust boundary**. The OWASP Top 10 (2021), OWASP API Security Top 10 (2023) and OWASP Top 10 for LLM Applications (2025) serve as threat catalogues. Risk is likelihood (1–3) × impact (1–3). Each threat carries a status: *Mitigated* (control implemented and tested), *Planned (phase)*, or *Accepted (interim)* with an expiry. The model is reviewed at the end of every phase and whenever a boundary, data flow or role changes. It is at version 0.7. Since Phase 10 the same document is loaded into the application as SentinelEdge's own threat model, and other applications' models (STRIDE or PASTA) are built there (Chapter 11).
 
 ### Assets
 

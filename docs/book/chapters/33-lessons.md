@@ -56,6 +56,14 @@ The service refuses self-approval with a clear reason, so the page can explain i
 The owner asked for "archive for all roles". The VIEWER role had been kept read-only since Phase 8 because the authenticated DAST scanner signs in as a viewer and probes every write. Asking before building turned a conflict into a choice: archive for developers on their own applications, with viewers kept read-only.
 :::
 
+:::lesson Design the AI as if the model were the attacker
+The engine reads attacker-written text by design, so its safety cannot depend on the model resisting it. The tests use a "model" that obeys every injected instruction, and the defences hold anyway: evidence must be quoted verbatim, answers that break the contract are rejected, and the only actions it can propose tighten a control and wait for a human.
+:::
+
+:::lesson A timeout is part of the interface
+A real model can take tens of seconds; the edge gave the API thirty. Only the analysis endpoint got a longer timeout, found in review rather than by a user watching an answer vanish.
+:::
+
 ## Testing and tooling
 
 :::lesson Timing-based tests are machine-dependent
@@ -88,6 +96,10 @@ SQLAlchemy stored `None` in a JSONB column as JSON `null`, a value, so CHECK con
 
 :::lesson Seed data shifts every number after it
 Two exceptions seeded by a migration meant the first one a test created was no longer EXC-0001, and tests that assumed a reference failed depending on order. Tests now read the reference the API returns.
+:::
+
+:::lesson A formatter can change what a pattern means
+`ruff format` rewrote escaped invisible-character ranges in a security regex as the literal characters. Bandit's trojan-source rule caught it. Security patterns are written with escapes, and a test proves the characters are still removed.
 :::
 
 ## Process

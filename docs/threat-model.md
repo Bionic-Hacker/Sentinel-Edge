@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.6 (Phase 10: threat modeling and governance)
+- **Version:** 0.7 (Phase 9: AI security engine)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
   this document is loaded into the application as SentinelEdge's own threat model, read-only
@@ -29,6 +29,7 @@ tested), **Planned (Pn)**, or **Accepted (interim)** with an expiry.
 | A13 | Scanner images and the scan gate | A compromised scanner or a silently failed scan lets vulnerable code ship |
 | A14 | Threat models, the control catalogue and the posture score | A wrong model or an inflated score hides risk from the people deciding on it |
 | A15 | Security exceptions and change requests | The record of who accepted which risk, and who approved which change, until when |
+| A16 | AI analyses and proposals | What the AI said about an attack and what it asked a human to do; an altered record hides a manipulated answer |
 
 ## 2. Trust boundaries and data flows
 
@@ -171,12 +172,16 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE / LLM | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-AI-01 | LLM01 | Direct prompt injection by an analyst | 2×2 | Input validation, prompt-risk scoring | C-AI-01 | Planned (P9) |
-| T-AI-02 | LLM01 | **Indirect** injection via WAF log or request content | 3×2 | Untrusted-data delimiting, output schema (ADR-0007) | C-AI-01, C-AI-02 | Planned (P9) |
-| T-AI-03 | LLM05 | Insecure output handling (XSS through AI text) | 2×3 | Render as text only; schema validation | C-AI-03 | Planned (P9) |
-| T-AI-04 | LLM02 | Sensitive data sent to or leaked by the model | 2×2 | Redaction before send, Bedrock (no training), minimisation | C-AI-04 | Planned (P9) |
-| T-AI-05 | LLM06 | Excessive agency: AI performs destructive action | 1×3 | No state-changing tools; human approval (ADR-0007) | C-AI-05 | Planned (P9) |
-| T-AI-06 | LLM10 | Unbounded consumption (cost) | 2×2 | Per-user quotas, token caps, audit | C-AI-06 | Planned (P9) |
+| T-AI-01 | LLM01 | Direct prompt injection by an analyst | 2×2 | Only an allow-list of record fields reaches the model (no free-text prompt); prompt-risk scoring; delimiting | C-AI-01 | **Mitigated (P9, tested)**: there is no prompt box; analysts choose a record, not the words |
+| T-AI-02 | LLM01 | **Indirect** injection via request content, user agents, log lines or finding text | 3×2 | Data delimited under a per-call nonce; signals scored and shown; verbatim-evidence contract; tighten-only proposals that a lead approves (ADR-0007, ADR-0024) | C-AI-01, C-AI-02, C-AI-05 | **Mitigated (P9, tested)**: a fully obedient model can only produce a rejected answer or a reviewable proposal |
+| T-AI-03 | LLM05 | Insecure output handling (XSS through AI text or quoted payloads) | 2×3 | Rendered as text only under the strict CSP; never executed or used in queries; responses validated by the SPA | C-AI-03, C-WEB-02 | **Mitigated (P9, tested)** |
+| T-AI-04 | LLM02 | Sensitive data sent to or leaked by the model | 2×2 | Allow-listed, bounded fields; addresses and e-mails pseudonymised; redacted evidence; Bedrock does not train on inputs | C-AI-04 | **Mitigated (P9, tested)** |
+| T-AI-05 | LLM06 | Excessive agency: AI performs or triggers a destructive action | 1×3 | No tools; three proposal types, tighten-only; a lead approves and the action runs as that person; decisions final | C-AI-05 | **Mitigated (P9, tested)** |
+| T-AI-06 | LLM10 | Unbounded consumption (cost) | 2×2 | Limits checked before any call (per user per day, platform tokens per day, tokens per answer); viewers cannot run analyses; every call audited | C-AI-06 | **Mitigated (P9, tested)** |
+| T-AI-07 | LLM09 | Fabricated evidence: the model presents an invention as an observed fact | 2×3 | Every observed-evidence item must be a verbatim quote of a field that was sent; inference is labelled as such; disagreements with the platform shown, never acted on | C-AI-02 | **Mitigated (P9, tested)** |
+| T-AI-08 | E | A proposal used to weaken a control (a WAF rule to count, an incident closed) | 1×3 | The contract allows only opening an incident, adding a threat, or a WAF rule to block; a change request still needs a second lead | C-AI-05, C-GOV-03 | **Mitigated (P9, tested)** |
+| T-AI-09 | I | AWS credentials for Bedrock leak from the developer machine or container | 1×3 | One permission on one model; short-lived session credentials in a git-ignored, mode-600 file; task role when deployed; AWS error text kept out of responses | C-AI-07, C-SEC-01 | **Mitigated (P9)** |
+| T-AI-10 | T/R | An analysis or decision rewritten to hide a manipulated answer | 1×3 | Analyses insert-only for the app role; proposals final once decided (trigger); every call and decision in the hash-chained audit log with the prompt's SHA-256 | C-AI-05, C-AUD-01 | **Mitigated (P9, tested)** |
 
 ### TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo
 
@@ -201,11 +206,12 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 2. **Credential stuffing → session theft → data access.** Broken at the WAF rate rule, app lockout,
    MFA, short-lived tokens, and RBAC/object checks; detected by COR-001 (stuffing), COR-007 (a
    sign-in from the stuffing source) and token-replay incidents (Phase 7).
-3. **Poisoned log line → AI recommends harmful change → operator applies it.** Broken because AI
-   output is schema-bound and advisory, proposals need approval, and real WAF changes need a
-   Terraform PR with review.
+3. **Poisoned log line → AI recommends harmful change → operator applies it.** Broken because the
+   data is delimited and scored (T-AI-02), evidence must be quoted verbatim (T-AI-07), proposals
+   can only tighten controls and need a lead's approval (T-AI-05, T-AI-08), and real WAF changes
+   need a Terraform PR with review.
 
-## 5. Residual risk (after Phase 10)
+## 5. Residual risk (after Phase 9)
 
 - Single-maintainer project: separation of duties is enforced by role checks and a database
   CHECK, so it needs two lead accounts, but both belong to the same person. Accepted for a
@@ -238,6 +244,16 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   acceptances (Phase 8) and exceptions remain two records with different scopes.
 - Permanently deleting an application threat model removes its rows; the audit log keeps a
   summary (counts and the first 50 threats), not the whole model. Archive is offered first.
+- Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded.
+  It is a signal for the reviewer, not a defence; the defences are delimiting, the verbatim
+  evidence contract and tighten-only proposals with human approval.
+- A model can still be wrong within the contract: a correct quote with a misleading inference.
+  Inference is labelled, the platform's own verdict is never changed, and nothing runs without a
+  lead's approval.
+- The offline analyser is deterministic and not a model; it proves the engine, not the quality of
+  a real model's answers. Bedrock answers vary between runs (temperature 0 narrows, not removes).
+- Limits are per day and counted from stored analyses; a burst within the limit is allowed.
+  Bedrock spend is also bounded by the AWS budget alert the setup asks for.
 - The posture score is computed on request and snapshotted once a day on the first read; with
   no scheduler, a day nobody opens it has no snapshot.
 - Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when

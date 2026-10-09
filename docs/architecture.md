@@ -62,7 +62,7 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
 | Worker | same image, separate entrypoint | Not needed yet: correlation runs synchronously in the request (ADR-0018). Revisited with WAF log ingestion (Phase 5) and AI analysis (Phase 9) |
 | Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Implemented (local): `sentinel` schema, migrator/app roles (ADR-0015), migrations 0001–0008 |
 | Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `outbox`, `verify-audit` |
-| AI engine | Amazon Bedrock (ADR-0006) | Selected and validated in config; integration in Phase 9 |
+| AI engine | Amazon Bedrock (ADR-0006, ADR-0024) | Built (Phase 9): `offline` analyser locally, Bedrock on demand when enabled; task role in Phase 4 |
 
 ## 5. Backend structure (ADR-0012)
 
@@ -119,7 +119,7 @@ not enumerable. Timestamps are UTC.
 | Vulnerabilities | scan_runs (insert-only), vulnerabilities, risk_acceptances (decision immutable) | **8 ✓** |
 | Supply chain | sboms (CycloneDX document and components, with SHA-256) | **8 ✓** |
 | Certificates | certificates | 5 |
-| AI | ai_analyses, ai_action_proposals | 9 |
+| AI | ai_analyses (insert-only: what was asked, the prompt's SHA-256, usage, the validated output or why it was rejected), ai_proposals (final once decided) | **9 ✓** |
 | Governance | controls, requirements, threat_models, model_elements, threats, threat_controls, requirement_threats; exceptions, change_requests (approver never the requester; decisions final by trigger) | **10 ✓** |
 | Posture | posture_snapshots (insert-only; each category with the factors behind its score) | **10 ✓** |
 

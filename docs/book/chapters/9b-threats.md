@@ -1,6 +1,6 @@
 # Threat Register
 
-Condensed from `docs/threat-model.md` (version 0.6). L×I is likelihood × impact, each from 1 to 3.
+Condensed from `docs/threat-model.md` (version 0.7). L×I is likelihood × impact, each from 1 to 3.
 
 | ID | STRIDE | Threat | L×I | Status |
 |---|---|---|---|---|
@@ -39,7 +39,16 @@ Condensed from `docs/threat-model.md` (version 0.6). L×I is likelihood × impac
 | T-DB-02 | I | Database credential theft | 2×3 | Scoped locally (P2); Secrets Manager P4 |
 | T-DB-03 | E | Over-privileged app database role | 2×3 | **Mitigated (P2)** |
 | T-DB-04 | I | Unencrypted data at rest / in transit | 1×3 | Planned (P4) |
-| T-AI-01..06 | LLM01/02/05/06/10 | Prompt injection (direct, indirect), insecure output, data leakage, excessive agency, unbounded cost | — | Planned (P9) |
+| T-AI-01 | LLM01 | Direct prompt injection by an analyst | 2×2 | **Mitigated (P9)**: no prompt box |
+| T-AI-02 | LLM01 | Indirect injection via request content, logs or finding text | 3×2 | **Mitigated (P9)** |
+| T-AI-03 | LLM05 | XSS through AI text or quoted payloads | 2×3 | **Mitigated (P9)** |
+| T-AI-04 | LLM02 | Sensitive data sent to or leaked by the model | 2×2 | **Mitigated (P9)** |
+| T-AI-05 | LLM06 | AI performs or triggers a destructive action | 1×3 | **Mitigated (P9)** |
+| T-AI-06 | LLM10 | Unbounded consumption (cost) | 2×2 | **Mitigated (P9)** |
+| T-AI-07 | LLM09 | Fabricated evidence presented as observed fact | 2×3 | **Mitigated (P9)** |
+| T-AI-08 | E | A proposal used to weaken a control | 1×3 | **Mitigated (P9)** |
+| T-AI-09 | I | Bedrock credentials leak | 1×3 | **Mitigated (P9)** |
+| T-AI-10 | T/R | An analysis or decision rewritten | 1×3 | **Mitigated (P9)** |
 | T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | Planned (P11); no keys exist |
 | T-CICD-02 | T | Hijacked third-party action | 1×3 | **Mitigated (P1)** |
 | T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | **Mitigated (P1, P8)**: Trivy, SBOMs, OS fixes at build |

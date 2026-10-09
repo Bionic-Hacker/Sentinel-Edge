@@ -1,0 +1,21 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.3, ranksep=0.32, bgcolor="transparent", pad=0.1];
+  node  [fontname="Inter", fontsize=11, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#1f3a68", margin="0.1,0.05"];
+  edge  [color="#5b6b80", arrowsize=0.6, fontname="Inter", fontsize=10, fontcolor="#5b6b80"];
+  rec [label="A record the analyst chose\n(event · incident · finding · threat model)", fillcolor="#eef2f8"];
+  min [label="Allow-listed fields, bounded,\npseudonymised, invisible characters removed"];
+  score [label="Prompt-risk score\n(named signals, shown with the answer)"];
+  lim [label="Limits checked first\nper user · per day · per answer", fillcolor="#fff6e5", color="#b54708"];
+  prompt [label="Data as JSON between\nnonce markers: never instructions"];
+  prov [label="Provider\noffline (free)  ·  Amazon Bedrock (Nova Micro)", fillcolor="#f3eefb", color="#6941c6"];
+  con [label="Contract: one strict JSON object;\nevidence quoted verbatim; known controls;\nallowed, tighten-only actions", fillcolor="#fff6e5", color="#b54708"];
+  rej [label="REJECTED or FAILED\nstored with our reason; nothing used", fillcolor="#fdecec", color="#b42318"];
+  ok [label="COMPLETED\nevidence · inference · recommendations", fillcolor="#e6f4f5", color="#0e7c86"];
+  prop [label="Proposals (AIP-n)\nawaiting a lead"];
+  act [label="Approved: runs as the lead through its own\nworkflow (incident · change request · threat)", fillcolor="#e6f4f5", color="#0e7c86"];
+  rec -> min -> score -> lim -> prompt -> prov -> con;
+  con -> rej [label="breaks it"];
+  con -> ok [label="meets it"];
+  { rank=same; rej; ok; }
+  ok -> prop -> act;
+}

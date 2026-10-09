@@ -9,7 +9,7 @@ All ADRs live in `docs/adr/`. Each records context, decision, security impact, a
 | 0003 | Authentication: Argon2id, 15-min JWT in memory, rotating `__Host-` refresh cookie, TOTP MFA | Implemented | 2 |
 | 0004 | Two-layer rate limiting: WAF at the edge, PostgreSQL token buckets in the app | App layer implemented | 5, 6 |
 | 0005 | Tamper-evident audit log: hash chain, grants, triggers, Object Lock archive | Chain, grants, triggers implemented | 2, 4 |
-| 0006 | Amazon Bedrock as AI provider, authenticated by IAM task role | Accepted | 9 |
+| 0006 | Amazon Bedrock as AI provider, authenticated by IAM task role | Implemented (Nova Micro default; addendum) | 9 |
 | 0007 | AI output contract (schema-bound, evidence vs inference) and human approval | Accepted | 9 |
 | 0008 | WAF changes only through Terraform; dashboard is read-only | Accepted; simulated WAF only in P7 | 5, 7, 10 |
 | 0009 | Provenance classification (REAL_AWS, LOCAL, SIMULATED, DEMO) enforced by tests | Implemented | 1+ |
@@ -27,3 +27,4 @@ All ADRs live in `docs/adr/`. Each records context, decision, security impact, a
 | 0021 | Vulnerability management: CLI import, de-duplication, fixed only by a covering scan, SLAs, immutable risk acceptance, findings as security events | Implemented | 8 |
 | 0022 | Threat modeling and the catalogue as code: generated from the reviewed documents with a drift test, SentinelEdge's model read-only in the app, application models (STRIDE, PASTA), archive and delete rules, explainable posture score | Implemented | 10 |
 | 0023 | Exceptions and change management: whoever asks cannot approve (service and database CHECK), expiry by risk, decisions final, history from the audit chain, the scan gate's register generated from the app | Implemented | 10 |
+| 0024 | AI security engine as built: allow-listed, pseudonymised, delimited input with prompt-risk scoring; verbatim-evidence contract, rejected not repaired; three tighten-only proposals a lead approves; limits before every call | Implemented | 9 |

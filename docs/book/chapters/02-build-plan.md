@@ -90,3 +90,4 @@ A git bundle carries commits with their IDs, authorship and parents intact. Veri
 | v0.4.0 | 7 | M0–M5 | Detect-only HTTP analysis, correlation, incidents with tamper-evident evidence, security dashboard, attack simulator and simulated WAF |
 | v0.5.0 | 8 | M0–M4 | One scan pipeline and fail-closed gate, authenticated DAST, SBOMs, vulnerability management with SLAs and risk acceptance |
 | v0.6.0 | 10 | M1–M4 | Threat model and controls as code in the app, application threat models, explainable posture score, exceptions and change management with separation of duties |
+| v0.7.0 | 9 | M1–M4 | AI security engine: input guardrails, a verbatim-evidence output contract, tighten-only proposals a lead approves, cost limits; offline analyser and Amazon Bedrock |
