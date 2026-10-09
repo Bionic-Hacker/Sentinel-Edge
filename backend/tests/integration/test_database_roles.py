@@ -55,6 +55,8 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "exceptions": {"SELECT", "INSERT", "UPDATE"},
     "change_requests": {"SELECT", "INSERT", "UPDATE"},
     "posture_snapshots": {"SELECT", "INSERT"},  # what the score was, never edited (0012)
+    "ai_analyses": {"SELECT", "INSERT"},  # what the AI was asked and said (0014)
+    "ai_proposals": {"SELECT", "INSERT", "UPDATE"},  # decided once, then final (trigger, 0014)
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.

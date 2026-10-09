@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    ai,
     api_security,
     applications,
     audit_logs,
@@ -34,3 +35,4 @@ api_v1.include_router(simulator.router)
 api_v1.include_router(vulnerabilities.router)
 api_v1.include_router(governance.router)
 api_v1.include_router(risk_governance.router)
+api_v1.include_router(ai.router)

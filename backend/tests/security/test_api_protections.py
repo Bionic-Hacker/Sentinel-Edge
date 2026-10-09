@@ -31,6 +31,12 @@ APPROVED_SENSITIVE = {
     ("AuditEntryOut", "prev_hash"): "public integrity value of the audit hash chain",
     ("AuditEntryOut", "record_hash"): "public integrity value of the audit hash chain",
     ("ChainStatus", "head_hash"): "public integrity value of the audit hash chain",
+    ("AnalysisDetail", "input_sha256"): "digest of the prompt sent to the AI, for tracing",
+    ("AnalysisDetail", "input_tokens"): "a token count (AI cost), not a credential",
+    ("AnalysisDetail", "output_tokens"): "a token count (AI cost), not a credential",
+    ("AiStatus", "tokens_today"): "a token count (AI cost), not a credential",
+    ("AiStatus", "tokens_per_day"): "a token budget (AI cost), not a credential",
+    ("AiStatus", "max_output_tokens"): "a token limit (AI cost), not a credential",
 }
 NEVER_RETURNED = {"password", "password_hash", "mfa_secret", "mfa_pending_secret", "token_hash"}
 

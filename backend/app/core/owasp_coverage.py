@@ -187,9 +187,17 @@ COVERAGE: tuple[Coverage, ...] = (
     ),
     Coverage(
         OwaspApi.API10,
-        CoverageStatus.NOT_EXPOSED,
-        ("The API consumes no third-party API today",),
-        ("tests/unit/test_egress.py::test_allow_list_is_enforced_before_resolution",),
-        planned="Bedrock responses validated against a strict output contract (ADR-0007, Phase 9)",
+        CoverageStatus.MITIGATED,
+        (
+            "AI model output must match a strict contract: one JSON object, evidence quoted "
+            "verbatim from the input, actions from a fixed list; anything else is rejected",
+            "Model output is advisory: rendered as text, never executed; actions need a lead",
+            "Calls bounded by per-user and platform quotas, an output-token cap and a timeout",
+        ),
+        (
+            "tests/unit/test_ai_contract.py::test_hostile_answers_are_rejected_not_repaired",
+            "tests/unit/test_ai_contract.py::test_evidence_must_quote_the_input_verbatim",
+            "tests/integration/test_ai.py::test_a_compromised_model_cannot_act_or_lie_about_evidence",
+        ),
     ),
 )
