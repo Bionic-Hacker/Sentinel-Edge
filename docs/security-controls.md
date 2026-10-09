@@ -22,9 +22,10 @@ or read.
 | 12 | Secrets management | Secrets never in code, images, Terraform, or CI config | C-SEC-01..02 | P1 (scan), P4 |
 | 13 | Logging | Traceability and forensics | C-LOG-01..03, C-AUD-01..03 | P1 (app), P2 (audit) |
 | 14 | Monitoring and detection | Detects abuse and failures; turns signals into incidents | C-MON-01, C-SO-01..09 | **P7 (detection, incidents)**, P4 (alarms) |
-| 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01 | P8 |
+| 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01..06 | P8 |
 | 16 | CI/CD security | Prevents vulnerable or secret-bearing code from shipping | C-CICD-01..04 | P1 (baseline), P8, P11 |
 | 17 | AI security | Contains prompt injection and AI agency | C-AI-01..06 | P9 |
+| 18 | Governance | Risk is modelled, accepted and changed on the record, by someone other than whoever asked | C-GOV-01..10 | P1, **P10** |
 
 ## 2. Controls implemented in Phase 1
 
@@ -123,6 +124,20 @@ or read.
 | C-API-13 | Backend enumerations and the SPA's validator lists must match | `tests/unit/test_frontend_contract.py` | CI |
 | C-WEB-04 | Cross-origin isolation: COOP `same-origin` and COEP `require-corp` on the SPA and the API | `security-headers.conf`, `security_headers.py` | `make verify-hardening`; ZAP rule 90004 |
 
+## 2e. Controls implemented in Phase 10
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-GOV-03 | Change management: a security-sensitive change needs a rollback plan and a validation plan, an approver other than the requester (service and database CHECK), an implementation reference, then validation or rollback; a `waf_rule` change drives the simulated WAF (ADR-0023) | `app/services/risk_governance.py`, migration 0011 | `test_a_change_goes_from_request_to_validation`, `test_a_waf_change_drives_the_simulated_waf_and_rolls_back`, `test_whoever_asks_cannot_approve` |
+| C-GOV-04 | Security exceptions held in the application: separation of duties, expiry no later than the risk allows (critical 30, high 90, medium 180, low 365 days), expiry on the date without a scheduler, reasons for rejection, withdrawal and closure; EXC-0001 and EXC-0002 migrated, not retyped | `SecurityException`, migration 0011 | `test_whoever_asks_cannot_approve`, `test_an_approved_exception_expires_on_its_date`, `test_rejection_withdrawal_and_closure_need_reasons`, `test_migration_imports_the_documented_exceptions` |
+| C-GOV-06 | Threat model and control catalogue maintained as code: generated from the reviewed documents, shipped with the API, refused by a test if they differ; cited evidence must exist; SentinelEdge's own model is read-only in the application (ADR-0022) | `app/governance/catalogue_source.py`, `make governance-catalogue` | `test_the_shipped_catalogue_is_exactly_what_the_documents_produce`, `test_every_cited_piece_of_evidence_exists`, `test_sentineledge_s_own_model_is_maintained_as_code` |
+| C-GOV-07 | Application threat models: threats cite real controls and boundaries; elements are retired, never deleted; models archived (leads, developers on their own applications) or deleted (leads only), each audited, a deletion with a summary of what it removed | `app/services/governance.py`, migration 0013 | `test_threats_must_cite_real_controls_and_boundaries`, `test_elements_are_retired_not_deleted`, `test_a_lead_deletes_an_application_model_and_the_audit_log_keeps_it`, `test_analysts_and_viewers_cannot_archive` |
+| C-GOV-08 | Governance decisions are final: database triggers refuse a rewritten decision or a revived request; the app role cannot delete exceptions or change requests; each record's history is read from the hash-chained audit log | Migration 0011 | `test_the_database_refuses_self_approval_and_rewritten_decisions`, `test_a_cancelled_change_cannot_be_revived_or_rewritten`, `test_the_app_role_cannot_delete_governance_decisions` |
+| C-GOV-09 | The scan gate's accepted-risk register is generated from approved scan-finding exceptions: the application is the system of record | `accepted_risks_toml`, `make accepted-risks` | `test_approved_scan_finding_exceptions_become_the_gate_register` |
+| C-GOV-10 | Explainable posture score: coverage minus live signals, each factor naming its records; every control family in exactly one category; the method returned with the score; daily snapshots | `app/services/posture.py`, migration 0012 | `test_every_control_family_belongs_to_exactly_one_category`, `test_the_method_is_published_with_the_score`, `test_live_signals_deduct_points_and_name_their_records`, `test_leads_take_snapshots_and_the_trend_records_them` |
+| C-API-01 | Object-level authorization extended to threat models, exceptions and change requests (developers: own applications; 404, audited) | `GovernanceService`, `RiskGovernanceService` | `test_developers_see_only_their_own_applications_models`, `test_developers_raise_requests_only_for_their_own_applications` |
+| C-API-13 | Governance enumerations and PASTA stages match the SPA's validator lists | `tests/unit/test_frontend_contract.py` | `governance.test.tsx` |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
@@ -142,6 +157,8 @@ or read.
 | Secret leakage | T-SEC-01 | Gitleaks + Secrets Manager | `.gitleaks.toml`; `secrets-manager` module | Gitleaks report | **P1**, P4 |
 | Supply chain | T-SC-01 | Pinned deps + SCA + SBOM + image scan + build-time OS fixes | Lock files; Syft; Trivy; Dockerfiles | CI artifact `security-scans-<run>`; Vulnerabilities and SBOM pages | **P1, P8** |
 | Known vulnerabilities shipped | T-VM-03, T-VM-04 | Scan gate, findings lifecycle, SLA, risk acceptance | ADR-0020, ADR-0021 | `test_scanning.py`, `test_vulnerabilities.py`; [runbook](runbooks/vulnerability-remediation.md) | **P8** |
+| Risk accepted or changed without oversight | T-GOV-01, T-GOV-02, T-GOV-03 | Separation of duties, expiry, immutable decisions, audited history | ADR-0023 | `test_whoever_asks_cannot_approve`, `test_the_database_refuses_self_approval_and_rewritten_decisions`, `test_an_approved_exception_expires_on_its_date` | **P10** |
+| Threat model and controls drift from what is built | T-GOV-04, T-GOV-05 | Catalogue as code with a drift test; evidence must exist; explainable score | ADR-0022 | `test_the_shipped_catalogue_is_exactly_what_the_documents_produce`, `test_every_cited_piece_of_evidence_exists`, `test_the_method_is_published_with_the_score` | **P10** |
 | Audit tampering | T-AUD-01 | Hash chain + grants + triggers + Object Lock | ADR-0005 | `test_audit_log.py`, `make verify-audit` | **P2**, P4 |
 | Prompt injection | T-AI-01, T-AI-02 | Delimiting, scoring, schema-bound output | `app/ai/guardrails` | Injection corpus tests | P9 |
 | Excessive AI agency | T-AI-05 | Proposals + human approval | `ai_action_proposals` | Approval workflow tests; audit | P9 |
@@ -149,16 +166,36 @@ or read.
 | Certificate expiry | T-EDGE-02 | ACM managed renewal + expiry alerting | ACM module; worker poller | CloudWatch alarm; dashboard | P5 |
 | Cross-environment change | T-IAC-01 | Per-env roots, account guards | ADR-0014 | Plan fails on wrong account | P3 |
 
-## 4. Control ID index (planned)
+## 4. Planned controls
 
-C-DNS-01 CAA + Route 53 as code · C-EDGE-01 TLS policy · C-EDGE-02 private origin · C-EDGE-03
-CloudFront headers policy · C-WAF-01 managed rule groups · C-WAF-02 custom rules · C-WAF-03
-rate-based rules · C-WAF-04 Terraform-only WAF changes · C-LB-01 ALB desync/invalid-header
-protection · C-NET-01 private subnets · C-NET-02 tiered SGs · C-ID-01 Argon2id · C-ID-02
-short-lived JWT · C-ID-03 rotating refresh tokens · C-ID-04 MFA · C-ID-05 lockout · C-ID-06 CSRF
-defenses · C-ID-07 secure reset · C-API-01 object authz · C-API-02 function authz · C-API-03 app
-rate limiting · C-DB-01 least-privilege roles · C-DB-02 encryption · C-DB-03 TLS required ·
-C-DB-04 backups · C-IAM-01 per-function roles · C-IAM-02 no static keys · C-IAM-03 permission
-documentation · C-AUD-01 hash chain · C-AUD-02 INSERT-only grants · C-AUD-03 Object Lock archive ·
-C-MON-01 alarms · C-SO-01..09 security operations (Phase 7, section 2c) · C-CICD-06..11, C-VM-01..06, C-WEB-04 application security (Phase 8, section 2d) · C-AI-01..06 per ADR-0007 · C-GOV-03 change
-management.
+Every control ID used in the threat model and not yet implemented, with the phase that
+implements it. When a phase implements one, its row moves to that phase's section above.
+
+| ID | Control | Phase |
+|---|---|---|
+| C-DNS-01 | CAA records and Route 53 managed as code | 5 |
+| C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge | 5 |
+| C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001) | 4 |
+| C-EDGE-03 | CloudFront response headers policy | 5 |
+| C-WAF-01 | AWS managed rule groups (core, known bad inputs, SQL injection) | 5 |
+| C-WAF-02 | Custom WAF rules for SentinelEdge's own endpoints | 5 |
+| C-WAF-03 | Rate-based WAF rules | 5 |
+| C-WAF-04 | WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008) | 5 |
+| C-LB-01 | ALB desync mitigation (strictest) and invalid-header dropping | 4 |
+| C-NET-01 | Private subnets for the application and the database | 3 |
+| C-NET-02 | Tiered security groups: each tier reachable only from the tier above | 3 |
+| C-IAC-01 | Per-environment Terraform roots with `allowed_account_ids` guards (ADR-0014) | 3 |
+| C-IAC-02 | Encrypted, private, versioned Terraform state bucket | 3 |
+| C-DB-02 | Encryption at rest (KMS) and in transit (`rds.force_ssl`) | 4 |
+| C-DB-04 | Automated database backups | 4 |
+| C-IAM-01 | One IAM role per function, least privilege | 3 |
+| C-IAM-02 | No static cloud keys: GitHub OIDC for CI (ADR-0010) | 11 |
+| C-IAM-03 | Every IAM permission documented with its reason | 3 |
+| C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head | 4 |
+| C-MON-01 | CloudWatch alarms for errors, latency and security signals | 4 |
+| C-AI-01 | Untrusted data delimited, never concatenated into instructions; input validation and prompt-risk scoring (ADR-0007) | 9 |
+| C-AI-02 | Schema-bound AI output separating observed evidence from inference; non-conforming output rejected | 9 |
+| C-AI-03 | AI text rendered as text only, never executed or used to build queries | 9 |
+| C-AI-04 | Redaction and minimisation before data reaches the model | 9 |
+| C-AI-05 | No state-changing AI tools; proposals need human approval (audited) | 9 |
+| C-AI-06 | Per-user AI quotas and token caps | 9 |

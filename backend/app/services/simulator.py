@@ -47,6 +47,7 @@ from app.models.security_event import (
     Severity,
 )
 from app.models.simulation import SimulatedWafRule, SimulationRun, WafMode
+from app.models.user import User
 from app.security.http_analysis import RULES, Analysis, Finding, InspectedRequest, analyze
 from app.services import audit, correlation, security_events
 from app.services.audit import AuditAction, RequestContext
@@ -758,31 +759,52 @@ def set_waf_mode(
     db: Session, principal: Principal, rule_id: str, mode: WafMode, ctx: RequestContext
 ) -> WafMode:
     """Change one SIMULATED WAF rule. Nothing outside the simulator is affected."""
+    apply_waf_mode(db, principal.user, rule_id, mode, ctx)
+    db.commit()
+    return mode
+
+
+def apply_waf_mode(
+    db: Session,
+    actor: User,
+    rule_id: str,
+    mode: WafMode,
+    ctx: RequestContext,
+    change: str | None = None,
+) -> WafMode:
+    """Set a SIMULATED WAF rule's mode in the caller's transaction and audit it; returns the
+    mode it replaced. `change` names the change request that made it, if one did."""
     if rule_id not in {r.rule_id for r in RULES}:
         raise ApiError(404, "not_found", "Not Found")
     current = db.get(SimulatedWafRule, rule_id, with_for_update=True)
     before = current.mode if current else WafMode.BLOCK
     if current is None:
         current = SimulatedWafRule(
-            rule_id=rule_id, mode=mode, updated_at=utcnow(), updated_by_label=principal.user.email
+            rule_id=rule_id, mode=mode, updated_at=utcnow(), updated_by_label=actor.email
         )
         db.add(current)
     else:
         current.mode = mode
         current.updated_at = utcnow()
-        current.updated_by_label = principal.user.email
+        current.updated_by_label = actor.email
+    details = {"from": before.value, "to": mode.value, "provenance": "SIMULATED"}
+    if change:
+        details["change_request"] = change
     audit.record(
         db,
         action=AuditAction.SIMULATED_WAF_RULE_CHANGED,
         result=AuditResult.SUCCESS,
-        actor=principal.user,
+        actor=actor,
         ctx=ctx,
         resource_type="simulated_waf_rule",
         resource_id=rule_id,
-        details={"from": before.value, "to": mode.value, "provenance": "SIMULATED"},
+        details=details,
     )
-    db.commit()
-    return mode
+    return before
+
+
+def waf_rule_ids() -> frozenset[str]:
+    return frozenset(r.rule_id for r in RULES)
 
 
 def iter_rules(

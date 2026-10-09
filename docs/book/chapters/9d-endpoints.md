@@ -1,6 +1,6 @@
 # API Endpoint Inventory
 
-All 56 endpoints at v0.5.0, generated from the endpoint policy registry and the authorization matrix. *Public¹* means same-origin only (allowed `Origin` plus the `X-SentinelEdge-CSRF` header). *Setup* means any signed-in user, even before forced setup is complete. *Own²* means non-admins may read only their own record; others get 404 and the attempt is audited.
+All 79 endpoints at v0.6.0, generated from the endpoint policy registry and the authorization matrix. *Public¹* means same-origin only (allowed `Origin` plus the `X-SentinelEdge-CSRF` header). *Setup* means any signed-in user, even before forced setup is complete. *Own²* means non-admins may read only their own record; others get 404 and the attempt is audited.
 
 | Endpoint | Access | Risk | Rate limit | OWASP |
 |---|---|---|---|---|
@@ -60,5 +60,28 @@ All 56 endpoints at v0.5.0, generated from the endpoint policy registry and the 
 | `GET /sboms` | All roles³ | low | 120 / min per user | API1, API3 |
 | `GET /sboms/{id}` | All roles³ | low | 120 / min per user | API1, API3, API4 |
 | `GET /sboms/{id}/document` | All roles³ | low | 6 / min per user | API1, API4 |
+| `GET /governance/controls` | All roles | low | 120 / min per user | API3 |
+| `GET /governance/requirements` | All roles | low | 120 / min per user | API3 |
+| `GET /threat-models` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `POST /threat-models` | ADMIN, SEC_ENG | medium | 30 / min per user | API5 |
+| `GET /threat-models/{id}` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `PATCH /threat-models/{id}` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API1, API5 |
+| `POST /threat-models/{id}/archive` | ADMIN, SEC_ENG, DEVELOPER³ | medium | 30 / min per user | API1, API5 |
+| `DELETE /threat-models/{id}` | ADMIN, SEC_ENG³ | high | 30 / min per user | API1, API5 |
+| `POST /threat-models/{id}/elements` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API1, API5 |
+| `PATCH /threat-models/{id}/elements/{element_id}` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API1, API5 |
+| `POST /threat-models/{id}/threats` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API1, API5 |
+| `PATCH /threat-models/{id}/threats/{threat_id}` | ADMIN, SEC_ENG³ | medium | 30 / min per user | API1, API5 |
+| `GET /governance/posture` | All roles | low | 120 / min per user | API3, API4 |
+| `POST /governance/posture/snapshots` | ADMIN, SEC_ENG | low | 6 / min per user | API4, API5 |
+| `GET /exceptions` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `POST /exceptions` | ADMIN, SEC_ENG, DEVELOPER³ | high | 30 / min per user | API1, API5, API6 |
+| `GET /exceptions/{id}` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `POST /exceptions/{id}/decision` | ADMIN, SEC_ENG³ | high | 30 / min per user | API1, API5, API6 |
+| `POST /exceptions/{id}/close` | ADMIN, SEC_ENG, DEVELOPER³ | medium | 30 / min per user | API1, API5 |
+| `GET /change-requests` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `POST /change-requests` | ADMIN, SEC_ENG, DEVELOPER³ | high | 30 / min per user | API1, API5, API6 |
+| `GET /change-requests/{id}` | All roles³ | medium | 120 / min per user | API1, API3 |
+| `POST /change-requests/{id}/transition` | ADMIN, SEC_ENG, DEVELOPER³ | high | 30 / min per user | API1, API5, API6 |
 
-All paths are under `/api/v1`. Every route is also subject to the global ceiling of 600 requests per minute per IP. Admins cannot demote, deactivate, delete or reset MFA on themselves, and the last active admin cannot be removed. ³ An object-level rule applies on top of the role: analysts change only incidents they own (closing, reopening, re-rating and assigning others are lead-only), developers see only applications they own (and only those applications' findings, scans and SBOMs), and SentinelEdge itself cannot be retired. Marking a false positive and accepting or revoking a risk are lead-only. Incident work uses the `investigation` limit (60 per minute per user). The CycloneDX download allows 6 per minute per user, because each is a complete document.
+All paths are under `/api/v1`. Every route is also subject to the global ceiling of 600 requests per minute per IP. Admins cannot demote, deactivate, delete or reset MFA on themselves, and the last active admin cannot be removed. ³ An object-level rule applies on top of the role: analysts change only incidents they own (closing, reopening, re-rating and assigning others are lead-only), developers see only applications they own (and only those applications' findings, scans, SBOMs, threat models, exceptions and change requests), and SentinelEdge itself cannot be retired. SentinelEdge's own threat model is read-only (it is maintained as code), developers archive only their own applications' models, and nobody approves an exception or change request they raised. Marking a false positive and accepting or revoking a risk are lead-only. Incident work uses the `investigation` limit (60 per minute per user). The CycloneDX download allows 6 per minute per user, because each is a complete document.

@@ -6,7 +6,7 @@ import { AppRoutes } from "../../app/App";
 import { authenticated, CAPS, jsonResponse, mockApi, profile, unauthorized } from "../../test/fixtures";
 import { renderSettled } from "../../test/render";
 
-const health = () => jsonResponse({ status: "ok", version: "0.5.0" });
+const health = () => jsonResponse({ status: "ok", version: "0.6.0" });
 const caps = () => jsonResponse({ items: CAPS });
 
 // renderSettled waits, inside act(), for the initial silent sign-in to finish, so React state

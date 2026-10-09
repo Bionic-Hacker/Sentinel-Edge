@@ -148,6 +148,29 @@ prints a line such as `Imported SCAN-0003 for sentineledge: 178 findings (8 new,
 4. **Dashboard**: the Vulnerabilities control now shows measured values; **API Security** shows each
    endpoint's last authenticated scan.
 
+Model threats and govern risk (Phase 10). Approving anything needs a second lead, because
+whoever asks cannot approve: invite a second ADMIN or SECURITY_ENGINEER from **Users** and
+complete its first sign-in in a private window.
+
+1. **Threat Modeling**: SentinelEdge's own model is marked *Maintained as code*. Its threats link
+   to their controls, and it has no edit or delete buttons.
+2. As a lead, create a model for an application in the inventory (add one under **Applications**
+   if needed). Add an asset and a threat that cites a control, such as `C-API-01`.
+3. **Compliance** → **Posture**: each category's score, the deductions with the records behind
+   them, and the method. As a lead, take a snapshot.
+4. **Compliance** → **Exceptions**: request one as the first lead. There is no *Approve* button,
+   and the page says why. Sign in as the second lead and approve it.
+5. On your model, select **Delete**: the dialog offers *Archive* and *Delete permanently*.
+   Archive it, then tick *Show archived models* on the list.
+
+After deciding a scan-finding exception, regenerate the gate's register; after editing the
+threat model or controls documents, regenerate the catalogue:
+
+```
+make accepted-risks         # scanning/accepted-findings.toml from the approved exceptions
+make governance-catalogue   # backend/app/governance/catalogue.json from the two documents
+```
+
 Container hardening by hand:
 
 ```
@@ -159,24 +182,24 @@ curl -s -o /dev/null -w '%{http_code}\n' -H 'Host: evil.example' http://localhos
 
 ## Step 8 — Ship a phase the way this project does
 
-This is the release workflow from Chapter 2, with the exact commands used for v0.5.0 (Phase 8); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
+This is the release workflow from Chapter 2, with the exact commands used for v0.6.0 (Phase 10); every earlier release followed the same steps. The GitHub token is a fine-grained token scoped to this one repository (Contents, Workflows and Pull requests read/write; Actions read-only). It is pasted at the prompt and never written to disk.
 
 ```
-git switch -c phase/8-appsec-scanning                      # one branch per phase
+git switch -c phase/10-governance                          # one branch per phase
 # … milestone commits; make check && make smoke && make verify-hardening …
-git push -u origin phase/8-appsec-scanning                 # password prompt: paste the token
+git push -u origin phase/10-governance                     # password prompt: paste the token
 
 read -s -g -x -P "GitHub token: " GH_TOKEN              # fish: hidden prompt, exported for gh
-gh pr create --repo Bionic-Hacker/Sentinel-Edge --base main --head phase/8-appsec-scanning \
-    --title "Phase 8: application security scanning" --body-file docs/releases/v0.5.0.md
-gh pr checks phase/8-appsec-scanning --repo Bionic-Hacker/Sentinel-Edge --watch
-gh pr merge  phase/8-appsec-scanning --repo Bionic-Hacker/Sentinel-Edge --merge
+gh pr create --repo Bionic-Hacker/Sentinel-Edge --base main --head phase/10-governance \
+    --title "Phase 10: threat modeling and governance" --body-file docs/releases/v0.6.0.md
+gh pr checks phase/10-governance --repo Bionic-Hacker/Sentinel-Edge --watch
+gh pr merge  phase/10-governance --repo Bionic-Hacker/Sentinel-Edge --merge
 
 git switch main && git pull --ff-only
-git tag -a v0.5.0 -m "Phase 8: application security scanning"     # SSH-signed (tag.gpgsign true)
-git push origin v0.5.0
-gh release create v0.5.0 --repo Bionic-Hacker/Sentinel-Edge \
-    --title "v0.5.0 - Phase 8: application security scanning" --notes-file docs/releases/v0.5.0.md
+git tag -a v0.6.0 -m "Phase 10: threat modeling and governance"   # SSH-signed (tag.gpgsign true)
+git push origin v0.6.0
+gh release create v0.6.0 --repo Bionic-Hacker/Sentinel-Edge \
+    --title "v0.6.0 - Phase 10: threat modeling and governance" --notes-file docs/releases/v0.6.0.md
 set -e GH_TOKEN                                         # fish: forget the token
 ```
 
@@ -202,7 +225,9 @@ git config --global tag.gpgsign true
 | Follow logs | `make logs` |
 | Delete idle rate-limit buckets | `make prune-rate-limits` |
 | Stop, keeping data | `docker compose down` |
-| Re-apply the gate after editing accepted risks | `make scan-gate` |
+| Re-apply the gate after regenerating accepted risks | `make scan-gate` |
+| Regenerate the gate's accepted risks from approved exceptions | `make accepted-risks` |
+| Regenerate the governance catalogue after editing the threat model or controls | `make governance-catalogue` |
 | Import a CI scan artifact | `make scan-import FROM=<dir> SOURCE=ci` |
 | Test the SentinelEdge Semgrep rules | `make scan-test` |
 | Reset everything, including the database | `make clean` |

@@ -16,6 +16,15 @@ export default defineConfig({
   build: {
     sourcemap: false, // do not ship source maps to end users
     target: "es2022",
+    rolldownOptions: {
+      output: {
+        // React and the router change rarely: a separate chunk stays cached across releases and
+        // keeps the application chunk under the 500 kB warning.
+        advancedChunks: {
+          groups: [{ name: "react", test: /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/ }],
+        },
+      },
+    },
   },
   test: {
     environment: "jsdom",

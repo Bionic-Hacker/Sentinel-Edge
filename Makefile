@@ -5,7 +5,8 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
 
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import
+        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
+        governance-catalogue accepted-risks
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -123,6 +124,14 @@ scan-import: ## Import reports/scan into vulnerability management (FROM=dir SOUR
 	  python -m app.cli import-scan --application "$(or $(APP),sentineledge)" --source "$(or $(SOURCE),local)" \
 	  $(if $(COMMIT),--commit "$(COMMIT)",$(if $(FROM),,--commit "$$(git rev-parse HEAD)" --branch "$$(git rev-parse --abbrev-ref HEAD)")) \
 	  --actor "$$(git config user.email || echo operator)"
+
+accepted-risks: ## Regenerate scanning/accepted-findings.toml from the approved scan-finding exceptions (stack running)
+	set -o pipefail; docker compose exec -T api python -m app.cli export-accepted-risks > scanning/accepted-findings.toml.new
+	mv scanning/accepted-findings.toml.new scanning/accepted-findings.toml
+	@echo "Regenerated scanning/accepted-findings.toml: review the diff and commit it."
+
+governance-catalogue: ## Regenerate the governance catalogue after editing docs/threat-model.md or docs/security-controls.md
+	python3 scripts/governance-catalogue.py
 
 image-digests: ## Check pinned image digests against their tags (UPDATE=1 rewrites stale pins)
 	./scripts/image-digests.sh

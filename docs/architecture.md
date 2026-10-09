@@ -116,12 +116,12 @@ not enumerable. Timestamps are UTC.
 | Edge / WAF | simulated_waf_rules, simulation_runs **7 ✓**; waf_rules (mirror of AWS), waf_exceptions, ip_lists | 5, 7 |
 | Telemetry | security_events (append-only; `incident_id` write-once) | **7 ✓** |
 | Operations | incidents, incident_timeline (append-only; notes are timeline entries; digests in the audit chain) | **7 ✓** |
-| Vulnerabilities | vulnerabilities, scan_runs | 8 |
-| Supply chain | sbom_documents, sbom_components | 8 |
+| Vulnerabilities | scan_runs (insert-only), vulnerabilities, risk_acceptances (decision immutable) | **8 ✓** |
+| Supply chain | sboms (CycloneDX document and components, with SHA-256) | **8 ✓** |
 | Certificates | certificates | 5 |
 | AI | ai_analyses, ai_action_proposals | 9 |
-| Governance | threat_models, threats, controls, control_mappings, risk_exceptions, change_requests | 10 |
-| Posture | posture_snapshots (each score linked to its evidence) | 10 |
+| Governance | controls, requirements, threat_models, model_elements, threats, threat_controls, requirement_threats; exceptions, change_requests (approver never the requester; decisions final by trigger) | **10 ✓** |
+| Posture | posture_snapshots (insert-only; each category with the factors behind its score) | **10 ✓** |
 
 ## 7a. Authentication flow (Phase 2, ADR-0003)
 

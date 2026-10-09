@@ -30,7 +30,7 @@ Settings → Users; their invitation (and any password-reset email) lands in the
 ```bash
 make outbox         # show recent "emails" with their one-time links
 make verify-audit   # check the audit log hash chain
-make smoke          # 48-check end-to-end test of the running stack
+make smoke          # 64-check end-to-end test of the running stack
 ```
 
 `make smoke` creates its own uniquely named synthetic users and locks one of them on purpose. It
@@ -42,6 +42,41 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
+
+## Upgrading from v0.5.0 (Phase 8) to v0.6.0 (Phase 10)
+
+Your data is kept. `make dev` rebuilds the images and applies four migrations:
+
+```bash
+make dev
+docker compose logs migrate | grep "Running upgrade"   # 0009 -> 0010 ... 0012 -> 0013
+```
+
+| Migration | Adds |
+|---|---|
+| `0010_governance_catalogue` | Controls, requirements, threat models with their elements and threats, and the links between them. SentinelEdge's own model is loaded from `backend/app/governance/catalogue.json` on the first governance request |
+| `0011_exceptions_and_changes` | Security exceptions and change requests (approver never the requester, decisions final, nothing deletable by the app role); EXC-0001 and EXC-0002 imported from the old register |
+| `0012_posture_snapshots` | Daily posture snapshots (insert-only) |
+| `0013_threat_model_deletion` | Lets the app role delete application threat models, their elements and threats (permanent deletion, leads only) |
+
+Then open **Threat Modeling** and **Compliance**. Approving anything needs a second lead account,
+because whoever asks cannot approve: invite a second ADMIN or SECURITY_ENGINEER from the Users
+page. After deciding a scan-finding exception, regenerate the gate's register:
+
+```bash
+make accepted-risks    # writes scanning/accepted-findings.toml from the approved exceptions
+git diff scanning/accepted-findings.toml
+```
+
+After editing `docs/threat-model.md` or `docs/security-controls.md`, regenerate the catalogue
+(CI fails until you do):
+
+```bash
+make governance-catalogue
+```
+
+`make smoke` now runs 64 checks. Each run leaves a withdrawn exception and a cancelled change
+request on the Compliance page, on purpose.
 
 ## Upgrading from v0.4.0 (Phase 7) to v0.5.0 (Phase 8)
 
@@ -141,6 +176,8 @@ make create-admin EMAIL=you@example.com
 | Reset everything including DB data | `make clean` |
 | Delete idle rate-limit buckets | `make prune-rate-limits` |
 | Generate simulated attack activity | Automation page (admin or security engineer), or `POST /api/v1/simulator/runs` |
+| Regenerate the governance catalogue after editing the threat model or controls | `make governance-catalogue` |
+| Regenerate the scan gate's accepted risks from approved exceptions (stack running) | `make accepted-risks` |
 
 ## Exposure rules
 
@@ -170,3 +207,5 @@ make create-admin EMAIL=you@example.com
 | `make scan` blocks on a package vulnerability you did not change | A fix was published upstream since the image was built | `make scan` rebuilds with OS updates; for a Python or npm package, bump it (runbook: vulnerability remediation) |
 | `Unexpected Content-Type` and `Private IP Disclosure` from ZAP | The SPA answers unknown paths with its page; the dashboard shows source addresses by design | Mark as false positives with that note |
 | "This incident changed since you loaded it" | Someone (or another tab) changed it first | Select Reload, then repeat the action |
+| `test_the_shipped_catalogue_is_exactly_what_the_documents_produce` fails | The threat model or controls document changed without regenerating | `make governance-catalogue` and commit the JSON |
+| No Approve button on your own exception or change request | Separation of duties: whoever asks cannot approve | A different lead decides |

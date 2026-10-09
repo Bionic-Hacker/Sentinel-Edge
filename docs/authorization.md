@@ -14,7 +14,7 @@ from it in either direction.
 | ANALYST | Incident investigation | No |
 | VIEWER | Read-only | No |
 
-## Endpoint matrix (Phase 8)
+## Endpoint matrix (Phase 10)
 
 ✓ = allowed. "Setup" = any signed-in user, even before finishing forced setup.
 
@@ -44,6 +44,16 @@ from it in either direction.
 | `GET /scans`, `/scans/{id}`, `/sboms`, `/sboms/{id}`, `/sboms/{id}/document` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
 | `POST /vulnerabilities/{id}/status` | | | ✓ | ✓ | ✓ own⁶ | | |
 | `POST /vulnerabilities/{id}/acceptances`, `.../acceptances/{acceptance_id}/revoke` | | | ✓ | ✓ | | | |
+| `GET /governance/controls`, `/governance/requirements`, `/governance/posture` | | | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `POST /governance/posture/snapshots` | | | ✓ | ✓ | | | |
+| `GET /threat-models`, `/threat-models/{id}` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
+| `POST /threat-models`, `PATCH /threat-models/{id}`, `POST .../elements`, `PATCH .../elements/{element_id}`, `POST .../threats`, `PATCH .../threats/{threat_id}` | | | ✓⁷ | ✓⁷ | | | |
+| `POST /threat-models/{id}/archive` | | | ✓⁷ | ✓⁷ | ✓ own⁵ | | |
+| `DELETE /threat-models/{id}` | | | ✓⁷ | ✓⁷ | | | |
+| `GET /exceptions`, `/exceptions/{id}`, `/change-requests`, `/change-requests/{id}` | | | ✓ | ✓ | ✓ own⁵ | ✓ | ✓ |
+| `POST /exceptions`, `/change-requests` | | | ✓ | ✓ | ✓ own⁵ | | |
+| `POST /exceptions/{id}/decision` | | | ✓⁸ | ✓⁸ | | | |
+| `POST /exceptions/{id}/close`, `/change-requests/{id}/transition` | | | ✓⁸ | ✓⁸ | ✓ own⁸ | | |
 
 1. Same-origin only: requires an allowed `Origin` and the `X-SentinelEdge-CSRF` header.
 2. Object-level check (OWASP API1): any other ID returns the same 404 as a non-existent one, and
@@ -51,9 +61,13 @@ from it in either direction.
 3. An admin cannot demote, deactivate, delete or reset MFA on themselves, and the last active
    admin can't be removed.
 4. Object-level workflow rules apply on top of the role check; see the incident matrix below.
-5. Developers see only the applications they own, and only those applications' findings, scans
-   and SBOMs. Any other ID returns 404, audited as `authz.denied`.
+5. Developers see only the applications they own, and only those applications' findings, scans,
+   SBOMs, threat models, exceptions and change requests. Any other ID returns 404, audited as
+   `authz.denied`.
 6. Status rules apply on top of the role check; see the finding matrix below.
+7. Not on SentinelEdge's own threat model, which is maintained as code (409 `maintained_as_code`).
+8. Separation of duties and workflow rules apply on top of the role check; see the governance
+   matrix below.
 
 ## Incident permission matrix (Phase 7)
 
@@ -100,6 +114,33 @@ Every write names the `version` it read (409 `stale_version` otherwise) and is a
 Scans are imported only through the CLI inside the API container (`make scan-import`); there is no
 import endpoint. The authenticated DAST scan signs in as `dast-scanner@example.com`, a VIEWER,
 through a session the CLI issues for one scan and revokes afterwards.
+
+## Governance permission matrix (Phase 10)
+
+Every threat model, exception and change request response carries `permissions` (and, for change
+requests, `available_moves`), computed by the server; the UI renders only those (ADR-0022,
+ADR-0023). "Requester" is whoever raised the record.
+
+| Action | Leads (ADMIN, SECURITY_ENGINEER) | DEVELOPER (own applications) | ANALYST, VIEWER |
+|---|---|---|---|
+| Read the control catalogue, requirements, posture, models, exceptions, changes | ✓ | ✓ | ✓ |
+| Take a posture snapshot | ✓ | | |
+| Create or edit an application threat model, its elements and threats | ✓ | | |
+| Archive an application threat model | ✓ | ✓ | |
+| Delete an application threat model permanently | ✓ | | |
+| Change SentinelEdge's own threat model | Nobody: a reviewed pull request to `docs/threat-model.md` | | |
+| Request an exception, submit a change request | ✓ | ✓ | |
+| Approve or reject an exception or change request | ✓, never their own | | |
+| Withdraw or close an exception (reason required) | ✓ | ✓ requester | |
+| Cancel a submitted change, implement an approved one, roll back an implemented one | ✓ | ✓ requester | |
+| Validate an implemented change | ✓ | | |
+
+Self-approval is refused with 409 `separation_of_duties` by the service and again by a database
+CHECK. Decisions are final (database triggers), and the app role cannot delete exceptions or
+change requests. Every write names the `version` it read (409 `stale_version` otherwise) and is
+audited (`threat_model.*`, `exception.*`, `change_request.*`, `posture.snapshot_taken`). A
+permanent model deletion records a summary of what was removed. The VIEWER role stays read-only
+everywhere because the authenticated DAST scanner signs in as a VIEWER.
 
 ## How it is enforced
 

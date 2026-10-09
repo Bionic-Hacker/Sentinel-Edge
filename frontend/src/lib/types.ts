@@ -655,3 +655,315 @@ export interface SbomDetail extends SbomSummary {
   components: SbomComponent[];
   components_total: number;
 }
+
+// --- Threat modeling and governance (Phase 10) ------------------------------------------------
+
+export const CONTROL_STATUSES = ["implemented", "planned"] as const;
+export type ControlStatus = (typeof CONTROL_STATUSES)[number];
+export const MODEL_METHODS = ["stride", "pasta"] as const;
+export type ModelMethod = (typeof MODEL_METHODS)[number];
+export const MODEL_ORIGINS = ["catalogue", "app"] as const;
+export type ModelOrigin = (typeof MODEL_ORIGINS)[number];
+export const MODEL_STATUSES = ["draft", "active", "archived"] as const;
+export type ModelStatus = (typeof MODEL_STATUSES)[number];
+export const ELEMENT_KINDS = ["asset", "boundary", "flow", "attack_path", "residual_risk"] as const;
+export type ElementKind = (typeof ELEMENT_KINDS)[number];
+export const THREAT_STATUSES = [
+  "open",
+  "planned",
+  "partly_mitigated",
+  "mitigated",
+  "accepted",
+  "not_exposed",
+  "closed",
+] as const;
+export type ThreatStatus = (typeof THREAT_STATUSES)[number];
+export const PASTA_STAGES = [
+  "objectives",
+  "technical_scope",
+  "decomposition",
+  "threat_analysis",
+  "vulnerability_analysis",
+  "attack_modeling",
+  "risk_impact",
+] as const;
+export type PastaStage = (typeof PASTA_STAGES)[number];
+
+export interface Evidence {
+  kind: string;
+  ref: string;
+}
+
+export interface ControlExtension {
+  phase: number;
+  title: string;
+  implementation: string;
+  evidence: Evidence[];
+  evidence_text: string;
+}
+
+export interface Control {
+  ref: string;
+  title: string;
+  family: string;
+  layer: string | null;
+  status: ControlStatus;
+  phase: number;
+  implementation: string;
+  evidence: Evidence[];
+  evidence_text: string;
+  extensions: ControlExtension[];
+  threats: string[];
+}
+
+export interface ControlList {
+  items: Control[];
+  counts: { implemented: number; planned: number; with_evidence: number };
+  catalogue_digest: string;
+}
+
+export interface ThreatRef {
+  ref: string;
+  title: string;
+  status: ThreatStatus;
+  risk: number;
+}
+
+export interface Requirement {
+  ref: string;
+  title: string;
+  threats: ThreatRef[];
+  controls: string[];
+  control_text: string;
+  implementation: string;
+  evidence: Evidence[];
+  evidence_text: string;
+  phase_text: string;
+}
+
+export type StatusCounts = Record<ThreatStatus, number>;
+
+export interface ThreatModelSummary {
+  id: string;
+  reference: string;
+  name: string;
+  application: AppRef;
+  method: ModelMethod;
+  origin: ModelOrigin;
+  status: ModelStatus;
+  version_label: string;
+  threat_count: number;
+  by_status: StatusCounts;
+  highest_open_risk: number;
+  updated_at: string;
+  version: number;
+}
+
+export interface ModelElement {
+  id: string;
+  kind: ElementKind;
+  ref: string;
+  name: string;
+  description: string;
+  boundaries: string[];
+  threats: string[];
+  retired: boolean;
+}
+
+export interface ThreatControl {
+  ref: string;
+  title: string;
+  status: ControlStatus;
+  phase: number;
+}
+
+export interface Threat {
+  id: string;
+  ref: string;
+  title: string;
+  stride: string;
+  owasp: string;
+  group: string;
+  boundaries: string[];
+  likelihood: number;
+  impact: number;
+  risk: number;
+  mitigation: string;
+  status: ThreatStatus;
+  status_text: string;
+  phases: number[];
+  controls: ThreatControl[];
+  retired: boolean;
+  version: number;
+}
+
+export interface RiskCell {
+  likelihood: number;
+  impact: number;
+  count: number;
+}
+
+export interface ThreatModelDetail {
+  id: string;
+  reference: string;
+  name: string;
+  application: AppRef;
+  method: ModelMethod;
+  origin: ModelOrigin;
+  status: ModelStatus;
+  scope: string;
+  version_label: string;
+  pasta: Partial<Record<PastaStage, string>>;
+  elements: ModelElement[];
+  threats: Threat[];
+  stats: {
+    by_status: StatusCounts;
+    by_stride: Record<string, number>;
+    matrix: RiskCell[];
+    unmapped: string[];
+    only_planned_controls: string[];
+  };
+  permissions: { can_edit: boolean; maintained_as_code: boolean; can_archive: boolean; can_delete: boolean };
+  created_by_label: string;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
+
+export const RISK_LEVELS = ["low", "medium", "high", "critical"] as const;
+export type RiskLevel = (typeof RISK_LEVELS)[number];
+export const EXCEPTION_SCOPES = ["dependency", "scan_finding", "control", "configuration", "other"] as const;
+export type ExceptionScope = (typeof EXCEPTION_SCOPES)[number];
+export const EXCEPTION_STATUSES = ["requested", "approved", "rejected", "withdrawn", "expired", "closed"] as const;
+export type ExceptionStatus = (typeof EXCEPTION_STATUSES)[number];
+export const CHANGE_TYPES = ["waf_rule", "configuration", "access", "deployment", "other"] as const;
+export type ChangeType = (typeof CHANGE_TYPES)[number];
+export const CHANGE_STATUSES = [
+  "submitted",
+  "approved",
+  "rejected",
+  "cancelled",
+  "implemented",
+  "validated",
+  "rolled_back",
+] as const;
+export type ChangeStatus = (typeof CHANGE_STATUSES)[number];
+
+export interface HistoryEntry {
+  seq: number;
+  occurred_at: string;
+  action: string;
+  actor_label: string;
+  note: string | null;
+}
+
+export interface ExceptionSummary {
+  id: string;
+  reference: string;
+  title: string;
+  application: AppRef;
+  scope: ExceptionScope;
+  scope_ref: string;
+  risk_level: RiskLevel;
+  status: ExceptionStatus;
+  requester_label: string;
+  approver_label: string | null;
+  expires_on: string;
+  days_left: number | null;
+  imported: boolean;
+  version: number;
+}
+
+export interface ExceptionDetail extends ExceptionSummary {
+  gate_match: Record<string, string> | null;
+  risk: string;
+  justification: string;
+  compensating_control: string;
+  control_refs: string[];
+  implementation: string;
+  exit_criteria: string;
+  decided_at: string | null;
+  decision_note: string | null;
+  ended_at: string | null;
+  end_note: string | null;
+  max_days: number;
+  created_at: string;
+  permissions: { can_decide: boolean; can_close: boolean; separation_of_duties: boolean };
+  history: HistoryEntry[];
+}
+
+export interface ExceptionList {
+  items: ExceptionSummary[];
+  counts: Record<ExceptionStatus | "expiring_30d", number>;
+}
+
+export interface ChangeSummary {
+  id: string;
+  reference: string;
+  title: string;
+  application: AppRef;
+  change_type: ChangeType;
+  risk_level: RiskLevel;
+  status: ChangeStatus;
+  requester_label: string;
+  approver_label: string | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+}
+
+export interface ChangeDetail extends ChangeSummary {
+  description: string;
+  impact: string;
+  rollback_plan: string;
+  validation_plan: string;
+  target: { rule_id: string; mode: WafMode } | null;
+  previous_state: { mode: WafMode } | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  implemented_at: string | null;
+  implemented_by_label: string | null;
+  implementation_ref: string | null;
+  closed_at: string | null;
+  closing_note: string | null;
+  available_moves: ChangeStatus[];
+  separation_of_duties: boolean;
+  history: HistoryEntry[];
+}
+
+export interface ChangeList {
+  items: ChangeSummary[];
+  counts: Record<ChangeStatus, number>;
+}
+
+export const CATEGORY_STATES = ["measured", "planned"] as const;
+export type CategoryState = (typeof CATEGORY_STATES)[number];
+export const FACTOR_KINDS = ["coverage", "signal"] as const;
+export type FactorKind = (typeof FACTOR_KINDS)[number];
+
+export interface PostureFactor {
+  kind: FactorKind;
+  label: string;
+  points: number;
+  refs: string[];
+  link: string | null;
+}
+
+export interface PostureCategory {
+  key: string;
+  label: string;
+  score: number;
+  state: CategoryState;
+  implemented: number;
+  planned: number;
+  factors: PostureFactor[];
+}
+
+export interface Posture {
+  overall: number;
+  built_scope: number;
+  categories: PostureCategory[];
+  method: string;
+  trend: { taken_at: string; overall: number; built_scope: number }[];
+  computed_at: string;
+}

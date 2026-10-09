@@ -1,6 +1,6 @@
 # Automated dependency updates. Every update PR runs the full CI security gate set.
-# Ignore rules below are security exceptions and must match an entry in
-# docs/governance/exceptions.md (ID, justification, compensating control, expiry).
+# Ignore rules below are security exceptions and must match an approved exception in
+# SentinelEdge (Compliance > Exceptions; rules in docs/governance/exceptions.md).
 version: 2
 updates:
   - package-ecosystem: pip

@@ -41,6 +41,20 @@ EXPECTED_APP_PRIVILEGES: dict[str, set[str]] = {
     "vulnerabilities": {"SELECT", "INSERT", "UPDATE"},  # fixed or accepted, never deleted (0009)
     "risk_acceptances": {"SELECT", "INSERT"},  # the decision is never rewritten (0009)
     "sboms": {"SELECT", "INSERT"},  # what each artifact contained (0009)
+    # Loaded from the reviewed catalogue; retired, never deleted (0010).
+    "controls": {"SELECT", "INSERT", "UPDATE"},
+    "requirements": {"SELECT", "INSERT", "UPDATE"},
+    # Leads delete application models; the service refuses SentinelEdge's own (0010, 0013).
+    "threat_models": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    "model_elements": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    "threats": {"SELECT", "INSERT", "UPDATE", "DELETE"},
+    # Link tables: re-linking a threat's controls replaces its links (audited) (0010).
+    "threat_controls": {"SELECT", "INSERT", "DELETE"},
+    "requirement_threats": {"SELECT", "INSERT", "DELETE"},
+    # Decided records are final (trigger); ended, never deleted (0011).
+    "exceptions": {"SELECT", "INSERT", "UPDATE"},
+    "change_requests": {"SELECT", "INSERT", "UPDATE"},
+    "posture_snapshots": {"SELECT", "INSERT"},  # what the score was, never edited (0012)
 }
 
 # Column-level grants beyond the table-level ones above: (table, column) -> privileges.

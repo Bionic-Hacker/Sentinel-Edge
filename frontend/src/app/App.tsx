@@ -10,6 +10,10 @@ import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/LoginPage";
 import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { SetupPage } from "../features/auth/SetupPage";
+import { CompliancePage } from "../features/governance/CompliancePage";
+import { ChangeDetailPage, ExceptionDetailPage } from "../features/governance/GovernanceDetailPages";
+import { ThreatModelPage } from "../features/governance/ThreatModelPage";
+import { ThreatModelingPage } from "../features/governance/ThreatModelingPage";
 import { ApplicationsPage } from "../features/secops/ApplicationsPage";
 import { AutomationPage } from "../features/secops/AutomationPage";
 import { IncidentDetailPage } from "../features/secops/IncidentDetailPage";
@@ -36,6 +40,8 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   "/automation": AutomationPage,
   "/vulnerabilities": VulnerabilitiesPage,
   "/sbom": SbomPage,
+  "/threat-modeling": ThreatModelingPage,
+  "/compliance": CompliancePage,
 };
 
 export function AppRoutes() {
@@ -62,6 +68,9 @@ export function AppRoutes() {
           })}
           <Route path="/incidents/:incidentId" element={<IncidentDetailPage />} />
           <Route path="/vulnerabilities/:vulnerabilityId" element={<VulnerabilityDetailPage />} />
+          <Route path="/threat-modeling/:modelId" element={<ThreatModelPage />} />
+          <Route path="/compliance/exceptions/:exceptionId" element={<ExceptionDetailPage />} />
+          <Route path="/compliance/changes/:changeId" element={<ChangeDetailPage />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

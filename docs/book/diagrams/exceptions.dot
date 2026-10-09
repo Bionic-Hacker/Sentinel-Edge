@@ -1,0 +1,20 @@
+digraph G {
+  graph [fontname="Inter", rankdir=LR, nodesep=0.35, ranksep=0.65, bgcolor="transparent", pad=0.1];
+  node  [fontname="Inter", fontsize=11.5, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#1f3a68", margin="0.08,0.06", width=1.2];
+  edge  [color="#5b6b80", arrowsize=0.6, fontname="Inter", fontsize=10, fontcolor="#5b6b80"];
+  ask [label="requester\n(lead, or developer\non own application)", shape=plaintext, style=""];
+  R [label="REQUESTED"];
+  A [label="APPROVED\nexpiry ≤ limit", fillcolor="#fff6e5", color="#b54708"];
+  J [label="REJECTED", fillcolor="#f2f4f7", color="#5b6b80"];
+  W [label="WITHDRAWN", fillcolor="#f2f4f7", color="#5b6b80"];
+  E [label="EXPIRED", fillcolor="#fdecec", color="#b42318"];
+  C [label="CLOSED\nissue fixed", fillcolor="#e6f4f5", color="#0e7c86"];
+  gate [label="accepted-findings.toml\n(make accepted-risks)", shape=note];
+  ask -> R;
+  R -> A [label="another lead"];
+  R -> J [label="another lead,\nreason"];
+  R -> W [label="requester or lead,\nreason"];
+  A -> E [label="on its date\n(no scheduler)", style=dashed];
+  A -> C [label="requester or lead,\nreason"];
+  A -> gate [label="scan finding", style=dashed];
+}

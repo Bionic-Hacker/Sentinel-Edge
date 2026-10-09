@@ -71,9 +71,12 @@ computed URLs. Each rule has annotated examples (`python.py`, `frontend.tsx`) th
 
 ## Accepted risks
 
-`accepted-findings.toml` is the register. Each entry names the finding (fingerprint, or tool and
-rule with an optional component pattern), the justification, the compensating control, the
-approver and an expiry date. Prefer fixing. Suppressions in code (`# nosemgrep: <rule>`,
+`accepted-findings.toml` is the register the gate reads, and since Phase 10 it is generated, not
+edited: request a `scan_finding` exception in SentinelEdge (Compliance, Exceptions), have a
+different lead approve it, then run `make accepted-risks` with the stack up and commit the file.
+Each entry names the finding (fingerprint, or tool and rule with an optional component pattern),
+the justification, the compensating control, the approver and an expiry date; an expired
+exception drops out of the next export. Prefer fixing. Suppressions in code (`# nosemgrep: <rule>`,
 `# checkov:skip=<id>: <reason>`, `# nosec`) are allowed only with the reason written beside them.
 
 ## Authenticated DAST

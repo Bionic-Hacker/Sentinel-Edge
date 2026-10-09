@@ -1,0 +1,24 @@
+digraph G {
+  graph [fontname="Inter", rankdir=TB, nodesep=0.35, ranksep=0.35, bgcolor="transparent", pad=0.1];
+  node  [fontname="Inter", fontsize=11, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#1f3a68", margin="0.1,0.05"];
+  edge  [color="#5b6b80", arrowsize=0.6, fontname="Inter", fontsize=10, fontcolor="#5b6b80"];
+  subgraph cluster_r {
+    label="Reviewed in pull requests"; fontname="Inter"; fontsize=10.5; fontcolor="#5b6b80"; color="#c9d3df"; style="rounded,dashed";
+    tm [label="docs/threat-model.md", shape=note];
+    sc [label="docs/security-controls.md", shape=note];
+  }
+  gen [label="make governance-catalogue (parse)", fillcolor="#eef2f8"];
+  json [label="catalogue.json\nships with the API", shape=folder];
+  test [label="CI: JSON = documents;\ncited evidence exists", fillcolor="#fff6e5", color="#b54708"];
+  sync [label="first request: load once\n(advisory lock, audited)"];
+  db [label="PostgreSQL: controls, requirements,\nSentinelEdge's model (read-only)", shape=cylinder];
+  app [label="Application models\n(leads build them)", fillcolor="#e6f4f5", color="#0e7c86"];
+  posture [label="Posture score\ncoverage − live signals", fillcolor="#e6f4f5", color="#0e7c86"];
+  tm -> gen; sc -> gen; gen -> json;
+  { rank=same; json; test; }
+  json -> test [style=dashed, dir=both];
+  json -> sync -> db;
+  { rank=same; app; db; posture; }
+  app -> db [label="cite\ncontrols"];
+  db -> posture;
+}

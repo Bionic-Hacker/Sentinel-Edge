@@ -33,6 +33,7 @@ API_SECURITY = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 SECOPS_READ = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
 INVESTIGATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST})
 REMEDIATORS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
+LEADS = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER})
 
 EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/health"): PUBLIC,
@@ -97,6 +98,29 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/sboms"): ALL,  # plus an object-level filter
     ("GET", "/api/v1/sboms/{sbom_id}"): ALL,  # plus an object-level check
     ("GET", "/api/v1/sboms/{sbom_id}/document"): ALL,  # plus an object-level check
+    ("GET", "/api/v1/governance/controls"): ALL,
+    ("GET", "/api/v1/governance/requirements"): ALL,
+    ("GET", "/api/v1/threat-models"): ALL,  # developers: own applications only
+    ("POST", "/api/v1/threat-models"): LEADS,
+    ("GET", "/api/v1/threat-models/{model_id}"): ALL,  # plus an object-level check
+    ("PATCH", "/api/v1/threat-models/{model_id}"): LEADS,
+    ("POST", "/api/v1/threat-models/{model_id}/archive"): REMEDIATORS,
+    ("DELETE", "/api/v1/threat-models/{model_id}"): LEADS,
+    ("POST", "/api/v1/threat-models/{model_id}/elements"): LEADS,
+    ("PATCH", "/api/v1/threat-models/{model_id}/elements/{element_id}"): LEADS,
+    ("POST", "/api/v1/threat-models/{model_id}/threats"): LEADS,
+    ("PATCH", "/api/v1/threat-models/{model_id}/threats/{threat_id}"): LEADS,
+    ("GET", "/api/v1/governance/posture"): ALL,
+    ("POST", "/api/v1/governance/posture/snapshots"): LEADS,
+    ("GET", "/api/v1/exceptions"): ALL,  # developers: own applications only
+    ("POST", "/api/v1/exceptions"): REMEDIATORS,
+    ("GET", "/api/v1/exceptions/{exception_id}"): ALL,  # plus an object-level check
+    ("POST", "/api/v1/exceptions/{exception_id}/decision"): LEADS,  # never the requester
+    ("POST", "/api/v1/exceptions/{exception_id}/close"): REMEDIATORS,
+    ("GET", "/api/v1/change-requests"): ALL,  # developers: own applications only
+    ("POST", "/api/v1/change-requests"): REMEDIATORS,
+    ("GET", "/api/v1/change-requests/{change_id}"): ALL,  # plus an object-level check
+    ("POST", "/api/v1/change-requests/{change_id}/transition"): REMEDIATORS,
 }
 
 

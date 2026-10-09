@@ -44,6 +44,18 @@ Adding an enumeration value on the server broke a page that validated responses,
 Forty-four high OS vulnerabilities with no published fix would have kept the build red forever, and a gate that is always red gets switched off. Reporting them on every run and blocking the moment a fix appears kept the gate meaningful, and it caught the first such fix on the day it was published.
 :::
 
+:::lesson Make the claim fail the build when it stops being true
+A control catalogue is only useful if it is true. Phase 10 loads the reviewed documents into the application and fails CI when the two differ, or when a document cites a test that no longer exists. The documents cannot drift quietly from the code, because drift breaks the build.
+:::
+
+:::lesson Enforce separation of duties twice
+The service refuses self-approval with a clear reason, so the page can explain itself. A one-line database CHECK refuses it again, so a future bug in the service cannot approve anything. The second check costs almost nothing and covers the case the first one cannot.
+:::
+
+:::lesson A new request can collide with an old safety decision
+The owner asked for "archive for all roles". The VIEWER role had been kept read-only since Phase 8 because the authenticated DAST scanner signs in as a viewer and probes every write. Asking before building turned a conflict into a choice: archive for developers on their own applications, with viewers kept read-only.
+:::
+
 ## Testing and tooling
 
 :::lesson Timing-based tests are machine-dependent
@@ -68,6 +80,14 @@ The hardening check for the `Server` header sent `HEAD`, which the API answers w
 
 :::lesson Look at the screen, at the size people use
 Every unit test passed while several pages scrolled sideways on a phone. Screenshots at 390 px found it: screen-reader-only labels inside scroll boxes were positioned against the page, not the box. The fix was one CSS rule, and it also repaired two pages from earlier phases. The same review found chart labels shrinking to unreadable sizes on small screens.
+:::
+
+:::lesson Python's None is not SQL's NULL in a JSON column
+SQLAlchemy stored `None` in a JSONB column as JSON `null`, a value, so CHECK constraints written against SQL NULL refused valid rows. `JSONB(none_as_null=True)` fixed it. The bug only showed against real PostgreSQL, which is why the database tests use it.
+:::
+
+:::lesson Seed data shifts every number after it
+Two exceptions seeded by a migration meant the first one a test created was no longer EXC-0001, and tests that assumed a reference failed depending on order. Tests now read the reference the API returns.
 :::
 
 ## Process

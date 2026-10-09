@@ -1,8 +1,8 @@
 # Security Architecture
 
-<p class="lead">This chapter covers the security design behind the build: seventeen defense-in-depth layers, a STRIDE threat model per trust boundary, a control matrix that links each requirement to its evidence, and the rules that keep the platform's claims honest.</p>
+<p class="lead">This chapter covers the security design behind the build: eighteen defense-in-depth layers, a STRIDE threat model per trust boundary, a control matrix that links each requirement to its evidence, and the rules that keep the platform's claims honest.</p>
 
-## Defense in depth: seventeen layers
+## Defense in depth: eighteen layers
 
 | # | Layer | Why it exists | Phase |
 |---|---|---|---|
@@ -23,12 +23,13 @@
 | 15 | Vulnerability management | Findings tracked to closure with SLAs | 8 |
 | 16 | CI/CD security | Stops vulnerable or secret-bearing code shipping | **1 ✓**, 8, 11 |
 | 17 | AI security | Contains prompt injection and AI agency | 9 |
+| 18 | Governance | Risk is modelled, accepted and changed on the record, by someone other than whoever asked | 1, 10 |
 
 The test of each layer is simple: if the layer above it fails, does this one still hold? For example, injection is stopped by WAF SQLi rules at the edge, by validated request models, and by ORM-only parameterized queries, so it is still stopped if the WAF is bypassed. Credential stuffing meets a WAF rate rule, per-IP limits, per-account lockout and then MFA.
 
 ## Threat model
 
-The method is **STRIDE per trust boundary**. The OWASP Top 10 (2021), OWASP API Security Top 10 (2023) and OWASP Top 10 for LLM Applications (2025) serve as threat catalogues. Risk is likelihood (1–3) × impact (1–3). Each threat carries a status: *Mitigated* (control implemented and tested), *Planned (phase)*, or *Accepted (interim)* with an expiry. The model is reviewed at the end of every phase and whenever a boundary, data flow or role changes. It is at version 0.3. A full PASTA treatment and in-app modeling arrive in Phase 10.
+The method is **STRIDE per trust boundary**. The OWASP Top 10 (2021), OWASP API Security Top 10 (2023) and OWASP Top 10 for LLM Applications (2025) serve as threat catalogues. Risk is likelihood (1–3) × impact (1–3). Each threat carries a status: *Mitigated* (control implemented and tested), *Planned (phase)*, or *Accepted (interim)* with an expiry. The model is reviewed at the end of every phase and whenever a boundary, data flow or role changes. It is at version 0.6. Since Phase 10 the same document is loaded into the application as SentinelEdge's own threat model, and other applications' models (STRIDE or PASTA) are built there (Chapter 11).
 
 ### Assets
 
@@ -94,4 +95,4 @@ When a control has to be relaxed, it is recorded in a register rather than quiet
 - **EXC-0001**: ESLint is held on major version 9, because the accessibility plugin does not yet support version 10.
 - **EXC-0002**: TypeScript is held below version 7, because `typescript-eslint` does not yet support it.
 
-Both expire on 2027-01-07. Phase 10 migrates the register into the application.
+Both expire on 2027-01-07. Phase 10 migrated them into the application, which is now the system of record (Chapter 11).

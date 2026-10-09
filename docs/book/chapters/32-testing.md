@@ -4,17 +4,17 @@
 
 ## The layers
 
-| Layer | Count (v0.5.0) | Runs against | Proves |
+| Layer | Count (v0.6.0) | Runs against | Proves |
 |---|---|---|---|
-| Backend unit | part of 765 | Pure functions | Config refusals, logging redaction, token and password primitives, egress guard, capability rules, HTTP attack rules and their timing, report parsers, backend/SPA enumeration parity |
-| Backend API and integration | part of 765 | **Real PostgreSQL** (throwaway container, real roles) | Auth flows, lockout, MFA, sessions, audit chain, grants, rate limiting under concurrency, security events, correlation, incident workflow and integrity, dashboard, applications, simulator, scan gate, scan import, finding lifecycle, risk acceptance, SBOMs |
-| Backend security sweeps | part of 765 | The live route table | Every route declares access; every role is checked; every body forbids extras; every JSON route has a response model |
-| Frontend | 91 | jsdom + mocked API | Token stays in memory; refresh is single-flight; client refuses cross-origin; role-aware rendering; response validation; pages render the server's permissions; attack snippets and scanner text render as text |
-| Smoke | 56 checks | The running Docker stack through nginx | The whole user journey, end to end, including live detection, the simulated WAF and vulnerability management |
+| Backend unit | part of 892 | Pure functions | Config refusals, logging redaction, token and password primitives, egress guard, capability rules, HTTP attack rules and their timing, report parsers, backend/SPA enumeration parity, the governance catalogue against its documents, posture categories |
+| Backend API and integration | part of 892 | **Real PostgreSQL** (throwaway container, real roles) | Auth flows, lockout, MFA, sessions, audit chain, grants, rate limiting under concurrency, security events, correlation, incident workflow and integrity, dashboard, applications, simulator, scan gate, scan import, finding lifecycle, risk acceptance, SBOMs, catalogue load, threat models, exceptions, change requests, posture |
+| Backend security sweeps | part of 892 | The live route table | Every route declares access; every role is checked; every body forbids extras; every JSON route has a response model |
+| Frontend | 103 | jsdom + mocked API | Token stays in memory; refresh is single-flight; client refuses cross-origin; role-aware rendering; response validation; pages render the server's permissions; attack snippets, scanner text and threat text render as text; the remove dialog per role |
+| Smoke | 64 checks | The running Docker stack through nginx | The whole user journey, end to end, including live detection, the simulated WAF, vulnerability management and governance |
 | Scanner rules | `make scan-test` | Annotated examples | Every SentinelEdge Semgrep rule matches what it must and nothing it must not |
 | Hardening | 18 checks | Running containers and networks | Non-root, read-only, no capabilities, isolated database, localhost binding, headers, cross-origin isolation |
 
-Backend coverage is 98.4%, against a CI floor of 90%. Database tests deliberately do **not** use SQLite or mocks. The grants, triggers, advisory locks and upsert semantics being tested exist only in PostgreSQL, and the test database is bootstrapped by the same role script used everywhere else.
+Backend coverage is 98.3%, against a CI floor of 90%. Database tests deliberately do **not** use SQLite or mocks. The grants, triggers, advisory locks and upsert semantics being tested exist only in PostgreSQL, and the test database is bootstrapped by the same role script used everywhere else.
 
 ## Negative tests that matter
 
@@ -42,13 +42,17 @@ Backend coverage is 98.4%, against a CI floor of 90%. Database tests deliberatel
 - **Risk acceptance abuse.** Non-leads cannot accept; expiries beyond the severity limit are refused; the app role cannot rewrite an acceptance; an expired one reopens its finding.
 - **Hostile scanner output.** Over-long strings are bounded and control characters replaced on import.
 - **DAST blast radius.** The scanner session is a viewer whose writes are refused, and it stops working once revoked.
+- **Self-approval.** Approving your own exception or change is refused by the service, and a direct database update is refused by a CHECK.
+- **Rewritten decisions.** Triggers refuse changing a decided exception or reviving a cancelled change, even for a direct update.
+- **Catalogue drift.** A document edited without regenerating, or citing a test that does not exist, fails the build.
+- **Maintained as code.** Every write to SentinelEdge's own threat model is refused with 409.
 
 ## Tests that test the tests
 
 Several tests exist to stop the evidence going stale:
 
 - The authorization matrix was mutated on purpose (one route weakened), and three tests failed. This proves the sweep has teeth.
-- The OWASP coverage endpoint cites test names, and a test fails if any cited test no longer exists.
+- The OWASP coverage endpoint cites test names, and a test fails if any cited test no longer exists. The control catalogue does the same for every piece of evidence it cites.
 - The API inventory's access descriptions are compared with the independently written authorization matrix.
 - The capability register's guard tests stop a SIMULATED or future-phase capability being marked as a real, implemented AWS control.
 - Every inspection exclusion must name a real route and a real request field, and every correlation rule ID must be unique and documented.

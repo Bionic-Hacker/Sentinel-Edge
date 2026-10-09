@@ -39,4 +39,6 @@ Listed by phase number; the build order is local-first (ADR-0016): 1, 2, 6, 7, 8
 ## Severity gates (from Phase 8)
 
 Critical and high findings fail the pipeline by default. Exceptions require a risk-acceptance
-record (requester, justification, compensating control, approver, expiry), which Phase 10 models.
+record (requester, justification, compensating control, approver, expiry). Since Phase 10 the
+record is a scan-finding exception in SentinelEdge, approved by a lead other than the requester;
+`make accepted-risks` writes the gate's register from it (ADR-0023).

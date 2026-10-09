@@ -3,9 +3,20 @@
 from app.models.api_metrics import ApiEndpointStat
 from app.models.application import Application
 from app.models.audit import AuditLog
+from app.models.governance import (
+    Control,
+    ModelElement,
+    Requirement,
+    RequirementThreat,
+    Threat,
+    ThreatControl,
+    ThreatModel,
+)
 from app.models.incident import Incident, IncidentTimelineEntry
 from app.models.outbox import OutboxMessage
+from app.models.posture import PostureSnapshot
 from app.models.rate_limit import RateLimitBucket
+from app.models.risk_governance import ChangeRequest, SecurityException
 from app.models.security_event import SecurityEvent
 from app.models.session import AuthSession, MfaRecoveryCode, PasswordResetToken, RefreshToken
 from app.models.simulation import SimulatedWafRule, SimulationRun
@@ -17,19 +28,29 @@ __all__ = [
     "Application",
     "AuditLog",
     "AuthSession",
+    "ChangeRequest",
+    "Control",
     "Incident",
     "IncidentTimelineEntry",
     "MfaRecoveryCode",
+    "ModelElement",
     "OutboxMessage",
     "PasswordResetToken",
+    "PostureSnapshot",
     "RateLimitBucket",
     "RefreshToken",
+    "Requirement",
+    "RequirementThreat",
     "RiskAcceptance",
     "Sbom",
     "ScanRun",
     "SecurityEvent",
+    "SecurityException",
     "SimulatedWafRule",
     "SimulationRun",
+    "Threat",
+    "ThreatControl",
+    "ThreatModel",
     "User",
     "Vulnerability",
 ]
