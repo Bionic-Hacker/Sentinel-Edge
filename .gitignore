@@ -16,6 +16,8 @@
 tfplan
 *.tfplan
 terraform/**/backend.hcl
+# Modules are not applied on their own; only the stacks' lock files are committed.
+terraform/modules/**/.terraform.lock.hcl
 crash.log
 
 # Python

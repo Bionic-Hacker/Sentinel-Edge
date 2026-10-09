@@ -152,7 +152,7 @@ image-digests: ## Check pinned image digests against their tags (UPDATE=1 rewrit
 STACK ?=
 tf-stack = $(if $(STACK),$(STACK),$(error Set STACK=bootstrap, account or dev))
 
-tf-check: ## Terraform fmt, validate and TFLint for every stack (no AWS credentials needed)
+tf-check: ## Terraform fmt, validate, module tests and TFLint (no AWS credentials needed)
 	./scripts/tf-check.sh
 
 tf-init: ## Initialise a stack against its remote state: make tf-init STACK=account

@@ -115,11 +115,25 @@ case "$CMD" in
   plan | destroy-plan)
     check_identity
     [[ -d "$DIR/.terraform" ]] || init
-    flags=(-input=false -out=tfplan)
+    flags=(-input=false -out=tfplan -detailed-exitcode)
     [[ "$CMD" == destroy-plan ]] && flags+=(-destroy)
-    tf plan "${flags[@]}"
-    printf '\ntf: plan saved to %s. Review it, then: scripts/tf.sh %s apply\n' \
-      "${DIR#"$ROOT"/}/tfplan" "$STACK"
+    # -detailed-exitcode: 0 no changes, 1 error, 2 changes to review.
+    rc=0
+    tf plan "${flags[@]}" || rc=$?
+    case "$rc" in
+      0)
+        rm -f "$DIR/tfplan"
+        printf '\ntf: no changes: nothing to apply\n'
+        ;;
+      2)
+        printf '\ntf: plan saved to %s. Review it, then: scripts/tf.sh %s apply\n' \
+          "${DIR#"$ROOT"/}/tfplan" "$STACK"
+        ;;
+      *)
+        rm -f "$DIR/tfplan"
+        exit "$rc"
+        ;;
+    esac
     ;;
   apply)
     check_identity

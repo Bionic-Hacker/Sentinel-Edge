@@ -1,0 +1,19 @@
+#!/bin/bash
+# NAT instance bootstrap (Amazon Linux 2023): forward, and masquerade traffic from the VPC.
+set -euo pipefail
+
+dnf install -y iptables-services
+
+cat > /etc/sysctl.d/90-nat.conf <<'EOF'
+net.ipv4.ip_forward = 1
+EOF
+sysctl --system
+
+iface="$(ip route show default | awk '{print $5; exit}')"
+iptables -t nat -A POSTROUTING -o "$iface" -s "${vpc_cidr}" -j MASQUERADE
+iptables -P FORWARD DROP
+iptables -A FORWARD -s "${vpc_cidr}" -o "$iface" -j ACCEPT
+iptables -A FORWARD -i "$iface" -d "${vpc_cidr}" -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+service iptables save
+systemctl enable --now iptables

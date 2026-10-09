@@ -59,7 +59,7 @@ environment only.
 
 ## Applying the stacks
 
-Order: `bootstrap`, then `account` (then, from Part 2, `dev`). For each stack:
+Order: `bootstrap`, then `account`, then `dev`. For each stack:
 
 ```fish
 cp terraform/bootstrap/terraform.tfvars.example terraform/bootstrap/terraform.tfvars
@@ -78,12 +78,50 @@ make tf-apply STACK=bootstrap
 - After `account`, AWS sends a subscription e-mail for the security-alerts topic: confirm it, or
   the alarms have nowhere to go.
 
+## The dev environment and its domain
+
+`dev` is the environment's foundation: a VPC across two Availability Zones (pinned by zone ID,
+`use2-az1` and `use2-az2`) with public, app and isolated data subnets, flow logs, a free S3
+gateway endpoint, the ALB → app → database security-group chain, an ECR repository for the API
+image, and two ACM certificates for `app.sentineledge.is-a.dev` (one in us-east-1 for
+CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle.
+
+**NAT** is the one hourly item, switched by `nat_mode` in `terraform/environments/dev/terraform.tfvars`:
+
+| `nat_mode` | Egress for the app tier | Cost |
+|---|---|---|
+| `none` (default) | None: the resting state between deploy windows | $0 |
+| `instance` | One t4g.nano NAT instance (IMDSv2, encrypted, no SSH, no role) | ≈ $0.009/hour |
+| `gateway` | One managed NAT gateway | ≈ $0.05/hour |
+
+**The domain** is a free `is-a.dev` subdomain (ADR-0025). Names there are added by pull request to
+[is-a-dev/register](https://github.com/is-a-dev/register), reviewed by volunteers (hours to days).
+After the first `dev` apply, the certificates wait in `PENDING_VALIDATION` for one DNS record.
+Both certificates use the same record, and it never changes for this account and name, so it is
+published once:
+
+```fish
+cd ~/Sentinel-Edge
+gh repo fork is-a-dev/register --clone      # creates ~/Sentinel-Edge/register
+cd ~/Sentinel-Edge/sentineledge
+terraform -chdir=terraform/environments/dev output -json certificate_validation_records \
+  | python3 scripts/isadev-records.py ~/Sentinel-Edge/register/domains
+```
+
+That writes two files: `sentineledge.json`, whose CAA records let only Amazon issue certificates
+for the name and forbid wildcards, and `_<token>.app.sentineledge.json`, the validation CNAME.
+Commit them in the fork and open the pull request. When it is merged, ACM issues both certificates
+within minutes; `make tf-output STACK=dev` shows `certificate_status` as `ISSUED`. A certificate
+request that is not validated within 72 hours expires: re-apply `dev` to request it again; the
+same record validates it. The CloudFront record (`app.sentineledge.json`) follows in Phase 5.
+
 ## What stays running, and what it costs
 
 | Stack | Billable resources | Standing cost |
 |---|---|---|
 | `bootstrap` | State KMS key; state and access-log buckets (a few KB) | ≈ $1/month |
 | `account` | Platform KMS key; CloudTrail bucket and log group; 4 alarms (always-free tier) | ≈ $1/month |
+| `dev` (`nat_mode = "none"`) | Flow-log group; empty ECR repository; certificates are free | ≈ $0 |
 
 The deploy window (Phases 4 and 5) adds the hourly resources: see ADR-0016 and the Phase 4 notes.
 

@@ -129,7 +129,7 @@ jobs:
         run: npm audit --audit-level=high
 
   terraform:
-    name: Terraform (fmt, validate, TFLint)
+    name: Terraform (fmt, validate, module tests, TFLint)
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -145,7 +145,7 @@ jobs:
           tflint_version: v0.64.0
       # No AWS credentials and no backend: validate uses init -backend=false. TFLint's --init
       # downloads the pinned AWS ruleset; the read-only token only avoids GitHub rate limits.
-      - name: fmt, validate and TFLint for every stack
+      - name: fmt, validate, module tests (mocked provider) and TFLint
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: ./scripts/tf-check.sh
