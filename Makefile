@@ -6,7 +6,8 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
         create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
-        governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear
+        governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear \
+        tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -145,6 +146,32 @@ bedrock-credentials-clear: ## Remove the Bedrock session credentials and reload 
 
 image-digests: ## Check pinned image digests against their tags (UPDATE=1 rewrites stale pins)
 	./scripts/image-digests.sh
+
+# --- Terraform (Phase 3+). STACK is bootstrap, account or dev. Nothing is applied without a
+# saved, reviewed plan; see docs/aws-setup.md. ---------------------------------------------
+STACK ?=
+tf-stack = $(if $(STACK),$(STACK),$(error Set STACK=bootstrap, account or dev))
+
+tf-check: ## Terraform fmt, validate and TFLint for every stack (no AWS credentials needed)
+	./scripts/tf-check.sh
+
+tf-init: ## Initialise a stack against its remote state: make tf-init STACK=account
+	./scripts/tf.sh $(tf-stack) init
+
+tf-plan: ## Plan a stack and save the plan for review: make tf-plan STACK=account
+	./scripts/tf.sh $(tf-stack) plan
+
+tf-apply: ## Apply exactly the saved plan of a stack: make tf-apply STACK=account
+	./scripts/tf.sh $(tf-stack) apply
+
+tf-destroy-plan: ## Plan the destruction of a stack and save it for review: make tf-destroy-plan STACK=dev
+	./scripts/tf.sh $(tf-stack) destroy-plan
+
+tf-output: ## Show a stack's outputs: make tf-output STACK=bootstrap
+	./scripts/tf.sh $(tf-stack) output
+
+tf-lock: ## Record provider checksums for Linux, macOS and CI in a stack's lock file: make tf-lock STACK=account
+	./scripts/tf.sh $(tf-stack) lock
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install
