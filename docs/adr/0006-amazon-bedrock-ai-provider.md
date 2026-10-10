@@ -54,3 +54,10 @@ Bedrock model access must be enabled per account and region. Local development u
   database network stays internal. The Phase 4 choice between NAT and a VPC endpoint stands.
 - **Not built:** no infrastructure exists for Bedrock. Calls are on demand, and `disabled` stays
   the default.
+
+## Addendum (Phase 3, 2026-10-09): the inference profile
+In the project's account (home Region us-east-2, ADR-0025), Nova Micro is offered only through the
+US cross-region inference profile. The default `SENTINEL_AI_MODEL` is therefore
+`us.amazon.nova-micro-v1:0`. The local role (`terraform/account/bedrock.tf`) may invoke that
+profile, and the model in the profile's Regions only when the call comes through it
+(`bedrock:InferenceProfileArn`). The Phase 4 task role gets the same two statements.

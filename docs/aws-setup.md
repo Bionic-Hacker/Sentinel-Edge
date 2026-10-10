@@ -18,7 +18,7 @@ changes a few things, all checked on 2026-10-09 with read-only calls:
 | AWS writes the organization's guardrail policies (SCPs); custom SCPs are not available | They deny IAM Access Analyzer and creating an OIDC identity provider, so the account stack creates neither. Without an OIDC provider, GitHub Actions cannot assume a role here: Phase 11 must revisit ADR-0010 |
 | IAM users and roles work for programmatic access only | No IAM password policy and no IAM console-sign-in alarm: nobody signs in that way |
 | The CLI signs in with `aws login` (a browser sign-in, 12-hour sessions) | No access keys exist anywhere; `scripts/tf.sh` passes the session to Terraform |
-| CloudFront VPC origins, Nova Micro in us-east-2 (and `us.amazon.nova-micro-v1:0`) | Available, as the design (ADR-0001, ADR-0006) needs |
+| CloudFront VPC origins are available; Nova Micro is offered in us-east-2 only through the US inference profile `us.amazon.nova-micro-v1:0` | The design (ADR-0001) holds; the AI engine's default model becomes the profile ID, and its role allows the model only through that profile |
 
 **Cost ceiling.** On the Free plan, usage is paid from the sign-up credits and the account cannot
 be billed; when the credits run out you must upgrade. The Free plan ends after six months.

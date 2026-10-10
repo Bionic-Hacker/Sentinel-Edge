@@ -8,7 +8,8 @@ model calls only ([ADR-0006](adr/0006-amazon-bedrock-ai-provider.md)).
 
 ## What it costs
 
-The default model is **Amazon Nova Micro** (`amazon.nova-micro-v1:0`), about $0.035 per million
+The default model is **Amazon Nova Micro**, called through its US cross-region inference profile
+(`us.amazon.nova-micro-v1:0`; in us-east-2 the model is offered only that way), about $0.035 per million
 input tokens and $0.14 per million output tokens on demand (check the Bedrock pricing page for
 your region). It is an Amazon model, so new-account AWS credits apply to it; Anthropic and other
 third-party models are billed through AWS Marketplace, which credits do not cover.
@@ -28,15 +29,17 @@ checks the limits **before** calling the model and refuses with 429 once one is 
 SentinelEdge's account (see [aws-setup.md](aws-setup.md)) has no IAM users and no access keys:
 you sign in with `aws login`. That session can do anything you can, so it never enters a
 container. Instead, the account stack creates **`sentineledge-local-bedrock`**, a role that may
-call `bedrock:InvokeModel` on Nova Micro in us-east-2 and nothing else
+call `bedrock:InvokeModel` on the Nova Micro US inference profile, and on the model itself only
+through that profile, and nothing else
 (`terraform/account/bedrock.tf`), and `make bedrock-credentials` gives the local API a session of
 that role only.
 
 1. **The budget** already exists (the bootstrap stack: $30 a month, alerts at $5, $15 and $30).
 2. **The role:** apply the account stack (`make tf-plan STACK=account`, then `make tf-apply
    STACK=account`).
-3. **The region:** in `.env`, `SENTINEL_AWS_REGION=us-east-2` (the account's home Region; older
-   `.env` files say us-east-1).
+3. **The region and model:** in `.env`, `SENTINEL_AWS_REGION=us-east-2` and
+   `SENTINEL_AI_MODEL=us.amazon.nova-micro-v1:0` (older `.env` files say us-east-1 and the bare
+   model ID).
 
 Amazon models need no Marketplace subscription. If the Bedrock console still shows a *Model
 access* page with Nova Micro not granted, request access there (free, immediate for Amazon models).
@@ -71,7 +74,7 @@ make ai-check
 agent) and checks the answer against the output contract. Expected, after a few seconds:
 
 ```
-Provider bedrock, model amazon.nova-micro-v1:0
+Provider bedrock, model us.amazon.nova-micro-v1:0
 Prompt risk 65 (instruction_override, output_steering)
 Usage 850 input + 300 output tokens
 COMPLETED: classification sql_injection, severity high, 2 verbatim quotes, 1 proposed actions
@@ -96,7 +99,7 @@ The role costs nothing while unused; it is removed with the account stack.
 | `No AWS credentials` | `.env.bedrock` missing, or the API was not reloaded | `make bedrock-credentials`, then `docker compose up -d api` |
 | `The AWS session credentials have expired` | The role session lasts one hour | `make bedrock-credentials` again (after `aws login` if your sign-in expired too) |
 | `Could not assume sentineledge-local-bedrock` | The account stack is not applied, or your sign-in expired | `make tf-plan STACK=account` and apply; or `aws login --profile sentineledge` |
-| `model access is not enabled ... or the credentials lack bedrock:InvokeModel` | The role's ARN does not match the model or Region | `SENTINEL_AI_MODEL` and `SENTINEL_AWS_REGION` must match `bedrock_model_id` and `region` in the account stack |
+| `model access is not enabled ... or the credentials lack bedrock:InvokeModel` | The role's ARN does not match the model or Region | `SENTINEL_AI_MODEL` must be `us.` + `bedrock_model_id`, and `SENTINEL_AWS_REGION` the account stack's `region` |
 | `Bedrock rejected the request for this model` | The model is not offered on demand in that region | Use a model and region pair from the Bedrock console |
 | `Bedrock is throttling this account` | New accounts start with low quotas | Wait a minute and retry |
 | `AI quota reached` (in the app) | A daily bound was reached | Wait, or raise the bound in `.env` deliberately |

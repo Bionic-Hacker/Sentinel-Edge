@@ -48,9 +48,11 @@ Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentine
 Phase 3 is Terraform for AWS ([aws-setup.md](aws-setup.md)); the local stack is unchanged: no
 migration and no new Python dependency. Two things to check:
 
-- **The AWS Region.** The account's home Region is us-east-2, now the default. If your `.env` has
-  `SENTINEL_AWS_REGION=us-east-1` (copied from an older `.env.example`), change it to `us-east-2`
-  before using Bedrock.
+- **The AWS Region and model.** The account's home Region is us-east-2, now the default, and Nova
+  Micro is offered there only through its US inference profile. If your `.env` (copied from an
+  older `.env.example`) says `SENTINEL_AWS_REGION=us-east-1` or
+  `SENTINEL_AI_MODEL=amazon.nova-micro-v1:0`, change them to `us-east-2` and
+  `us.amazon.nova-micro-v1:0` before using Bedrock.
 - **Bedrock credentials** now come from the account's one-model role
   ([bedrock-setup.md](bedrock-setup.md)): `make bedrock-credentials` with `AWS_PROFILE=sentineledge`
   after `aws login`. The old IAM-user setup still works for other accounts.

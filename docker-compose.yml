@@ -79,7 +79,7 @@ services:
       SENTINEL_TRUSTED_HOSTS: ${SENTINEL_TRUSTED_HOSTS:-localhost,127.0.0.1,api}
       # AI engine (Phase 9): disabled unless chosen. Only `bedrock` costs money; its bounds:
       SENTINEL_AI_PROVIDER: ${SENTINEL_AI_PROVIDER:-disabled}
-      SENTINEL_AI_MODEL: ${SENTINEL_AI_MODEL:-amazon.nova-micro-v1:0}
+      SENTINEL_AI_MODEL: ${SENTINEL_AI_MODEL:-us.amazon.nova-micro-v1:0}
       SENTINEL_AI_MAX_OUTPUT_TOKENS: ${SENTINEL_AI_MAX_OUTPUT_TOKENS:-800}
       SENTINEL_AI_REQUESTS_PER_USER_PER_DAY: ${SENTINEL_AI_REQUESTS_PER_USER_PER_DAY:-20}
       SENTINEL_AI_TOKENS_PER_DAY: ${SENTINEL_AI_TOKENS_PER_DAY:-200000}

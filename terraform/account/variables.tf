@@ -47,7 +47,13 @@ variable "log_retention_days" {
 }
 
 variable "bedrock_model_id" {
-  description = "The one Bedrock model the local API may invoke (it must match SENTINEL_AI_MODEL)."
+  description = "The one Bedrock model the local API may invoke, through its US inference profile (SENTINEL_AI_MODEL is us.<this>)."
   type        = string
   default     = "amazon.nova-micro-v1:0"
+}
+
+variable "bedrock_profile_regions" {
+  description = "Regions the US inference profile routes calls to."
+  type        = list(string)
+  default     = ["us-east-1", "us-east-2", "us-west-2"]
 }

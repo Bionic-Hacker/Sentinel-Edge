@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     # (OWASP LLM10): a call is refused before it is made once a limit is reached.
     # Bedrock model ID. Amazon Nova Micro by default: an AWS model, so promotional credits apply.
     ai_model: str = Field(
-        default="amazon.nova-micro-v1:0", pattern=r"^[a-z0-9-]+(\.[a-z0-9-]+)+(:[0-9]+)?$"
+        default="us.amazon.nova-micro-v1:0", pattern=r"^[a-z0-9-]+(\.[a-z0-9-]+)+(:[0-9]+)?$"
     )
     ai_max_output_tokens: int = Field(default=800, ge=100, le=4000)
     ai_requests_per_user_per_day: int = Field(default=20, ge=1, le=1000)
