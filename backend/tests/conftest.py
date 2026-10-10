@@ -35,6 +35,29 @@ TEST_MFA_KEY = Fernet.generate_key().decode()
 TEST_ORIGIN = "https://testserver"
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _no_ambient_aws(tmp_path_factory: pytest.TempPathFactory) -> Iterator[None]:
+    """Tests never see the developer's AWS profile, keys or config. A shell signed in with
+    `aws login` (AWS_PROFILE set) made boto3 load botocore's login credential provider, which
+    needs an extra dependency, and no real credential should ever reach a test anyway."""
+    patch = pytest.MonkeyPatch()
+    for name in (
+        "AWS_PROFILE",
+        "AWS_DEFAULT_PROFILE",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_SESSION_TOKEN",
+        "AWS_CREDENTIAL_EXPIRATION",
+    ):
+        patch.delenv(name, raising=False)
+    empty = tmp_path_factory.mktemp("aws")
+    patch.setenv("AWS_CONFIG_FILE", str(empty / "config"))
+    patch.setenv("AWS_SHARED_CREDENTIALS_FILE", str(empty / "credentials"))
+    patch.setenv("AWS_EC2_METADATA_DISABLED", "true")
+    yield
+    patch.undo()
+
+
 def make_settings(**overrides: object) -> Settings:
     base: dict[str, object] = {
         "environment": Environment.TEST,

@@ -184,3 +184,12 @@ def test_model_ids_are_validated(model: str) -> None:
 def test_model_ids_cannot_be_urls_or_paths(model: str) -> None:
     with pytest.raises(ValueError, match="ai_model"):
         make_settings(ai_model=model)
+
+
+def test_tests_never_see_the_developers_aws_profile() -> None:
+    """A shell signed in with `aws login` exports AWS_PROFILE; tests must not inherit it."""
+    import os
+
+    assert "AWS_PROFILE" not in os.environ
+    assert "AWS_ACCESS_KEY_ID" not in os.environ
+    assert os.environ["AWS_CONFIG_FILE"].endswith("config")
