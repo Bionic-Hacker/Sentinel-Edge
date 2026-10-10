@@ -169,9 +169,12 @@ class AiService:
 
     # --- building the input -----------------------------------------------------------------
 
-    def _known_controls(self) -> frozenset[str]:
+    def _known_controls(self) -> dict[str, str]:
+        """Every control the catalogue knows, by ID with its title: the model is shown the list,
+        and the contract accepts no other ID."""
         sync_catalogue(self.db)
-        return frozenset(self.db.scalars(select(Control.ref).where(~Control.retired)).all())
+        rows = self.db.execute(select(Control.ref, Control.title).where(~Control.retired)).all()
+        return {ref: title for ref, title in rows}
 
     def _waf_mode(self, rule_id: str) -> WafMode:
         stored = self.db.get(SimulatedWafRule, rule_id)
@@ -388,10 +391,11 @@ class AiService:
                 "AI analysis is switched off (SENTINEL_AI_PROVIDER=disabled).",
             )
         inp, provenance, app_id = self._subject(principal, body)
-        known = self._known_controls()
+        known_titles = self._known_controls()
+        known = frozenset(known_titles)
         self._check_quota(principal)
         risk, signals = guardrails.score(inp)
-        prompt = guardrails.build_prompt(inp)
+        prompt = guardrails.build_prompt(inp, known_titles)
 
         started = time.monotonic()
         output: AnalysisOutput | None = None

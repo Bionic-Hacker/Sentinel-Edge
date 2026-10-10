@@ -326,7 +326,11 @@ def ai_check(db: Session, settings: Settings, out: TextIO) -> int:
         print("AI is disabled (SENTINEL_AI_PROVIDER=disabled): nothing to check.", file=out)
         return 2
     sync_catalogue(db)
-    known = frozenset(db.scalars(select(Control.ref).where(~Control.retired)).all())
+    known_titles = {
+        ref: title
+        for ref, title in db.execute(select(Control.ref, Control.title).where(~Control.retired))
+    }
+    known = frozenset(known_titles)
     pseudonyms = guardrails.Pseudonyms()
     fields, removed = guardrails.minimise(AI_CHECK_INPUT, pseudonyms)
     inp = AnalysisInput(
@@ -338,7 +342,7 @@ def ai_check(db: Session, settings: Settings, out: TextIO) -> int:
         removed_invisible=removed,
     )
     risk, signals = guardrails.score(inp)
-    prompt = guardrails.build_prompt(inp)
+    prompt = guardrails.build_prompt(inp, known_titles)
     print(f"Provider {provider.name}, model {provider.model}", file=out)
     print(f"Prompt risk {risk} ({', '.join(signals) or 'no signals'})", file=out)
     status, detail, usage = "completed", "", {"input": 0, "output": 0}

@@ -52,6 +52,7 @@ Viewers never run analyses: the authenticated DAST scanner is a viewer.
 | Allow-listed, bounded, pseudonymised fields; invisible characters removed | `backend/app/ai/guardrails.py` | C-AI-01, C-AI-04 |
 | Prompt-risk score with named signals, shown with the answer | `guardrails.SIGNALS` | C-AI-01 |
 | Data delimited under a per-call nonce | `guardrails.build_prompt` | C-AI-01 |
+| The catalogue's control IDs and titles given to the model as trusted context, outside the data block | `guardrails.control_menu` | C-AI-02 |
 | Strict JSON; verbatim evidence; known controls; allowed, tighten-only actions | `backend/app/ai/contract.py` | C-AI-02, C-AI-05 |
 | Text-only rendering; responses validated in the SPA | `frontend/src/features/ai/`, `lib/api/aiValidators.ts` | C-AI-03 |
 | Lead approval, as that person, in one transaction; decisions final | `backend/app/services/ai.py`, migration 0014 | C-AI-05 |
