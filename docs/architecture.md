@@ -13,7 +13,7 @@ every control it reports on also protects it.
 
 ```
 Internet
-  │  DNS: app.sentineledge.is-a.dev (CAA: Amazon only, no wildcards)          [Phase 5]
+  │  DNS: app.sentineledge.dedyn.io at deSEC (CAA: Amazon only, no wildcards) [Phase 5]
   ▼
 CloudFront edge  ─── AWS WAF web ACL evaluated here, before any origin request [Phase 5]
   │  TLS 1.2+ (ACM cert, us-east-1), response-headers policy

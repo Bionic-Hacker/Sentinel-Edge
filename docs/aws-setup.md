@@ -83,7 +83,7 @@ make tf-apply STACK=bootstrap
 `dev` is the environment's foundation: a VPC across two Availability Zones (pinned by zone ID,
 `use2-az1` and `use2-az2`) with public, app and isolated data subnets, flow logs, a free S3
 gateway endpoint, the ALB → app → database security-group chain, an ECR repository for the API
-image, and two ACM certificates for `app.sentineledge.is-a.dev` (one in us-east-1 for
+image, and two ACM certificates for `app.sentineledge.dedyn.io` (one in us-east-1 for
 CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle.
 
 **NAT** is the one hourly item, switched by `nat_mode` in `terraform/environments/dev/terraform.tfvars`:
@@ -94,26 +94,35 @@ CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle
 | `instance` | One t4g.nano NAT instance (IMDSv2, encrypted, no SSH, no role) | ≈ $0.009/hour |
 | `gateway` | One managed NAT gateway | ≈ $0.05/hour |
 
-**The domain** is a free `is-a.dev` subdomain (ADR-0025). Names there are added by pull request to
-[is-a-dev/register](https://github.com/is-a-dev/register), reviewed by volunteers (hours to days).
+**The domain** is `sentineledge.dedyn.io`, a free zone at [deSEC](https://desec.io), a non-profit
+DNS host with DNSSEC (ADR-0025). You add its records yourself in deSEC's web interface, and they
+are live within minutes. One-time setup: create a deSEC account, choose **dedyn.io domain**, and
+register `sentineledge` (one free dedyn.io name per account).
+
 After the first `dev` apply, the certificates wait in `PENDING_VALIDATION` for one DNS record.
-Both certificates use the same record, and it never changes for this account and name, so it is
-published once:
+Both certificates use the same record, and it never changes for this account and name. List what
+the zone needs:
 
 ```fish
-cd ~/Sentinel-Edge
-gh repo fork is-a-dev/register --clone      # creates ~/Sentinel-Edge/register
 cd ~/Sentinel-Edge/sentineledge
-terraform -chdir=terraform/environments/dev output -json certificate_validation_records \
-  | python3 scripts/isadev-records.py ~/Sentinel-Edge/register/domains
+env (aws configure export-credentials --profile sentineledge --format env-no-export) \
+  terraform -chdir=terraform/environments/dev output -json certificate_validation_records \
+  | python3 scripts/dns-records.py
 ```
 
-That writes two files: `sentineledge.json`, whose CAA records let only Amazon issue certificates
-for the name and forbid wildcards, and `_<token>.app.sentineledge.json`, the validation CNAME.
-Commit them in the fork and open the pull request. When it is merged, ACM issues both certificates
-within minutes; `make tf-output STACK=dev` shows `certificate_status` as `ISSUED`. A certificate
-request that is not validated within 72 hours expires: re-apply `dev` to request it again; the
-same record validates it. The CloudFront record (`app.sentineledge.json`) follows in Phase 5.
+It prints a table of subname, type and value. In deSEC, open the domain and add each row as a
+record set:
+
+| Subname | Type | Value |
+|---|---|---|
+| (empty: the zone itself) | CAA | `0 issue "amazon.com"` and `0 issuewild ";"` (two values in one record set) |
+| `_<token>.app` | CNAME | `_<token>.<id>.acm-validations.aws.` |
+
+The CAA records let only Amazon issue certificates for the zone and every name in it, and forbid
+wildcard certificates. Within minutes of the CNAME, ACM issues both certificates;
+`make tf-output STACK=dev` shows `certificate_status` as `ISSUED`. A certificate request that is not
+validated within 72 hours expires: re-apply `dev` to request it again; the same record validates it.
+The CloudFront record (`app`) follows in Phase 5.
 
 ## What stays running, and what it costs
 

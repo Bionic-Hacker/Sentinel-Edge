@@ -41,6 +41,6 @@ output "certificate_status" {
 }
 
 output "certificate_validation_records" {
-  description = "Publish these in DNS (is-a.dev pull request). Both certificates use the same record."
+  description = "Publish these in the zone at deSEC (scripts/dns-records.py). Both certificates use the same record."
   value       = distinct(concat(module.certificate_edge.validation_records, module.certificate_origin.validation_records))
 }

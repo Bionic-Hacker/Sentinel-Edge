@@ -1,6 +1,6 @@
 # ADR-0025: The AWS account, the domain and the deploy window, as built
 
-- **Status:** Accepted
+- **Status:** Accepted (domain revised 2026-10-10: is-a.dev closed its pull requests; see below)
 - **Date:** 2026-10-09
 - **Phase:** 3 (and the constraints it sets for 4, 5 and 11)
 - **Decided by:** Bionic-Hacker (project owner)
@@ -40,20 +40,26 @@ stopped. On the paid plan, a monthly spend limit per project pauses the project 
 `environments/dev`. `scripts/tf.sh` refuses another account and the root user, and applies only a
 saved plan.
 
-**The domain is a free `is-a.dev` subdomain:** `sentineledge.is-a.dev`, with the platform at
-`app.sentineledge.is-a.dev`.
-- Records are added by pull request to `is-a-dev/register` and reviewed by volunteers, so each one
-  takes hours to days. The design keeps their number at three, all published before any deploy
-  window: the parent (CAA only: `issue amazon.com`, `issuewild ";"`), one ACM validation CNAME,
-  and, in Phase 5, the CloudFront CNAME.
-- One exact-name certificate for `app.sentineledge.is-a.dev` in each of us-east-1 (CloudFront) and
+**The domain is `sentineledge.dedyn.io`, a free zone at deSEC**, with the platform at
+`app.sentineledge.dedyn.io`.
+- deSEC is a non-profit DNS host with DNSSEC; one free `dedyn.io` name per account. The owner adds
+  records in its web interface and they are live within minutes, so DNS never waits on a review.
+  Phase 5 can manage the records through deSEC's API as code.
+- Records: CAA at the zone (`0 issue "amazon.com"`, `0 issuewild ";"`), one ACM validation CNAME,
+  and, in Phase 5, the CloudFront CNAME for `app`. `scripts/dns-records.py` lists them from the dev
+  outputs.
+- One exact-name certificate for `app.sentineledge.dedyn.io` in each of us-east-1 (CloudFront) and
   us-east-2 (the internal ALB). ACM gives the same validation record to every certificate this
-  account requests for the name, so the record is published once and survives every teardown.
+  account requests for the name, so the record is entered once and survives every teardown.
   Certificates are free and stay between windows.
 - CloudFront forwards the viewer's Host header to the origin, so the CloudFront → ALB hop is
   verified against the same name (ADR-0001's HTTPS origin, with no second certificate name).
 - The CloudFront distribution is kept between windows (free when idle), so its CNAME does not
-  change and needs no new pull request.
+  change.
+- **Why not is-a.dev, the first choice:** the free `is-a.dev` subdomain was chosen on 2026-10-09
+  and its records were prepared, but on 2026-10-10 `is-a-dev/register` had disabled pull requests
+  "until further notice", so the name could not be registered. Only the domain variable and the
+  certificates changed.
 
 **NAT is a switch:** `nat_mode` is `none` between windows (no egress, nothing hourly), `instance`
 in a window (one t4g.nano NAT instance, about a tenth of a NAT gateway's cost) or `gateway`. The
@@ -65,11 +71,11 @@ The standing cost between windows is the two KMS keys, about $2 a month.
 
 ## Security impact
 - Mitigates T-IAC-01..04, T-AWS-01..03 and T-COST-01; partly T-DB-01 (network and groups now, the
-  database in Phase 4); prepares T-DNS-01 (CAA records generated, published in Phase 5).
+  database in Phase 4); prepares T-DNS-01 (CAA published in Phase 3, records as code in Phase 5).
 - Controls C-IAC-01..04, C-NET-01, C-NET-02, C-NET-04, C-AWS-01, C-LOG-04, C-MON-02, C-COST-01,
   C-IAM-01, C-IAM-03, and C-AI-07 extended.
 - New residual risks, accepted: SCPs that cannot be read; no keyless CI route into the account;
-  a parent DNS zone run by volunteers; one NAT for both zones in dev.
+  a parent DNS zone (dedyn.io) run by a third party; one NAT for both zones in dev.
 
 ## Alternatives considered
 - **Activate advanced features.** Rejected: irreversible, and it trades a hard spend cap for
@@ -78,6 +84,8 @@ The standing cost between windows is the two KMS keys, about $2 a month.
   require works here, as tested.
 - **No custom domain (`*.cloudfront.net`).** Rejected: no ACM or CAA evidence, and an HTTP hop to
   the origin.
+- **is-a.dev** (pull-request registration, reviewed by volunteers). Chosen first; unavailable when
+  its pull requests were closed.
 - **A paid domain.** Cleanest, and a few dollars a year, but the owner asked for a free option;
   switching later changes one variable and three records.
 - **Interface VPC endpoints instead of NAT.** Rejected for cost: seven endpoints in two zones cost

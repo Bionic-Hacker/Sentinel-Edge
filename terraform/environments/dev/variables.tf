@@ -45,7 +45,7 @@ variable "nat_mode" {
 }
 
 variable "app_domain" {
-  description = "Public host name of the platform (an is-a.dev subdomain, ADR-0025)."
+  description = "Public host name of the platform (in the sentineledge.dedyn.io zone at deSEC, ADR-0025)."
   type        = string
-  default     = "app.sentineledge.is-a.dev"
+  default     = "app.sentineledge.dedyn.io"
 }
