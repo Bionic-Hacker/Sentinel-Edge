@@ -102,4 +102,5 @@ The role costs nothing while unused; it is removed with the account stack.
 | `model access is not enabled ... or the credentials lack bedrock:InvokeModel` | The role's ARN does not match the model or Region | `SENTINEL_AI_MODEL` must be `us.` + `bedrock_model_id`, and `SENTINEL_AWS_REGION` the account stack's `region` |
 | `Bedrock rejected the request for this model` | The model is not offered on demand in that region | Use a model and region pair from the Bedrock console |
 | `Bedrock is throttling this account` | New accounts start with low quotas | Wait a minute and retry |
+| `REJECTED: ...` | The model answered but broke the contract (as designed, the answer is not used) | `make ai-check SHOW=1` prints the raw answer on your terminal only (never stored) to see why |
 | `AI quota reached` (in the app) | A daily bound was reached | Wait, or raise the bound in `.env` deliberately |

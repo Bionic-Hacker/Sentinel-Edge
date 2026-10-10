@@ -313,10 +313,12 @@ AI_CHECK_INPUT = {
 }
 
 
-def ai_check(db: Session, settings: Settings, out: TextIO) -> int:
+def ai_check(db: Session, settings: Settings, out: TextIO, show_answer: bool = False) -> int:
     """Send one synthetic analysis to the configured provider and check the answer against the
     contract. Nothing is stored but the audit record, and it does not count against the
-    in-app quotas; on Bedrock it costs about 1,000 tokens."""
+    in-app quotas; on Bedrock it costs about 4,000 tokens. With show_answer, the model's raw text
+    is printed too (the input is synthetic; the text is shown on this terminal only, never stored),
+    to see why an answer was rejected."""
     try:
         provider = get_provider(settings)
     except ProviderError as exc:
@@ -349,6 +351,10 @@ def ai_check(db: Session, settings: Settings, out: TextIO) -> int:
     try:
         completion = provider.complete(prompt, inp, settings.ai_max_output_tokens)
         usage = {"input": completion.input_tokens, "output": completion.output_tokens}
+        if show_answer:
+            print("--- raw answer (not stored) ---", file=out)
+            print(completion.text, file=out)
+            print("--- end of raw answer ---", file=out)
         result = contract.validate(completion.text, inp, known)
         detail = (
             f"classification {result.classification}, severity {result.severity}, "
@@ -405,9 +411,10 @@ def build_parser() -> argparse.ArgumentParser:
         "export-accepted-risks",
         help="print the scan gate's accepted-risk register from approved exceptions",
     )
-    commands.add_parser(
+    ai = commands.add_parser(
         "ai-check", help="send one synthetic analysis to the AI provider and check the answer"
     )
+    ai.add_argument("--show-answer", action="store_true", help="also print the model's raw answer")
     return parser
 
 
@@ -442,7 +449,7 @@ def main(
             if args.command == "openapi":
                 return print_openapi(settings, args.server, out)
             if args.command == "ai-check":
-                return ai_check(db, settings, out)
+                return ai_check(db, settings, out, show_answer=args.show_answer)
             if args.command == "export-accepted-risks":
                 out.write(accepted_risks_toml(db))
                 db.commit()  # expiries found on the way are recorded

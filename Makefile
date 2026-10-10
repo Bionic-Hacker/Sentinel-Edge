@@ -134,8 +134,8 @@ accepted-risks: ## Regenerate scanning/accepted-findings.toml from the approved 
 governance-catalogue: ## Regenerate the governance catalogue after editing docs/threat-model.md or docs/security-controls.md
 	python3 scripts/governance-catalogue.py
 
-ai-check: ## Send one synthetic analysis to the configured AI provider and check the answer (stack running)
-	docker compose exec -T api python -m app.cli ai-check
+ai-check: ## Send one synthetic analysis to the configured AI provider and check the answer (SHOW=1 prints the raw answer)
+	docker compose exec -T api python -m app.cli ai-check $(if $(SHOW),--show-answer)
 
 bedrock-credentials: ## Write a one-model Bedrock session for the local API to .env.bedrock (AWS_PROFILE=sentineledge)
 	./scripts/bedrock-credentials.sh
