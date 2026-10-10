@@ -125,6 +125,16 @@ run "nat_instance_mode" {
     condition     = length(aws_route.app_via_instance) == 1
     error_message = "The app tier must route through the NAT instance."
   }
+  assert {
+    condition = alltrue([
+      for d in concat(
+        [aws_security_group.nat[0].description],
+        [for r in aws_vpc_security_group_ingress_rule.nat_from_app : r.description],
+        [for r in aws_vpc_security_group_egress_rule.nat_out : r.description],
+      ) : can(regex("^[a-zA-Z0-9. _:/()#,@+=&;{}!$*\\[\\]-]{1,255}$", d))
+    ])
+    error_message = "A NAT security group or rule description uses a character EC2 rejects."
+  }
 }
 
 run "nat_gateway_mode" {

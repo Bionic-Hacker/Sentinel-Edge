@@ -11,7 +11,7 @@
 resource "aws_security_group" "alb" {
   # checkov:skip=CKV2_AWS_5: Attached to the internal ALB in Phase 4.
   name        = "${var.name}-alb"
-  description = "Internal ALB: HTTPS from CloudFront's VPC origin only (rule added in Phase 5)"
+  description = "Internal ALB: HTTPS from the CloudFront VPC origin only (rule added in Phase 5)"
   vpc_id      = var.vpc_id
   tags        = { Name = "${var.name}-alb" }
 }
