@@ -200,7 +200,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-AWS-02 | R | Account activity hidden: the trail stopped, changed or its logs altered | 1×3 | Multi-region trail, digest validation, KMS, versioned bucket; alarm on any trail change | C-LOG-04, C-MON-02 | **Mitigated (P3)** |
 | T-AWS-03 | E | The root user or a full-access session used where less would do, including a session copied into a container | 2×3 | No root (Builder ID); `tf.sh` refuses root; root-use alarm; the local API gets a one-model role, never the signed-in session | C-IAM-01, C-MON-02, C-AI-07 | **Mitigated (P3)** |
 | T-COST-01 | D | Runaway spend ("denial of wallet"): a forgotten NAT, ALB or database, or abuse of a paid API | 2×2 | Credit ceiling (Free plan), budget alerts, nothing hourly at rest, one deploy window then destroy; AI quotas (C-AI-06) | C-COST-01, C-AI-06 | **Mitigated (P3)** |
-| T-DNS-01 | S | A certificate issued for the platform's name by someone else, or the name taken over | 1×3 | CAA allows only Amazon and no wildcards; exact-name certificates; the zone is held in the owner's deSEC account, signed with DNSSEC | C-DNS-01 | Planned (P5); CAA published in P3 |
+| T-DNS-01 | S | A certificate issued for the platform's name by someone else, or the name taken over | 1×3 | CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner (chosen before Phase 5) | C-DNS-01 | Planned (P5) |
 | T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes, PR approval | C-WAF-04, C-GOV-02, C-GOV-03 | Planned (P5) |
 | T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | App holds read-only WAF permissions (ADR-0008) | C-WAF-04, C-IAM-01 | Planned (P5) |
 | T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2)** except tail deletion by a table owner (Object Lock anchor, P4) |
@@ -231,9 +231,9 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   a plan is applied. Accepted: it is the price of a spend-capped, root-less account.
 - No keyless route from GitHub Actions into the account (OIDC denied): deployments run from the
   owner's machine with a 12-hour `aws login` session. Phase 11 decides how CI deploys.
-- The platform's name is a subdomain of `dedyn.io`, a zone run by deSEC, a non-profit. The
-  `sentineledge.dedyn.io` zone is the owner's, with DNSSEC and CAA, but the parent zone's operator
-  could still change its delegation. Accepted for a portfolio; a registered domain removes it.
+- The platform has no domain yet: both free subdomain services tried in Phase 3 (is-a.dev,
+  deSEC's dedyn.io) suspended new names. The domain is chosen before Phase 5; until then no
+  certificate is requested and nothing is served.
 - One NAT for both zones in dev: a zone outage takes egress with it. Accepted for a demo.
 - Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash
   is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.

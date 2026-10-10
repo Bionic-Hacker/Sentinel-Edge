@@ -208,7 +208,7 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 
 | ID | Control | Phase |
 |---|---|---|
-| C-DNS-01 | DNS records as code; CAA lets only Amazon issue, and forbids wildcards (the zone at deSEC, DNSSEC; records listed by `scripts/dns-records.py` in Phase 3, managed by Terraform in Phase 5) | 5 |
+| C-DNS-01 | DNS records as code; CAA lets only Amazon issue, and forbids wildcards (records listed by `scripts/dns-records.py`; the domain and its DNS host are chosen before Phase 5, ADR-0025) | 5 |
 | C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge | 5 |
 | C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001) | 4 |
 | C-EDGE-03 | CloudFront response headers policy | 5 |

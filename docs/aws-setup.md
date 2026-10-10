@@ -83,8 +83,8 @@ make tf-apply STACK=bootstrap
 `dev` is the environment's foundation: a VPC across two Availability Zones (pinned by zone ID,
 `use2-az1` and `use2-az2`) with public, app and isolated data subnets, flow logs, a free S3
 gateway endpoint, the ALB → app → database security-group chain, an ECR repository for the API
-image, and two ACM certificates for `app.sentineledge.dedyn.io` (one in us-east-1 for
-CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle.
+image, and, once `app_domain` is set, two ACM certificates for the platform's name (one in
+us-east-1 for CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle.
 
 **NAT** is the one hourly item, switched by `nat_mode` in `terraform/environments/dev/terraform.tfvars`:
 
@@ -94,35 +94,27 @@ CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle
 | `instance` | One t4g.nano NAT instance (IMDSv2, encrypted, no SSH, no role) | ≈ $0.009/hour |
 | `gateway` | One managed NAT gateway | ≈ $0.05/hour |
 
-**The domain** is `sentineledge.dedyn.io`, a free zone at [deSEC](https://desec.io), a non-profit
-DNS host with DNSSEC (ADR-0025). You add its records yourself in deSEC's web interface, and they
-are live within minutes. One-time setup: create a deSEC account, choose **dedyn.io domain**, and
-register `sentineledge` (one free dedyn.io name per account).
+**The domain** is chosen before Phase 5 (ADR-0025). Both free subdomain services tried in Phase 3
+suspended new names (is-a.dev disabled its pull requests; deSEC suspended `dedyn.io`), so the
+platform needs a domain the owner registers. Its DNS can be hosted free at deSEC ("configure your
+own domain") or in Route 53 ($0.50 a month).
 
-After the first `dev` apply, the certificates wait in `PENDING_VALIDATION` for one DNS record.
-Both certificates use the same record, and it never changes for this account and name. List what
-the zone needs:
+Once it is chosen, set `app_domain` (for example `app.example.com`) in
+`terraform/environments/dev/terraform.tfvars`, plan and apply `dev`: two certificates are requested.
+They wait in `PENDING_VALIDATION` for one DNS record, the same for both and for every later
+request. List what the zone needs:
 
 ```fish
 cd ~/Sentinel-Edge/sentineledge
 env (aws configure export-credentials --profile sentineledge --format env-no-export) \
   terraform -chdir=terraform/environments/dev output -json certificate_validation_records \
-  | python3 scripts/dns-records.py
+  | python3 scripts/dns-records.py --zone example.com
 ```
 
-It prints a table of subname, type and value. In deSEC, open the domain and add each row as a
-record set:
-
-| Subname | Type | Value |
-|---|---|---|
-| (empty: the zone itself) | CAA | `0 issue "amazon.com"` and `0 issuewild ";"` (two values in one record set) |
-| `_<token>.app` | CNAME | `_<token>.<id>.acm-validations.aws.` |
-
-The CAA records let only Amazon issue certificates for the zone and every name in it, and forbid
-wildcard certificates. Within minutes of the CNAME, ACM issues both certificates;
-`make tf-output STACK=dev` shows `certificate_status` as `ISSUED`. A certificate request that is not
-validated within 72 hours expires: re-apply `dev` to request it again; the same record validates it.
-The CloudFront record (`app`) follows in Phase 5.
+It prints CAA at the zone (`0 issue "amazon.com"` and `0 issuewild ";"`: only Amazon may issue,
+and no wildcards) and the validation CNAME. Add them at the DNS host; within minutes ACM issues both
+certificates and `make tf-output STACK=dev` shows `ISSUED`. A request not validated within 72 hours
+expires: re-apply `dev`, and the same record validates the new one.
 
 ## What stays running, and what it costs
 

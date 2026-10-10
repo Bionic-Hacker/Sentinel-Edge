@@ -807,7 +807,7 @@
    "phase": 5,
    "ref": "C-DNS-01",
    "status": "planned",
-   "title": "DNS records as code; CAA lets only Amazon issue, and forbids wildcards (the zone at deSEC, DNSSEC; records listed by scripts/dns-records.py in Phase 3, managed by Terraform in Phase 5)"
+   "title": "DNS records as code; CAA lets only Amazon issue, and forbids wildcards (records listed by scripts/dns-records.py; the domain and its DNS host are chosen before Phase 5, ADR-0025)"
   },
   {
    "evidence": [],
@@ -2010,7 +2010,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "ebf391eb3eaf8b7bd2efe0fd76e536149389c1cc435cec3c6bd647a97b4829a0",
+ "digest": "5ed0f4ff2dbb70bcad5eca2f8e1c5a31cb3bb10d24ec9ac99f7a54f7466304f6",
  "format": 1,
  "model": {
   "elements": [
@@ -2376,9 +2376,9 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 3)"
     },
-    "description": "The platform's name is a subdomain of dedyn.io, a zone run by deSEC, a non-profit. The sentineledge.dedyn.io zone is the owner's, with DNSSEC and CAA, but the parent zone's operator could still change its delegation. Accepted for a portfolio; a registered domain removes it.",
+    "description": "The platform has no domain yet: both free subdomain services tried in Phase 3 (is-a.dev, deSEC's dedyn.io) suspended new names. The domain is chosen before Phase 5; until then no certificate is requested and nothing is served.",
     "kind": "residual_risk",
-    "name": "The platform's name is a subdomain of dedyn.io, a zone run by deSEC, a non-profit",
+    "name": "The platform has no domain yet: both free subdomain services tried in Phase 3 (is-a.dev, deSEC's dedyn.io) suspended new names",
     "ref": "RR-5"
    },
    {
@@ -4481,15 +4481,14 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "CAA allows only Amazon and no wildcards; exact-name certificates; the zone is held in the owner's deSEC account, signed with DNSSEC",
+    "mitigation": "CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner (chosen before Phase 5)",
     "owasp": "",
     "phases": [
-     3,
      5
     ],
     "ref": "T-DNS-01",
     "status": "planned",
-    "status_text": "Planned (P5); CAA published in P3",
+    "status_text": "Planned (P5)",
     "stride": "S",
     "title": "A certificate issued for the platform's name by someone else, or the name taken over"
    },

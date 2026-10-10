@@ -39,6 +39,7 @@ module "ecr_api" {
 # CloudFront only accepts certificates from us-east-1 (Phase 5).
 module "certificate_edge" {
   source    = "../../modules/certificate"
+  count     = var.app_domain == "" ? 0 : 1
   providers = { aws = aws.us_east_1 }
 
   domain_name = var.app_domain
@@ -48,6 +49,7 @@ module "certificate_edge" {
 # Host header, so the CloudFront-to-ALB hop is verified against the same name.
 module "certificate_origin" {
   source = "../../modules/certificate"
+  count  = var.app_domain == "" ? 0 : 1
 
   domain_name = var.app_domain
 }

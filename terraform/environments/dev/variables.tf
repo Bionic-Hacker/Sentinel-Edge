@@ -45,7 +45,12 @@ variable "nat_mode" {
 }
 
 variable "app_domain" {
-  description = "Public host name of the platform (in the sentineledge.dedyn.io zone at deSEC, ADR-0025)."
+  description = "Public host name of the platform, in a domain the owner controls (ADR-0025). Empty until the domain is chosen, before Phase 5: no certificates are requested."
   type        = string
-  default     = "app.sentineledge.dedyn.io"
+  default     = ""
+
+  validation {
+    condition     = var.app_domain == "" || can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$", var.app_domain))
+    error_message = "app_domain must be empty or a lower-case host name such as app.example.com."
+  }
 }

@@ -33,14 +33,17 @@ output "ecr_api_repository_url" {
 }
 
 output "certificate_status" {
-  description = "Both certificates: PENDING_VALIDATION until the DNS record is published."
+  description = "Both certificates: PENDING_VALIDATION until the DNS record is published (empty until app_domain is set)."
   value = {
-    edge_us_east_1 = module.certificate_edge.status
-    origin         = module.certificate_origin.status
+    edge_us_east_1 = one(module.certificate_edge[*].status)
+    origin         = one(module.certificate_origin[*].status)
   }
 }
 
 output "certificate_validation_records" {
-  description = "Publish these in the zone at deSEC (scripts/dns-records.py). Both certificates use the same record."
-  value       = distinct(concat(module.certificate_edge.validation_records, module.certificate_origin.validation_records))
+  description = "Publish these in the domain's DNS (scripts/dns-records.py). Both certificates use the same record."
+  value = distinct(concat(
+    flatten(module.certificate_edge[*].validation_records),
+    flatten(module.certificate_origin[*].validation_records),
+  ))
 }

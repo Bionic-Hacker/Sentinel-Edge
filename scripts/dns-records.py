@@ -2,10 +2,10 @@
 """Print the DNS records SentinelEdge's zone needs, from the dev stack's outputs (ADR-0025).
 
     terraform -chdir=terraform/environments/dev output -json certificate_validation_records \\
-      | scripts/dns-records.py [--zone sentineledge.dedyn.io]
+      | scripts/dns-records.py --zone example.com
 
-The zone is hosted by deSEC (desec.io). Records are entered in its web interface as a subname
-(the part before the zone, empty for the zone itself), a type and a value:
+Records are listed as a subname (the part before the zone, empty for the zone itself), a type and
+a value, which is how DNS hosts such as deSEC and Route 53 ask for them:
 
 - CAA at the zone: only Amazon may issue certificates for the zone and every name under it, and
   no one may issue wildcard certificates.
@@ -35,7 +35,7 @@ def validation_records() -> list[dict[str, str]]:
 
 
 def subname(fqdn: str, zone: str) -> str:
-    """'_abc.app.sentineledge.dedyn.io.' -> '_abc.app' for zone 'sentineledge.dedyn.io'."""
+    """'_abc.app.example.com.' -> '_abc.app' for zone 'example.com'."""
     name = fqdn.rstrip(".").lower()
     if name == zone:
         return ""
@@ -46,7 +46,7 @@ def subname(fqdn: str, zone: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--zone", default="sentineledge.dedyn.io", help="the zone at deSEC")
+    parser.add_argument("--zone", required=True, help="the zone (domain) the records go in")
     args = parser.parse_args()
     zone = args.zone.rstrip(".").lower()
 

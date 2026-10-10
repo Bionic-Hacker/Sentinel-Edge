@@ -251,7 +251,7 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 9 | AI security engine on Amazon Bedrock | **Complete** (v0.7.0) |
 | 3 | Terraform AWS foundation: state, guardrails, CloudTrail, VPC, security groups, ECR, certificates | **Complete** (v0.8.0) |
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Next |
-| 5 | CloudFront, AWS WAF, ACM/TLS, DNS (deSEC), edge headers | Planned |
+| 5 | CloudFront, AWS WAF, ACM/TLS, DNS and CAA, edge headers | Planned |
 | 11 | Automation and full DevSecOps pipeline | Planned |
 | 12 | Hardening, final assessment, interview demo | Planned |
 
