@@ -43,6 +43,24 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.7.0 (Phase 9) to v0.8.0 (Phase 3)
+
+Phase 3 is Terraform for AWS ([aws-setup.md](aws-setup.md)); the local stack is unchanged: no
+migration and no new Python dependency. Two things to check:
+
+- **The AWS Region.** The account's home Region is us-east-2, now the default. If your `.env` has
+  `SENTINEL_AWS_REGION=us-east-1` (copied from an older `.env.example`), change it to `us-east-2`
+  before using Bedrock.
+- **Bedrock credentials** now come from the account's one-model role
+  ([bedrock-setup.md](bedrock-setup.md)): `make bedrock-credentials` with `AWS_PROFILE=sentineledge`
+  after `aws login`. The old IAM-user setup still works for other accounts.
+
+```bash
+make dev
+make check
+make tf-check      # needs terraform (sudo pacman -S --needed terraform aws-cli-v2)
+```
+
 ## Upgrading from v0.6.0 (Phase 10) to v0.7.0 (Phase 9)
 
 Your data is kept. Phase 9 adds a Python dependency (`boto3`, for Bedrock), so refresh the local

@@ -137,7 +137,7 @@ governance-catalogue: ## Regenerate the governance catalogue after editing docs/
 ai-check: ## Send one synthetic analysis to the configured AI provider and check the answer (stack running)
 	docker compose exec -T api python -m app.cli ai-check
 
-bedrock-credentials: ## Write short-lived AWS session credentials for Bedrock to .env.bedrock (AWS_PROFILE=, HOURS=)
+bedrock-credentials: ## Write a one-model Bedrock session for the local API to .env.bedrock (AWS_PROFILE=sentineledge)
 	./scripts/bedrock-credentials.sh
 
 bedrock-credentials-clear: ## Remove the Bedrock session credentials and reload the API without them

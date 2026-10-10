@@ -25,51 +25,33 @@ checks the limits **before** calling the model and refuses with 429 once one is 
 
 ## One-time setup
 
-**1. A budget alert.** In the AWS console, *Billing and Cost Management → Budgets*, create a
-monthly cost budget of $1 with an e-mail alert. (On a new account this is also one of the tasks
-that earns credits.)
+SentinelEdge's account (see [aws-setup.md](aws-setup.md)) has no IAM users and no access keys:
+you sign in with `aws login`. That session can do anything you can, so it never enters a
+container. Instead, the account stack creates **`sentineledge-local-bedrock`**, a role that may
+call `bedrock:InvokeModel` on Nova Micro in us-east-2 and nothing else
+(`terraform/account/bedrock.tf`), and `make bedrock-credentials` gives the local API a session of
+that role only.
 
-**2. An IAM user that can do exactly one thing.** *IAM → Users → Create user*
-`sentineledge-bedrock`, no console access. Attach this inline policy, and nothing else:
+1. **The budget** already exists (the bootstrap stack: $30 a month, alerts at $5, $15 and $30).
+2. **The role:** apply the account stack (`make tf-plan STACK=account`, then `make tf-apply
+   STACK=account`).
+3. **The region:** in `.env`, `SENTINEL_AWS_REGION=us-east-2` (the account's home Region; older
+   `.env` files say us-east-1).
 
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "InvokeNovaMicroOnly",
-      "Effect": "Allow",
-      "Action": "bedrock:InvokeModel",
-      "Resource": "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-micro-v1:0"
-    }
-  ]
-}
-```
+Amazon models need no Marketplace subscription. If the Bedrock console still shows a *Model
+access* page with Nova Micro not granted, request access there (free, immediate for Amazon models).
 
-The Converse API the engine uses is authorised by `bedrock:InvokeModel`. A different model or
-region needs its own ARN here, and nothing else in the account is reachable with these keys.
-Amazon models are enabled by default in commercial regions; no Marketplace subscription is
-involved.
-
-**3. An access key for the AWS CLI.** On the user, *Security credentials → Create access key →
-Command Line Interface*. Then, on your machine (fish):
-
-```fish
-sudo pacman -S aws-cli-v2
-aws configure --profile sentineledge-bedrock
-# AWS Access Key ID / Secret Access Key: from the step above
-# Default region name: us-east-1
-# Default output format: json
-```
-
-These long-lived keys stay in `~/.aws` on your machine. They never enter a container: the next
-step exchanges them for a session that expires.
+**Another account with an IAM user instead.** Give the user only the `InvokeModel` statement from
+`terraform/account/bedrock.tf` (with that account's Region in the ARN), store its access key with
+`aws configure --profile <name>`, and run `make bedrock-credentials AWS_PROFILE=<name>`: the keys
+stay on your machine and are exchanged for a session of up to `HOURS` (1 to 12).
 
 ## Each time you want Bedrock
 
 ```fish
 cd ~/Sentinel-Edge/sentineledge
-make bedrock-credentials          # writes .env.bedrock: an 8-hour session (HOURS=1..12)
+aws login --profile sentineledge  # if your sign-in has expired (12 hours)
+make bedrock-credentials          # writes .env.bedrock: a 1-hour session of the one-model role
 ```
 
 In `.env`, set:
@@ -105,15 +87,16 @@ make bedrock-credentials-clear    # deletes .env.bedrock and reloads the API wit
 ```
 
 and set `SENTINEL_AI_PROVIDER=offline` (or `disabled`) in `.env`, then `docker compose up -d api`.
-When Phase 9 is over, delete the IAM user's access key in the console if you no longer need it.
+The role costs nothing while unused; it is removed with the account stack.
 
 ## Troubleshooting
 
 | `make ai-check` says | Cause | Fix |
 |---|---|---|
 | `No AWS credentials` | `.env.bedrock` missing, or the API was not reloaded | `make bedrock-credentials`, then `docker compose up -d api` |
-| `The AWS session credentials have expired` | The session passed its expiry | `make bedrock-credentials` again |
-| `model access is not enabled ... or the credentials lack bedrock:InvokeModel` | The policy's ARN does not match the model or region | Compare the policy with `SENTINEL_AI_MODEL` and `SENTINEL_AWS_REGION` |
+| `The AWS session credentials have expired` | The role session lasts one hour | `make bedrock-credentials` again (after `aws login` if your sign-in expired too) |
+| `Could not assume sentineledge-local-bedrock` | The account stack is not applied, or your sign-in expired | `make tf-plan STACK=account` and apply; or `aws login --profile sentineledge` |
+| `model access is not enabled ... or the credentials lack bedrock:InvokeModel` | The role's ARN does not match the model or Region | `SENTINEL_AI_MODEL` and `SENTINEL_AWS_REGION` must match `bedrock_model_id` and `region` in the account stack |
 | `Bedrock rejected the request for this model` | The model is not offered on demand in that region | Use a model and region pair from the Bedrock console |
 | `Bedrock is throttling this account` | New accounts start with low quotas | Wait a minute and retry |
 | `AI quota reached` (in the app) | A daily bound was reached | Wait, or raise the bound in `.env` deliberately |

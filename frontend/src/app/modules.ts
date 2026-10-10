@@ -58,7 +58,7 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Edge Security",
     purpose: "CloudFront distribution, origin protection, TLS policy, and security headers.",
     phase: 5,
-    capabilityKeys: ["aws.edge", "platform.security_headers", "platform.client_ip"],
+    capabilityKeys: ["aws.edge", "aws.network", "platform.security_headers", "platform.client_ip"],
   },
   {
     path: "/threats",
@@ -121,7 +121,7 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Audit Logs",
     purpose: "Tamper-evident record of logins, configuration changes, and administrative actions.",
     phase: 2,
-    capabilityKeys: ["audit.log", "platform.structured_logging", "aws.observability"],
+    capabilityKeys: ["audit.log", "platform.structured_logging", "aws.foundation", "aws.observability"],
   },
   {
     path: "/automation",

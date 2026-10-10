@@ -1,6 +1,6 @@
 # SentinelEdge architecture
 
-Status: Phase 2 complete. This document describes the target architecture and marks clearly which parts
+Status: Phases 1–3, 6–10 complete (Phase 3: the AWS foundation, in us-east-2; ADR-0025). This document describes the target architecture and marks clearly which parts
 exist today. Anything not marked **Implemented (local)** is a design, not a running system.
 
 ## 1. Purpose and scope
@@ -13,7 +13,7 @@ every control it reports on also protects it.
 
 ```
 Internet
-  │  DNS: Route 53 (CAA restricts issuance to Amazon)                          [Phase 5]
+  │  DNS: app.sentineledge.is-a.dev (CAA: Amazon only, no wildcards)          [Phase 5]
   ▼
 CloudFront edge  ─── AWS WAF web ACL evaluated here, before any origin request [Phase 5]
   │  TLS 1.2+ (ACM cert, us-east-1), response-headers policy
@@ -27,7 +27,8 @@ CloudFront edge  ─── AWS WAF web ACL evaluated here, before any origin req
                RDS PostgreSQL (isolated data subnets, no internet route, KMS, TLS required)
                   SG: only the app SG on 5432
 
-Egress from tasks: NAT gateway (one in dev) for Bedrock and AWS APIs; VPC endpoints evaluated in Phase 4.
+Egress from tasks: one NAT (instance by default, gateway switchable; off between deploy windows)
+for Bedrock and AWS APIs; S3 through a free gateway endpoint. Built in Phase 3 (ADR-0025).
 Supporting: Secrets Manager, KMS, ECR, CloudWatch, CloudTrail, S3 (logs, audit archive, SBOMs).
 ```
 
@@ -48,7 +49,7 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
 | WAF | none | AWS WAF (Phase 5) |
 | SPA hosting | nginx | S3 + OAC (Phase 5) |
 | API | `api` container | ECS Fargate (Phase 4) |
-| Database isolation | Docker `internal: true` network, no published port | Isolated subnets + SG (Phase 3–4) |
+| Database isolation | Docker `internal: true` network, no published port | Isolated subnets + SG (**built, Phase 3**); RDS (Phase 4) |
 | Secrets | `.env` (git-ignored, generated, mode 600) | Secrets Manager (Phase 4) |
 | Logs | JSON to stdout | CloudWatch Logs (Phase 4) |
 | Headers | API middleware + nginx | API middleware + CloudFront policy |

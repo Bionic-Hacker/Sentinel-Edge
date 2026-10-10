@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.7 (Phase 9: AI security engine)
+- **Version:** 0.8 (Phase 3: Terraform foundation)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
   this document is loaded into the application as SentinelEdge's own threat model, read-only
@@ -30,6 +30,7 @@ tested), **Planned (Pn)**, or **Accepted (interim)** with an expiry.
 | A14 | Threat models, the control catalogue and the posture score | A wrong model or an inflated score hides risk from the people deciding on it |
 | A15 | Security exceptions and change requests | The record of who accepted which risk, and who approved which change, until when |
 | A16 | AI analyses and proposals | What the AI said about an attack and what it asked a human to do; an altered record hides a manipulated answer |
+| A17 | The AWS account: its audit trail, guardrails, network and spend | The trail is the record of every change; the guardrails and network decide what can be exposed; spend is the one harm a demo can do without an attacker |
 
 ## 2. Trust boundaries and data flows
 
@@ -163,7 +164,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | C-NET-00, C-NET-01, C-NET-02 | Local analogue **mitigated (P1)**; AWS P3–4 |
+| T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | C-NET-00, C-NET-01, C-NET-02 | Local analogue **mitigated (P1)**; network and groups mitigated (P3); RDS P4 |
 | T-DB-02 | I | Credential theft | 2×3 | Per-container secrets; Secrets Manager with rotation in AWS | C-SEC-03 | Local scoping **mitigated (P2)**; Secrets Manager P4 |
 | T-DB-03 | E | Over-privileged app DB role | 2×3 | Separate migration and runtime roles (ADR-0015) | C-DB-01 | **Mitigated (P2)**: privilege-matrix test |
 | T-DB-04 | I | Unencrypted data at rest or in transit | 1×3 | KMS, `rds.force_ssl` | C-DB-02, C-DB-03 | Planned (P4) |
@@ -187,12 +188,19 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | GitHub OIDC, no stored keys (ADR-0010) | C-IAM-02 | Planned (P11); no keys exist in P1 |
+| T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | No stored keys. GitHub OIDC (ADR-0010) is denied by the account's SCPs, so Phase 11 must choose another keyless route or keep deployment off CI | C-IAM-02 | Planned (P11); no keys exist anywhere (P3) |
 | T-CICD-02 | T | Malicious or hijacked third-party action | 1×3 | SHA-pinned actions, read-only token, Dependabot | C-CICD-03 | **Mitigated (P1)** |
 | T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images | C-CICD-02, C-CICD-06, C-CICD-10 | **Mitigated (P1, P8)** |
 | T-SEC-01 | I | Secret committed to git | 2×3 | Gitleaks pre-commit + CI (full history), `.gitignore` | C-SEC-01, C-SEC-02 | **Mitigated (P1)** |
-| T-IAC-01 | T | Dev change applied to production | 1×3 | Per-env roots, `allowed_account_ids` (ADR-0014) | C-IAC-01 | Planned (P3) |
-| T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | C-IAC-02 | Planned (P3) |
+| T-IAC-01 | T | Dev change applied to production | 1×3 | Per-stack roots and state keys, `allowed_account_ids` (ADR-0014) | C-IAC-01 | **Mitigated (P3)** |
+| T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | C-IAC-02 | **Mitigated (P3)** |
+| T-IAC-03 | T | An unreviewed or stale plan applied, or a plan applied to the wrong account or as root | 1×3 | Saved-plan-only apply, identity and account guard, root refused | C-IAC-03, C-IAC-01 | **Mitigated (P3)** |
+| T-IAC-04 | T | Insecure infrastructure merged unnoticed (public bucket, open group, unencrypted volume, egress from the data tier) | 2×3 | Checkov in the scan gate, TFLint, module tests with a mocked provider | C-IAC-04 | **Mitigated (P3)** |
+| T-AWS-01 | I | A bucket made public by mistake | 1×3 | Account-wide S3 public-access block, per-bucket blocks, TLS-only policies | C-AWS-01 | **Mitigated (P3)** |
+| T-AWS-02 | R | Account activity hidden: the trail stopped, changed or its logs altered | 1×3 | Multi-region trail, digest validation, KMS, versioned bucket; alarm on any trail change | C-LOG-04, C-MON-02 | **Mitigated (P3)** |
+| T-AWS-03 | E | The root user or a full-access session used where less would do, including a session copied into a container | 2×3 | No root (Builder ID); `tf.sh` refuses root; root-use alarm; the local API gets a one-model role, never the signed-in session | C-IAM-01, C-MON-02, C-AI-07 | **Mitigated (P3)** |
+| T-COST-01 | D | Runaway spend ("denial of wallet"): a forgotten NAT, ALB or database, or abuse of a paid API | 2×2 | Credit ceiling (Free plan), budget alerts, nothing hourly at rest, one deploy window then destroy; AI quotas (C-AI-06) | C-COST-01, C-AI-06 | **Mitigated (P3)** |
+| T-DNS-01 | S | A certificate issued for the platform's name by someone else, or the name taken over | 1×3 | CAA allows only Amazon and no wildcards; exact-name certificates; the name is held by the owner's GitHub account at is-a.dev | C-DNS-01 | Planned (P5); records generated in P3 |
 | T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes, PR approval | C-WAF-04, C-GOV-02, C-GOV-03 | Planned (P5) |
 | T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | App holds read-only WAF permissions (ADR-0008) | C-WAF-04, C-IAM-01 | Planned (P5) |
 | T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2)** except tail deletion by a table owner (Object Lock anchor, P4) |
@@ -211,13 +219,22 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
    can only tighten controls and need a lead's approval (T-AI-05, T-AI-08), and real WAF changes
    need a Terraform PR with review.
 
-## 5. Residual risk (after Phase 9)
+## 5. Residual risk (after Phase 3)
 
 - Single-maintainer project: separation of duties is enforced by role checks and a database
   CHECK, so it needs two lead accounts, but both belong to the same person. Accepted for a
   portfolio.
 - No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not
   be exposed. Closed in Phase 5.
+- The AWS account's guardrail policies (SCPs) are written by AWS and cannot be read or changed here.
+  They deny IAM Access Analyzer and OIDC identity providers; anything else they deny is found when
+  a plan is applied. Accepted: it is the price of a spend-capped, root-less account.
+- No keyless route from GitHub Actions into the account (OIDC denied): deployments run from the
+  owner's machine with a 12-hour `aws login` session. Phase 11 decides how CI deploys.
+- The platform's DNS name lives in a zone run by volunteers (is-a.dev). CAA limits issuance, but
+  the parent zone's operators could change records. Accepted for a portfolio; a registered domain
+  removes it.
+- One NAT for both zones in dev: a zone outage takes egress with it. Accepted for a demo.
 - Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash
   is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.
 - One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).

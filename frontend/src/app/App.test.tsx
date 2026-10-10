@@ -61,7 +61,8 @@ describe("dashboard", () => {
     expect(screen.getByText(/Phase 8, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 10, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 9, complete/)).toBeInTheDocument();
-    expect(screen.getByText(/Phase 3, next/).closest("li")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/Phase 3, complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Phase 4, next/).closest("li")).toHaveAttribute("aria-current", "step");
   });
 });
 

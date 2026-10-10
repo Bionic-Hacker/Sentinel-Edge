@@ -17,3 +17,8 @@ output "cloudtrail_log_group" {
   description = "CloudWatch log group the trail streams to."
   value       = aws_cloudwatch_log_group.cloudtrail.name
 }
+
+output "local_bedrock_role_arn" {
+  description = "Role that make bedrock-credentials assumes for the local API (InvokeModel on one model)."
+  value       = aws_iam_role.local_bedrock.arn
+}

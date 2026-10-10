@@ -10,7 +10,7 @@ from app.core.provenance import Provenance, Status
 
 # Phases are built out of numerical order to defer AWS cost (ADR-0016): 1, 2, 6, 7, 8, 10, 9,
 # then 3, 4, 5, 11, 12. The rule is completion, not phase number.
-COMPLETED_PHASES = frozenset({1, 2, 6, 7, 8, 9, 10})
+COMPLETED_PHASES = frozenset({1, 2, 3, 6, 7, 8, 9, 10})
 
 
 def test_keys_are_unique() -> None:
@@ -18,15 +18,19 @@ def test_keys_are_unique() -> None:
     assert len(keys) == len(set(keys))
 
 
-def test_no_implemented_real_aws_capability_before_aws_phases() -> None:
-    # Phase 1 has no Terraform-managed AWS resources, so nothing may claim to be a live
-    # AWS control. Update this guard deliberately when Phase 3+ ships real integrations.
-    offenders = [
-        c.key
+AWS_PHASES = frozenset({3, 4, 5, 11, 12})
+
+
+def test_real_aws_capabilities_come_only_from_finished_aws_phases() -> None:
+    # A capability may claim to be a live AWS control only once the AWS phase that builds it
+    # has shipped its Terraform. The list is pinned so that adding one is a deliberate change.
+    implemented = {
+        c.key: c.phase
         for c in CAPABILITIES
         if c.provenance is Provenance.REAL_AWS and c.status is Status.IMPLEMENTED
-    ]
-    assert offenders == []
+    }
+    assert all(phase in AWS_PHASES & COMPLETED_PHASES for phase in implemented.values())
+    assert set(implemented) == {"aws.foundation", "aws.network"}
 
 
 def test_implemented_items_belong_to_completed_phases() -> None:

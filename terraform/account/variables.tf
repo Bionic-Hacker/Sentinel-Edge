@@ -45,3 +45,9 @@ variable "log_retention_days" {
     error_message = "Use a CloudWatch Logs retention value of at least 365 days."
   }
 }
+
+variable "bedrock_model_id" {
+  description = "The one Bedrock model the local API may invoke (it must match SENTINEL_AI_MODEL)."
+  type        = string
+  default     = "amazon.nova-micro-v1:0"
+}

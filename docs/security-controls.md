@@ -12,18 +12,19 @@ or read.
 | 2 | CDN / edge | Terminates TLS close to users, hides origin, absorbs volume | C-EDGE-01..03 | P5 |
 | 3 | WAF | Blocks known attack patterns before they cost origin resources | C-WAF-01..04 | P5 |
 | 4 | Load balancer | Private origin, HTTPS, desync protection | C-EDGE-02, C-LB-01 | P4 |
-| 5 | Security groups | Each tier reachable only from the tier above it | C-NET-02 | P3 |
-| 6 | Private networking | App and DB never directly routable from the internet | C-NET-01 | P3 (local analogue P1) |
+| 5 | Security groups | Each tier reachable only from the tier above it | C-NET-02 | **P3** |
+| 6 | Private networking | App and DB never directly routable from the internet | C-NET-01, C-NET-04 | **P3** (local analogue P1) |
 | 7 | Authentication | Proves identity, resists stuffing and theft | C-ID-01..07 | P2 |
 | 8 | API authorization | Stops BOLA/BFLA regardless of UI | C-API-01..02 | P2, P6 |
 | 9 | Application validation | Rejects malformed and over-posted input; limits output | C-API-04, C-API-06 | P1 pattern, P2+ |
 | 10 | Database security | Least-privilege roles, encryption, parameterisation | C-DB-01..04 | P2–4 |
-| 11 | IAM | Least privilege per function, no static keys | C-IAM-01..03 | P3, P11 |
+| 11 | IAM | Least privilege per function, no static keys | C-IAM-01..03, C-AWS-01 | **P3**, P11 |
 | 12 | Secrets management | Secrets never in code, images, Terraform, or CI config | C-SEC-01..02 | P1 (scan), P4 |
-| 13 | Logging | Traceability and forensics | C-LOG-01..03, C-AUD-01..03 | P1 (app), P2 (audit) |
-| 14 | Monitoring and detection | Detects abuse and failures; turns signals into incidents | C-MON-01, C-SO-01..09 | **P7 (detection, incidents)**, P4 (alarms) |
+| 13 | Logging | Traceability and forensics | C-LOG-01..04, C-AUD-01..03 | P1 (app), P2 (audit), **P3 (account trail)** |
+| 14 | Monitoring and detection | Detects abuse and failures; turns signals into incidents | C-MON-01..02, C-SO-01..09 | **P7 (detection, incidents)**, **P3 (account alarms)**, P4 (app alarms) |
 | 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01..06 | P8 |
-| 16 | CI/CD security | Prevents vulnerable or secret-bearing code from shipping | C-CICD-01..04 | P1 (baseline), P8, P11 |
+| 16 | CI/CD security | Prevents vulnerable or secret-bearing code, or insecure infrastructure, from shipping | C-CICD-01..04, C-IAC-01..04 | P1 (baseline), **P3 (IaC)**, P8, P11 |
+| 19 | Cost | A demo must never become a bill: a hard ceiling, alerts, and nothing hourly at rest | C-COST-01 | **P3** |
 | 17 | AI security | Contains prompt injection and AI agency | C-AI-01..07 | **P9** |
 | 18 | Governance | Risk is modelled, accepted and changed on the record, by someone other than whoever asked | C-GOV-01..10 | P1, **P10** |
 
@@ -152,6 +153,25 @@ or read.
 | C-API-01 | Object-level authorization extended to AI analyses and proposals (developers: their own applications' findings and threat models only; 404, audited) | `AiService` | `test_who_may_analyse_what` |
 | C-API-13 | AI enumerations match the SPA's validator lists | `tests/unit/test_frontend_contract.py` | `ai.test.tsx` |
 
+## 2g. Controls implemented in Phase 3
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-IAC-01 | Per-stack Terraform roots, each with its own state key, `allowed_account_ids` and default tags (ADR-0014) | `terraform/bootstrap`, `terraform/account`, `terraform/environments/dev` | `make tf-check`; a plan against another account is refused by the provider |
+| C-IAC-02 | Encrypted, private, versioned, access-logged, TLS-only state bucket; writes under any other KMS key denied; S3-native locking; `prevent_destroy` | `terraform/bootstrap/main.tf` | The bootstrap plan and apply (18 resources); bucket policy statements `DenyWritesUnderAnotherKey`, `DenyNonKmsEncryption` |
+| C-IAC-03 | Plan, review, apply the saved plan only: no auto-approve; a stale or failed plan is discarded; the signed-in identity must belong to the stack's account, and the root user is refused | `scripts/tf.sh`, `make tf-plan`, `make tf-apply` | `make tf-plan`; a stale plan was refused on the first account apply ("Saved plan is stale") |
+| C-IAC-04 | Infrastructure tested and scanned before it is applied: fmt, validate, module tests with a mocked AWS provider, TFLint, Checkov in the scan gate; exceptions written in place with a reason | `scripts/tf-check.sh`, `terraform/modules/*/tests`, `.github/workflows/ci.yml` (terraform job), `scanning/checkov.yaml` | `make tf-check`, `make scan` |
+| C-NET-01 | Three subnet tiers per zone: public (NAT only), app (egress only through NAT, and only when NAT is on), data (no route out of the VPC); S3 through a gateway endpoint | `terraform/modules/network` | `make tf-check` (tests `resting_state_has_no_egress_and_no_hourly_resources`, `data_tier_is_isolated` in `network.tftest.hcl`) |
+| C-NET-02 | Security-group chain: ALB → app on 8000 → database on 5432; the app's only internet egress is 443; the database has no egress; the default group has no rules | `terraform/modules/security-groups`, `aws_default_security_group` | `make tf-check` (test `each_hop_admits_only_the_one_before_it`) |
+| C-NET-04 | VPC flow logs (accepted and rejected), KMS-encrypted, kept a year; the NAT instance is IMDSv2-only, encrypted, with no SSH, key pair or role, admitting HTTP and HTTPS from the app subnets only | `terraform/modules/network/flow-logs.tf`, `nat.tf` | `make tf-check` (test `nat_instance_mode`) |
+| C-AWS-01 | Account guardrails: S3 public access blocked account-wide, EBS encryption by default; the AWS-managed SCPs of the new sign-up experience on top (they deny Access Analyzer and OIDC providers) | `terraform/account/main.tf`; [aws-setup.md](aws-setup.md) | The account plan and apply; the recorded SCP denials |
+| C-LOG-04 | One multi-region CloudTrail trail with global events, digest validation, KMS, a versioned and access-logged bucket, and a CloudWatch log group kept a year | `terraform/account/cloudtrail.tf` | The account apply; `aws cloudtrail get-trail-status` |
+| C-MON-02 | CIS account alarms to an encrypted SNS topic: root use, trail changes, KMS keys disabled or scheduled for deletion, bursts of access-denied calls | `terraform/account/alerts.tf` | The account apply; the e-mail subscription confirmed on 2026-10-09 |
+| C-COST-01 | Spend bounded: the Free plan's credits are a hard ceiling; a $30 budget with alerts at $5, $15, $30 and a forecast; nothing hourly at rest (`nat_mode = "none"`); one deploy window, then destroy | `terraform/bootstrap/main.tf` (budget), `terraform/modules/network/nat.tf`, ADR-0016, ADR-0025 | `make tf-check` (test `resting_state_has_no_egress_and_no_hourly_resources`); [runbook](runbooks/aws-cost-runaway.md) |
+| C-IAM-01 | One IAM role per function, each with only what it needs: the trail's log writer, the flow-log writer, and the local API's Bedrock role (one model) | `terraform/account/cloudtrail.tf`, `bedrock.tf`, `terraform/modules/network/flow-logs.tf` | Trust policies pinned to the calling service and account (`aws:SourceArn`, `aws:SourceAccount`) |
+| C-IAM-03 | Every IAM and KMS permission written next to its reason | The `.tf` files above | Code review |
+| C-AI-07 | Bedrock least privilege extended to this account: a signed-in session is never written into the container; `make bedrock-credentials` assumes the one-model role instead | `scripts/bedrock-credentials.sh`, `terraform/account/bedrock.tf` | `make bedrock-credentials` |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
@@ -167,7 +187,7 @@ or read.
 | Excessive data exposure | T-API-05 | Explicit response models | ADR-0012 | `test_every_json_route_declares_a_response_model`, `test_no_response_model_exposes_secret_fields` | **P1, P6** |
 | Information leakage in errors | T-API-09 | Generic envelope, internal logging | `errors.py` | `test_error_handling.py` | **P1** |
 | Origin bypass | T-EDGE-03 | Internal ALB + VPC origin | `alb`, `cloudfront` modules | External connection test fails; Checkov | P4–5 |
-| Public database | T-DB-01 | Isolated subnets, SG, `publicly_accessible=false` | `rds`, `vpc` modules | Checkov; plan review | P3–4 |
+| Public database | T-DB-01 | Isolated subnets, SG, `publicly_accessible=false` | `network`, `security-groups` modules; `rds` module (P4) | `make tf-check` (`data_tier_is_isolated`); Checkov; plan review | **P3**, P4 |
 | Secret leakage | T-SEC-01 | Gitleaks + Secrets Manager | `.gitleaks.toml`; `secrets-manager` module | Gitleaks report | **P1**, P4 |
 | Supply chain | T-SC-01 | Pinned deps + SCA + SBOM + image scan + build-time OS fixes | Lock files; Syft; Trivy; Dockerfiles | CI artifact `security-scans-<run>`; Vulnerabilities and SBOM pages | **P1, P8** |
 | Known vulnerabilities shipped | T-VM-03, T-VM-04 | Scan gate, findings lifecycle, SLA, risk acceptance | ADR-0020, ADR-0021 | `test_scanning.py`, `test_vulnerabilities.py`; [runbook](runbooks/vulnerability-remediation.md) | **P8** |
@@ -178,7 +198,8 @@ or read.
 | Excessive AI agency | T-AI-05 | Tighten-only proposals + lead approval | `app/services/ai.py` | `test_a_lead_approves_proposals_and_the_actions_run`, `test_the_record_cannot_be_rewritten` | **P9** |
 | WAF weakened via app | T-WAF-02 | Read-only WAF IAM; Terraform-only changes | ADR-0008; IAM module | IAM policy; Access Analyzer | P5 |
 | Certificate expiry | T-EDGE-02 | ACM managed renewal + expiry alerting | ACM module; worker poller | CloudWatch alarm; dashboard | P5 |
-| Cross-environment change | T-IAC-01 | Per-env roots, account guards | ADR-0014 | Plan fails on wrong account | P3 |
+| Cross-environment change | T-IAC-01, T-IAC-03 | Per-stack roots, account and identity guards, saved-plan-only apply | ADR-0014; `scripts/tf.sh` | `make tf-plan` refuses another account and the root user | **P3** |
+| Runaway cloud spend | T-COST-01 | Credit ceiling, budget alerts, nothing hourly at rest, one window then destroy | ADR-0016, ADR-0025 | `make tf-check`; [runbook](runbooks/aws-cost-runaway.md) | **P3** |
 
 ## 4. Planned controls
 
@@ -187,7 +208,7 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 
 | ID | Control | Phase |
 |---|---|---|
-| C-DNS-01 | CAA records and Route 53 managed as code | 5 |
+| C-DNS-01 | DNS records as code; CAA lets only Amazon issue, and forbids wildcards (is-a.dev pull request generated by `scripts/isadev-records.py`) | 5 |
 | C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge | 5 |
 | C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001) | 4 |
 | C-EDGE-03 | CloudFront response headers policy | 5 |
@@ -196,14 +217,8 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 | C-WAF-03 | Rate-based WAF rules | 5 |
 | C-WAF-04 | WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008) | 5 |
 | C-LB-01 | ALB desync mitigation (strictest) and invalid-header dropping | 4 |
-| C-NET-01 | Private subnets for the application and the database | 3 |
-| C-NET-02 | Tiered security groups: each tier reachable only from the tier above | 3 |
-| C-IAC-01 | Per-environment Terraform roots with `allowed_account_ids` guards (ADR-0014) | 3 |
-| C-IAC-02 | Encrypted, private, versioned Terraform state bucket | 3 |
 | C-DB-02 | Encryption at rest (KMS) and in transit (`rds.force_ssl`) | 4 |
 | C-DB-04 | Automated database backups | 4 |
-| C-IAM-01 | One IAM role per function, least privilege | 3 |
-| C-IAM-02 | No static cloud keys: GitHub OIDC for CI (ADR-0010) | 11 |
-| C-IAM-03 | Every IAM permission documented with its reason | 3 |
+| C-IAM-02 | No static cloud keys for CI. GitHub OIDC (ADR-0010) is denied by this account's SCPs, so Phase 11 redesigns it | 11 |
 | C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head | 4 |
 | C-MON-01 | CloudWatch alarms for errors, latency and security signals | 4 |

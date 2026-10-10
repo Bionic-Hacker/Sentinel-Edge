@@ -5,16 +5,18 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1, 2, 6, 7, 8, 10 and 9 complete (v0.7.0): AI security engine.**
+> **Current status: Phases 1, 2, 6, 7, 8, 10, 9 and 3 complete (v0.8.0): AWS foundation.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
 > an API Security Center, attack detection and incidents, a labelled attack simulator, scanning
-> behind a fail-closed gate, vulnerability management, threat modeling and governance run locally,
-> and now an AI security engine: analyses of events, incidents, findings and threat models behind
-> prompt-injection guardrails and a verbatim-evidence contract, whose proposals a human approves.
-> **No AWS resources exist yet**: AWS phases are deliberately grouped late
-> to keep cloud costs down ([ADR-0016](docs/adr/0016-local-first-phase-order.md)). Every
-> capability is labelled REAL_AWS, LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs,
-> and tests enforce those labels. See [docs/feature-classification.md](docs/feature-classification.md).
+> behind a fail-closed gate, vulnerability management, threat modeling and governance, and an AI
+> security engine whose proposals a human approves, all run locally. Phase 3 adds the **first real
+> AWS resources**, all as Terraform: encrypted remote state, account guardrails, a multi-region
+> CloudTrail trail with security alarms, a three-tier VPC with flow logs and a security-group
+> chain, a container registry and certificates, at about $2 a month while idle
+> ([ADR-0025](docs/adr/0025-aws-account-domain-and-deploy-window.md)). The workload (Phase 4) and
+> the edge (Phase 5) arrive in one short deploy window. Every capability is labelled REAL_AWS,
+> LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs, and tests enforce those labels. See
+> [docs/feature-classification.md](docs/feature-classification.md).
 
 ## Contents
 
@@ -247,13 +249,14 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 8 | Application security scanning, SBOM, vulnerability management | **Complete** (v0.5.0) |
 | 10 | Threat modeling and governance | **Complete** (v0.6.0) |
 | 9 | AI security engine on Amazon Bedrock | **Complete** (v0.7.0) |
-| 3 | Terraform AWS foundation: VPC, security groups, IAM, ECR, state | Next |
-| 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Planned |
-| 5 | CloudFront, AWS WAF, ACM/TLS, Route 53, edge headers | Planned |
+| 3 | Terraform AWS foundation: state, guardrails, CloudTrail, VPC, security groups, ECR, certificates | **Complete** (v0.8.0) |
+| 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | Next |
+| 5 | CloudFront, AWS WAF, ACM/TLS, DNS (is-a.dev), edge headers | Planned |
 | 11 | Automation and full DevSecOps pipeline | Planned |
 | 12 | Hardening, final assessment, interview demo | Planned |
 
-AWS cost so far: $0. The AWS phases run as one deployment window, then deploy–demo–destroy.
+AWS cost so far: cents (two KMS keys, about $2 a month, paid from sign-up credits). Phases 4 and 5
+run as one deployment window, then deploy–demo–destroy ([runbook](docs/runbooks/aws-cost-runaway.md)).
 
 ## Documentation
 

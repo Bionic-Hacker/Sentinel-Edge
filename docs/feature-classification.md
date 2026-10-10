@@ -16,8 +16,9 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 
 1. The source of truth is `backend/app/core/capabilities.py`, served at
    `GET /api/v1/platform/capabilities` and rendered on every module page.
-2. A capability may become `REAL_AWS` + `implemented` only when a Terraform-managed resource and an
-   integration test exist for it. `tests/unit/test_capabilities.py` fails otherwise.
+2. A capability may become `REAL_AWS` + `implemented` only when its phase has shipped a
+   Terraform-managed resource, applied, with tests (module tests from Phase 3, integration tests
+   against the deployed stack from Phase 4). `tests/unit/test_capabilities.py` pins the list.
 3. `sim.*` and `demo.*` capabilities can never be `REAL_AWS` (tested).
 4. From Phase 2, every telemetry record stores its provenance, and the UI shows it on the record.
 5. Wording: real controls say what happened ("Blocked by AWS WAF rule AWSManagedRulesSQLiRuleSet").
@@ -25,10 +26,11 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 6. When a real integration is not yet possible, the UI says "Simulation / planned API
    integration" rather than implying the action happened.
 
-## Current register (Phase 9)
+## Current register (Phase 3)
 
 | Area | Implemented now (LOCAL) | Planned LOCAL | Planned REAL_AWS | Planned SIMULATED / DEMO |
 |---|---|---|---|---|
+| AWS foundation | — | — | **Implemented (P3):** encrypted Terraform state, account guardrails, multi-region CloudTrail, CIS alarms, budget; three-tier VPC, flow logs, security-group chain (`aws.foundation`, `aws.network`) | — |
 | Platform | Health, secure errors, structured logging, Host allow-list | — | ECS, ALB, RDS (P4) | — |
 | Edge / WAF / TLS | API + local edge security headers | — | CloudFront, WAF, ACM, WAF logs (P5) | — |
 | Identity | Auth, MFA, RBAC, user admin (P2) | — | — | — |
@@ -39,7 +41,8 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 | Governance | Provenance register, tamper-evident audit log (P2); threat modeling (STRIDE, PASTA) with SentinelEdge's model loaded from the reviewed documents, control catalogue and requirement matrix, explainable posture score with snapshots, security exceptions and change management with separation of duties (P10) | — | Audit archive to S3 Object Lock (P4) | **Implemented (P10):** a `waf_rule` change request drives the simulated WAF |
 | Demo | — | — | — | Demo mode, five scenarios (P12) |
 
-After Phase 9 there are still **zero** REAL_AWS capabilities; no AWS resources exist (ADR-0016).
+After Phase 3 there are **two** REAL_AWS capabilities, the account foundation and the network
+(ADR-0025); nothing that serves traffic is deployed yet.
 The AI engine is LOCAL: it runs in the local API. With `SENTINEL_AI_PROVIDER=bedrock` its model
 calls go to Amazon Bedrock (the status shows REAL_AWS for them), but nothing is deployed and the
 default is `disabled`; `offline` answers deterministically and says so.
