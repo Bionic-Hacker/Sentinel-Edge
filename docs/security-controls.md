@@ -8,7 +8,7 @@ or read.
 
 | # | Layer | Why it exists | Control IDs | Status |
 |---|---|---|---|---|
-| 1 | DNS | Authoritative records managed as code; CAA limits who can issue certificates | C-DNS-01 | P5 |
+| 1 | DNS | Authoritative records managed as code; CAA limits who can issue certificates | C-DNS-01 | P3 |
 | 2 | CDN / edge | Terminates TLS close to users, hides origin, absorbs volume | C-EDGE-01..03 | P5 |
 | 3 | WAF | Blocks known attack patterns before they cost origin resources | C-WAF-01..04 | P5 |
 | 4 | Load balancer | Private origin, HTTPS, desync protection | C-EDGE-02, C-LB-01 | P4 |
@@ -170,6 +170,7 @@ or read.
 | C-COST-01 | Spend bounded: the Free plan's credits are a hard ceiling; a $30 budget with alerts at $5, $15, $30 and a forecast; nothing hourly at rest (`nat_mode = "none"`); one deploy window, then destroy | `terraform/bootstrap/main.tf` (budget), `terraform/modules/network/nat.tf`, ADR-0016, ADR-0025 | `make tf-check` (test `resting_state_has_no_egress_and_no_hourly_resources`); [runbook](runbooks/aws-cost-runaway.md) |
 | C-IAM-01 | One IAM role per function, each with only what it needs: the trail's log writer, the flow-log writer, and the local API's Bedrock role (one model) | `terraform/account/cloudtrail.tf`, `bedrock.tf`, `terraform/modules/network/flow-logs.tf` | Trust policies pinned to the calling service and account (`aws:SourceArn`, `aws:SourceAccount`) |
 | C-IAM-03 | Every IAM and KMS permission written next to its reason | The `.tf` files above | Code review |
+| C-DNS-01 | DNS records as code in a Route 53 zone delegated from the owner's domain (`sentineledge.bionichacker.dev`); CAA lets only Amazon issue and forbids wildcards; exact-name certificates validated in the zone; the zone is `prevent_destroy` so a delegation can never be left dangling (ADR-0025) | `terraform/modules/dns-zone`, `terraform/modules/certificate`, `terraform/environments/dev/main.tf` | `make tf-check` (tests in `dns-zone.tftest.hcl` and `certificate.tftest.hcl`); `dig CAA sentineledge.bionichacker.dev` |
 | C-AI-07 | Bedrock least privilege extended to this account: a signed-in session is never written into the container; `make bedrock-credentials` assumes the one-model role instead | `scripts/bedrock-credentials.sh`, `terraform/account/bedrock.tf` | `make bedrock-credentials` |
 
 ## 3. Matrix: requirement → threat → control → implementation → evidence
@@ -208,7 +209,6 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 
 | ID | Control | Phase |
 |---|---|---|
-| C-DNS-01 | DNS records as code; CAA lets only Amazon issue, and forbids wildcards (records listed by `scripts/dns-records.py`; the domain and its DNS host are chosen before Phase 5, ADR-0025) | 5 |
 | C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge | 5 |
 | C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001) | 4 |
 | C-EDGE-03 | CloudFront response headers policy | 5 |

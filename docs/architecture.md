@@ -13,7 +13,7 @@ every control it reports on also protects it.
 
 ```
 Internet
-  │  DNS: app.<domain chosen before Phase 5> (CAA: Amazon only, no wildcards)  [Phase 5]
+  │  DNS: sentineledge.bionichacker.dev, a Route 53 zone (CAA: Amazon only, no wildcards)
   ▼
 CloudFront edge  ─── AWS WAF web ACL evaluated here, before any origin request [Phase 5]
   │  TLS 1.2+ (ACM cert, us-east-1), response-headers policy

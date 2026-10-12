@@ -12,7 +12,7 @@ SentinelEdge is its own first protected workload. Every control it reports on al
 > security engine whose proposals a human approves, all run locally. Phase 3 adds the **first real
 > AWS resources**, all as Terraform: encrypted remote state, account guardrails, a multi-region
 > CloudTrail trail with security alarms, a three-tier VPC with flow logs and a security-group
-> chain, a container registry and certificates, at about $2 a month while idle
+> chain, a container registry, the platform's DNS zone and certificates, at about $2.50 a month while idle
 > ([ADR-0025](docs/adr/0025-aws-account-domain-and-deploy-window.md)). The workload (Phase 4) and
 > the edge (Phase 5) arrive in one short deploy window. Every capability is labelled REAL_AWS,
 > LOCAL, SIMULATED, or DEMO in the UI, the API, and the docs, and tests enforce those labels. See
@@ -255,7 +255,7 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 11 | Automation and full DevSecOps pipeline | Planned |
 | 12 | Hardening, final assessment, interview demo | Planned |
 
-AWS cost so far: cents (two KMS keys, about $2 a month, paid from sign-up credits). Phases 4 and 5
+AWS cost so far: cents (two KMS keys and a DNS zone, about $2.50 a month, paid from sign-up credits). Phases 4 and 5
 run as one deployment window, then deploy–demo–destroy ([runbook](docs/runbooks/aws-cost-runaway.md)).
 
 ## Documentation

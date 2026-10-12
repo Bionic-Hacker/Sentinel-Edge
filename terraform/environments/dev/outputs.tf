@@ -33,17 +33,19 @@ output "ecr_api_repository_url" {
 }
 
 output "certificate_status" {
-  description = "Both certificates: PENDING_VALIDATION until the DNS record is published (empty until app_domain is set)."
+  description = "Both certificates: PENDING_VALIDATION until the zone is delegated, then ISSUED (empty while app_domain is empty)."
   value = {
     edge_us_east_1 = one(module.certificate_edge[*].status)
     origin         = one(module.certificate_origin[*].status)
   }
 }
 
-output "certificate_validation_records" {
-  description = "Publish these in the domain's DNS (scripts/dns-records.py). Both certificates use the same record."
-  value = distinct(concat(
-    flatten(module.certificate_edge[*].validation_records),
-    flatten(module.certificate_origin[*].validation_records),
-  ))
+output "dns_delegation" {
+  description = "Add these NS records at the parent domain's DNS (the registrar) to hand the platform's name to Route 53."
+  value = var.app_domain == "" ? null : {
+    parent_domain = join(".", slice(split(".", var.app_domain), 1, length(split(".", var.app_domain))))
+    host          = split(".", var.app_domain)[0]
+    type          = "NS"
+    values        = module.dns_zone[0].name_servers
+  }
 }

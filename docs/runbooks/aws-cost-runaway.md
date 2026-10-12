@@ -56,7 +56,7 @@ On the paid plan, setting the project's spend limit low pauses the whole project
 ## 6. Validation
 1. The step 2 commands list nothing (or only what the plan says should be running).
 2. `make tf-plan STACK=dev` shows no changes.
-3. The next day's spend in Cost Explorer is the standing cost only (about $2 a month).
+3. The next day's spend in Cost Explorer is the standing cost only (about $2.50 a month).
 
 ## 7. Rollback
 - Nothing to roll back: the environment is re-created with `make tf-plan STACK=dev` and

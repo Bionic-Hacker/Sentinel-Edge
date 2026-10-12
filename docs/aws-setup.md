@@ -83,8 +83,9 @@ make tf-apply STACK=bootstrap
 `dev` is the environment's foundation: a VPC across two Availability Zones (pinned by zone ID,
 `use2-az1` and `use2-az2`) with public, app and isolated data subnets, flow logs, a free S3
 gateway endpoint, the ALB → app → database security-group chain, an ECR repository for the API
-image, and, once `app_domain` is set, two ACM certificates for the platform's name (one in
-us-east-1 for CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle.
+image, the platform's DNS zone, and two ACM certificates for the platform's name (one in us-east-1
+for CloudFront, one in us-east-2 for the internal ALB). All of it is free while idle except the zone
+($0.50 a month).
 
 **NAT** is the one hourly item, switched by `nat_mode` in `terraform/environments/dev/terraform.tfvars`:
 
@@ -94,27 +95,42 @@ us-east-1 for CloudFront, one in us-east-2 for the internal ALB). All of it is f
 | `instance` | One t4g.nano NAT instance (IMDSv2, encrypted, no SSH, no role) | ≈ $0.009/hour |
 | `gateway` | One managed NAT gateway | ≈ $0.05/hour |
 
-**The domain** is chosen before Phase 5 (ADR-0025). Both free subdomain services tried in Phase 3
-suspended new names (is-a.dev disabled its pull requests; deSEC suspended `dedyn.io`), so the
-platform needs a domain the owner registers. Its DNS can be hosted free at deSEC ("configure your
-own domain") or in Route 53 ($0.50 a month).
+**The domain** (ADR-0025). The owner's domain, `bionichacker.dev`, is registered at Porkbun and
+its DNS stays there. Only the platform's name, `sentineledge.bionichacker.dev` (`app_domain`), is
+delegated to a Route 53 zone that `dev` creates. Other projects can take their own names under the
+same domain without touching this one. `.dev` is on the browsers' HSTS preload list, so every name
+under it is served over HTTPS only.
 
-Once it is chosen, set `app_domain` (for example `app.example.com`) in
-`terraform/environments/dev/terraform.tfvars`, plan and apply `dev`: two certificates are requested.
-They wait in `PENDING_VALIDATION` for one DNS record, the same for both and for every later
-request. List what the zone needs:
+Terraform publishes everything inside the zone: CAA at its apex (`0 issue "amazon.com"`,
+`0 issuewild ";"`: only Amazon may issue, and no wildcards) and the certificates' validation
+CNAME. The only manual step is the delegation, once:
 
-```fish
-cd ~/Sentinel-Edge/sentineledge
-env (aws configure export-credentials --profile sentineledge --format env-no-export) \
-  terraform -chdir=terraform/environments/dev output -json certificate_validation_records \
-  | python3 scripts/dns-records.py --zone example.com
-```
+1. Plan and apply `dev`. The zone, both certificates and the validation record are created; the
+   certificates wait in `PENDING_VALIDATION`.
+2. Print the delegation:
 
-It prints CAA at the zone (`0 issue "amazon.com"` and `0 issuewild ";"`: only Amazon may issue,
-and no wildcards) and the validation CNAME. Add them at the DNS host; within minutes ACM issues both
-certificates and `make tf-output STACK=dev` shows `ISSUED`. A request not validated within 72 hours
-expires: re-apply `dev`, and the same record validates the new one.
+   ```fish
+   make tf-output STACK=dev 2>&1 | grep -A 12 dns_delegation
+   ```
+
+3. At Porkbun, open the domain's **DNS** records and add four records, one per name server:
+   type `NS`, host `sentineledge`, answer the name server (for example
+   `ns-123.awsdns-15.com`), TTL 3600. Change nothing else; the domain's own name servers stay
+   Porkbun's.
+4. Check the delegation from your machine (all four servers, and the CAA through them):
+
+   ```fish
+   dig +short NS sentineledge.bionichacker.dev
+   dig +short CAA sentineledge.bionichacker.dev
+   ```
+
+5. Within minutes ACM issues both certificates. Set `dns_delegated = true` in
+   `terraform/environments/dev/terraform.tfvars`, plan and apply `dev` again: Terraform waits for
+   both certificates to be `ISSUED` (it adds two waiting resources and creates nothing billable),
+   and Phase 5 builds on that.
+
+A certificate request not validated within 72 hours expires. Re-apply `dev`; the record is the
+same, so the new request validates as soon as the delegation is live.
 
 ## What stays running, and what it costs
 
@@ -122,7 +138,7 @@ expires: re-apply `dev`, and the same record validates the new one.
 |---|---|---|
 | `bootstrap` | State KMS key; state and access-log buckets (a few KB) | ≈ $1/month |
 | `account` | Platform KMS key; CloudTrail bucket and log group; 4 alarms (always-free tier) | ≈ $1/month |
-| `dev` (`nat_mode = "none"`) | Flow-log group; empty ECR repository; certificates are free | ≈ $0 |
+| `dev` (`nat_mode = "none"`) | Flow-log group; empty ECR repository; Route 53 zone; certificates are free | ≈ $0.50/month |
 
 The deploy window (Phases 4 and 5) adds the hourly resources: see ADR-0016 and the Phase 4 notes.
 
@@ -132,6 +148,12 @@ Reverse order: `dev`, then `account`, then `bootstrap`, each with `make tf-destr
 and `make tf-apply STACK=…`. The state bucket refuses to be destroyed until `prevent_destroy` is
 removed from `terraform/bootstrap/main.tf` on purpose. KMS keys wait 30 days before deletion and
 can be recovered until then.
+
+**The DNS zone first.** `dev` refuses to delete its zone (`prevent_destroy`), because a zone deleted
+while Porkbun still delegates to its name servers can be claimed by anyone who creates zones until
+Route 53 hands them the same servers. Delete the four `sentineledge` NS records at Porkbun, wait an
+hour (their TTL), then remove `prevent_destroy` from `terraform/modules/dns-zone/main.tf` and
+destroy `dev`.
 
 ## Troubleshooting
 

@@ -798,16 +798,21 @@
    "title": "Automated database backups"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make tf-check"
+    }
+   ],
+   "evidence_text": "make tf-check (tests in dns-zone.tftest.hcl and certificate.tftest.hcl); dig CAA sentineledge.bionichacker.dev",
    "extensions": [],
    "family": "DNS",
-   "implementation": "",
+   "implementation": "terraform/modules/dns-zone, terraform/modules/certificate, terraform/environments/dev/main.tf",
    "layer": "DNS",
-   "phase": 5,
+   "phase": 3,
    "ref": "C-DNS-01",
-   "status": "planned",
-   "title": "DNS records as code; CAA lets only Amazon issue, and forbids wildcards (records listed by scripts/dns-records.py; the domain and its DNS host are chosen before Phase 5, ADR-0025)"
+   "status": "implemented",
+   "title": "DNS records as code in a Route 53 zone delegated from the owner's domain (sentineledge.bionichacker.dev); CAA lets only Amazon issue and forbids wildcards; exact-name certificates validated in the zone; the zone is prevent_destroy so a delegation can never be left dangling (ADR-0025)"
   },
   {
    "evidence": [],
@@ -2010,7 +2015,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "5ed0f4ff2dbb70bcad5eca2f8e1c5a31cb3bb10d24ec9ac99f7a54f7466304f6",
+ "digest": "1cf7b2738165c5bd25462f6378a4ce8a7aeb7e92150e7fe88d9c71480ec4463d",
  "format": 1,
  "model": {
   "elements": [
@@ -4481,16 +4486,16 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner (chosen before Phase 5)",
+    "mitigation": "CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner; the zone is prevent_destroy and the teardown removes the delegation first",
     "owasp": "",
     "phases": [
-     5
+     3
     ],
     "ref": "T-DNS-01",
-    "status": "planned",
-    "status_text": "Planned (P5)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P3)",
     "stride": "S",
-    "title": "A certificate issued for the platform's name by someone else, or the name taken over"
+    "title": "A certificate issued for the platform's name by someone else, or the name taken over (including through a delegation left pointing at a deleted Route 53 zone)"
    },
    {
     "boundaries": [

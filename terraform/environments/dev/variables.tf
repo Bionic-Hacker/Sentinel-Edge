@@ -45,12 +45,24 @@ variable "nat_mode" {
 }
 
 variable "app_domain" {
-  description = "Public host name of the platform, in a domain the owner controls (ADR-0025). Empty until the domain is chosen, before Phase 5: no certificates are requested."
+  description = "Public host name of the platform: the apex of a zone delegated from the owner's domain (ADR-0025). Empty requests no zone and no certificates."
   type        = string
-  default     = ""
+  default     = "sentineledge.bionichacker.dev"
 
   validation {
-    condition     = var.app_domain == "" || can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$", var.app_domain))
-    error_message = "app_domain must be empty or a lower-case host name such as app.example.com."
+    condition     = var.app_domain == "" || can(regex("^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.){2,}[a-z]{2,63}$", var.app_domain))
+    error_message = "app_domain must be empty or a lower-case name below a registered domain, such as sentineledge.example.com."
   }
+}
+
+variable "dns_delegated" {
+  description = "Set true once the registrar's NS records for app_domain are live: Terraform then waits for both certificates to be issued."
+  type        = bool
+  default     = false
+}
+
+variable "caa_iodef" {
+  description = "Optional CAA iodef URL (mailto: or https:) where certificate authorities report refused requests."
+  type        = string
+  default     = ""
 }

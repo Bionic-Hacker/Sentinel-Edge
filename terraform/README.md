@@ -12,7 +12,7 @@ and [ADR-0016](../docs/adr/0016-local-first-phase-order.md) (when AWS money is s
 |---|---|---|---|---|
 | `bootstrap` | `bootstrap/` | Local file (it creates the bucket the others use) | State bucket, access-log bucket, state KMS key, cost budget | ≈ $1/month (the key) |
 | `account` | `account/` | S3, key `account/terraform.tfstate` | Account guardrails, CloudTrail, security alarms, platform KMS key | ≈ $1/month (the key) |
-| `dev` | `environments/dev/` | S3, key `dev/terraform.tfstate` | VPC and subnets, flow logs, S3 endpoint, security-group chain, ECR, certificates; NAT behind `nat_mode` | ≈ $0 with `nat_mode = "none"`; the deploy window is billed by the hour |
+| `dev` | `environments/dev/` | S3, key `dev/terraform.tfstate` | VPC and subnets, flow logs, S3 endpoint, security-group chain, ECR, the platform's Route 53 zone, certificates; NAT behind `nat_mode` | ≈ $0.50/month with `nat_mode = "none"`; the deploy window is billed by the hour |
 
 Apply in that order. Destroy in the reverse order; `bootstrap`'s state bucket refuses to be
 destroyed until `prevent_destroy` is removed on purpose.
@@ -43,7 +43,7 @@ terraform/
 ├── .tflint.hcl
 ├── bootstrap/          # state bucket, access logs, state key, budget (local state)
 ├── account/            # guardrails, CloudTrail, alarms, platform key
-├── modules/            # network, security-groups, ecr, certificate (each tested with
+├── modules/            # network, security-groups, ecr, certificate, dns-zone (each tested with
 │                       # terraform test and a mocked provider)
 └── environments/
     └── dev/            # the one environment; staging and production would be copies with

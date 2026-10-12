@@ -2,5 +2,7 @@
 account_id = "123456789012"
 # Between deploy windows: "none". During a window: "instance" (or "gateway").
 # nat_mode   = "none"
-# Set before Phase 5, once the domain is chosen (ADR-0025):
-# app_domain = "app.example.com"
+# The platform's name (default sentineledge.bionichacker.dev, ADR-0025). Set "" for no zone.
+# app_domain = "sentineledge.example.com"
+# Once the registrar's NS records for app_domain resolve (docs/aws-setup.md):
+# dns_delegated = true
