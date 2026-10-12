@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Neither value is a secret, but the real
+# file stays out of git by policy (ADR-0014).
+account_id   = "123456789012"
+budget_email = "you@example.com"
+# monthly_budget_usd          = 30
+# budget_alert_thresholds_usd = [5, 15, 30]

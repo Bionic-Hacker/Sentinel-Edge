@@ -15,3 +15,13 @@
 
 ## Security impact
 Mitigates pipeline compromise and supply-chain substitution (T-CICD-01, T-CICD-02).
+
+## Addendum (Phase 3, 2026-10-09): OIDC is not available in this account
+The project's AWS account (ADR-0025) is managed by AWS's newer sign-up experience, whose
+AWS-written service control policies deny `iam:CreateOpenIDConnectProvider`. The GitHub Actions
+identity provider therefore cannot be created, and no workflow can assume a role in this account
+without stored keys. The rule stands: **no long-lived AWS keys in GitHub**. Until Phase 11 decides
+otherwise, Terraform runs from the owner's machine with a 12-hour `aws login` session, and CI runs
+only checks that need no AWS access (fmt, validate, module tests, TFLint, Checkov). Phase 11
+chooses between a separate account that allows OIDC, a different keyless route, or keeping
+deployment off CI.

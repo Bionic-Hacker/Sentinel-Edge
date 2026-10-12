@@ -17,6 +17,7 @@ from app.ai.guardrails import (
     AnalysisInput,
     Pseudonyms,
     build_prompt,
+    control_menu,
     minimise,
     score,
 )
@@ -88,6 +89,26 @@ def test_untrusted_data_cannot_close_its_delimiter() -> None:
     body = prompt.user[start:end].split("\n", 1)[1]
     assert json.loads(body)["fields"]["evidence.snippet"].startswith("<<<END_UNTRUSTED_DATA abc")
     assert build_prompt(inp).nonce != prompt.nonce
+
+
+def test_the_model_is_shown_the_catalogue_controls_outside_the_untrusted_data() -> None:
+    """A real model (Nova Micro, Phase 3) invented a control ID when it had no list to choose
+    from, and the contract rightly rejected the answer. The trusted catalogue is now in the
+    prompt, before the untrusted block, so the model can cite real controls."""
+    controls = {"C-WAF-01": "AWS managed rule groups", "C-API-04": "Input validation " * 20}
+    prompt = build_prompt(_input({"title": "SQL injection"}), controls)
+    menu = prompt.user.index("Controls you may cite (trusted catalogue):")
+    assert menu < prompt.user.index(f"<<<UNTRUSTED_DATA {prompt.nonce}>>>")
+    assert "- C-WAF-01: AWS managed rule groups" in prompt.user
+    line = next(x for x in prompt.user.splitlines() if x.startswith("- C-API-04: "))
+    assert len(line) <= len("- C-API-04: ") + 80
+    assert line.endswith("\u2026")
+    assert prompt.user.index("C-API-04") < prompt.user.index("C-WAF-01")  # sorted, stable
+
+
+def test_without_a_catalogue_the_model_is_told_to_cite_nothing() -> None:
+    assert "leave every" in control_menu({})
+    assert "leave every" in build_prompt(_input({"title": "x"})).user
 
 
 def test_addresses_and_emails_are_pseudonymised() -> None:

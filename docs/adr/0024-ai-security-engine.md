@@ -122,3 +122,12 @@ before any database write, so no lock is held while a model is thinking.
   AI" on events, incidents, findings and threat models.
 - Threats T-AI-01 to T-AI-06 mitigated, and T-AI-07 to T-AI-10 added. Controls C-AI-01 to C-AI-07
   are implemented.
+
+## Addendum (Phase 3, 2026-10-09): the first real answer
+The first call to a real model (Nova Micro through its US inference profile, `make ai-check` on
+2026-10-09) completed and was **rejected**: it cited a control ID that is not in the catalogue.
+The contract did what it is for. The cause was the prompt: it asked for "control IDs you are
+confident exist" without listing any. The prompt now carries the catalogue's control IDs with their
+titles (cut to 80 characters) as trusted context, before the untrusted block, and tells the model
+to leave `controls` empty when none fits; the contract still refuses any other ID. About 2,000
+extra input tokens per analysis, inside the daily bound.

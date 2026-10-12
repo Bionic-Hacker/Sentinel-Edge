@@ -235,8 +235,8 @@ them as part of the analysis instead.
 conclude goes in "inference", never in "observed_evidence".
 4. Only propose the action types listed as allowed. Proposals are reviewed by a human; they \
 never run on their own.
-5. Recommend only control IDs that appear in the data or that you are confident exist in the \
-form C-XXX-00; unknown IDs make the whole answer invalid."""
+5. Cite only control IDs from the list of controls you may cite; any other ID makes the whole \
+answer invalid. If no listed control fits, leave "controls" empty."""
 
 SCHEMA = """{
   "summary": "plain text, 10-600 characters",
@@ -252,7 +252,25 @@ design_threat|benign|unknown",
 }"""
 
 
-def build_prompt(inp: AnalysisInput) -> Prompt:
+CONTROL_TITLE_CHARS = 80
+
+
+def control_menu(controls: Mapping[str, str]) -> str:
+    """The catalogue controls a model may cite, one per line as "ID: title" (trusted text from
+    the reviewed catalogue, never from the analysed data). Titles are cut short: the model needs
+    enough to choose, and every line costs tokens."""
+    if not controls:
+        return '- none: leave every "controls" list empty'
+    lines = []
+    for ref in sorted(controls):
+        title = " ".join(controls[ref].split())
+        if len(title) > CONTROL_TITLE_CHARS:
+            title = title[: CONTROL_TITLE_CHARS - 1].rstrip() + "\u2026"
+        lines.append(f"- {ref}: {title}")
+    return "\n".join(lines)
+
+
+def build_prompt(inp: AnalysisInput, controls: Mapping[str, str] | None = None) -> Prompt:
     nonce = secrets.token_hex(8)
     data = json.dumps(
         {"subject": inp.subject_ref, "fields": inp.fields}, ensure_ascii=False, indent=1
@@ -262,6 +280,7 @@ def build_prompt(inp: AnalysisInput) -> Prompt:
         f"Analyse this {inp.subject_type.value.replace('_', ' ')}.\n\n"
         f"Platform context (trusted): {json.dumps(inp.platform, ensure_ascii=False)}\n\n"
         f"Allowed proposed_actions (at most one of each):\n- " + "\n- ".join(allowed) + "\n\n"
+        f"Controls you may cite (trusted catalogue):\n{control_menu(controls or {})}\n\n"
         f"Answer schema:\n{SCHEMA}\n\n"
         f"<<<UNTRUSTED_DATA {nonce}>>>\n{data}\n<<<END_UNTRUSTED_DATA {nonce}>>>\n\n"
         "Reply with the JSON object only."

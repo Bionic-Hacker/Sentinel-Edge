@@ -336,13 +336,22 @@ CAPABILITIES: tuple[Capability, ...] = (
     ),
     # --- Planned: real AWS integrations --------------------------------------------------
     _c(
+        "aws.foundation",
+        "AWS account foundation",
+        "Platform",
+        R,
+        DONE,
+        3,
+        "Encrypted Terraform state, guardrails, multi-region CloudTrail, CIS alarms, budget.",
+    ),
+    _c(
         "aws.network",
         "VPC, private subnets, security groups",
         "Network Security",
         R,
-        PLAN,
+        DONE,
         3,
-        "Terraform-managed. Zero-cost resources first.",
+        "Three tiers, flow logs, security-group chain; NAT off between deploy windows.",
     ),
     _c(
         "aws.compute",

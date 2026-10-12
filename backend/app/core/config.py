@@ -71,14 +71,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SENTINEL_", extra="ignore")
 
     environment: Environment = Environment.LOCAL
-    app_version: str = Field(default="0.7.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    app_version: str = Field(default="0.8.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     log_level: LogLevel = LogLevel.INFO
     enable_api_docs: bool = False
     trusted_hosts: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["localhost", "127.0.0.1"]
     )
     ai_provider: AIProvider = AIProvider.DISABLED
-    aws_region: str = Field(default="us-east-1", pattern=r"^[a-z]{2}-[a-z]+-[0-9]$")
+    aws_region: str = Field(default="us-east-2", pattern=r"^[a-z]{2}-[a-z]+-[0-9]$")
 
     # Database. Supplied as separate fields (not a URL) so that an RDS-managed secret's
     # username/password/host/port/dbname keys map onto them directly in Phase 4, and so that
@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     # (OWASP LLM10): a call is refused before it is made once a limit is reached.
     # Bedrock model ID. Amazon Nova Micro by default: an AWS model, so promotional credits apply.
     ai_model: str = Field(
-        default="amazon.nova-micro-v1:0", pattern=r"^[a-z0-9-]+(\.[a-z0-9-]+)+(:[0-9]+)?$"
+        default="us.amazon.nova-micro-v1:0", pattern=r"^[a-z0-9-]+(\.[a-z0-9-]+)+(:[0-9]+)?$"
     )
     ai_max_output_tokens: int = Field(default=800, ge=100, le=4000)
     ai_requests_per_user_per_day: int = Field(default=20, ge=1, le=1000)

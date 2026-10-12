@@ -46,7 +46,11 @@ from app.services.governance import sync_catalogue
 CATEGORIES: tuple[tuple[str, str, frozenset[str]], ...] = (
     ("identity", "Identity and access", frozenset({"ID"})),
     ("application", "Application and API", frozenset({"API", "WEB"})),
-    ("network", "Network, data and cloud", frozenset({"NET", "DB", "CNT", "IAM", "IAC"})),
+    (
+        "network",
+        "Network, data and cloud",
+        frozenset({"NET", "DB", "CNT", "IAM", "IAC", "AWS", "COST"}),
+    ),
     ("edge", "Edge and TLS", frozenset({"EDGE", "DNS", "LB"})),
     ("waf", "WAF", frozenset({"WAF"})),
     ("logging", "Logging and audit", frozenset({"LOG", "AUD"})),

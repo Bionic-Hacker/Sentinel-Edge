@@ -12,6 +12,12 @@
 *.tfstate.*
 .terraform/
 .terraform.lock.hcl.bak
+# Saved plans can hold resource values; backend.hcl is written per machine by scripts/tf.sh.
+tfplan
+*.tfplan
+terraform/**/backend.hcl
+# Modules are not applied on their own; only the stacks' lock files are committed.
+terraform/modules/**/.terraform.lock.hcl
 crash.log
 
 # Python

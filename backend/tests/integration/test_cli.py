@@ -125,6 +125,18 @@ def test_ai_check_runs_the_synthetic_analysis_through_the_contract(db_app: FastA
     assert entries[-1].details["usage"]["input"] > 0
 
 
+def test_ai_check_can_show_the_raw_answer_but_never_stores_it(db_app: FastAPI) -> None:
+    out = io.StringIO()
+    settings = make_settings(ai_provider=AIProvider.OFFLINE)
+    code = main(["ai-check", "--show-answer"], settings=settings, out=out)
+    text_out = out.getvalue()
+    assert code == 0, text_out
+    raw = text_out.split("--- raw answer (not stored) ---\n", 1)[1].split("\n--- end")[0]
+    assert raw.lstrip().startswith("{")
+    details = audit_entries(db_app, AuditAction.AI_ANALYSIS_RUN)[-1].details
+    assert raw.strip() not in str(details)
+
+
 def test_ai_check_with_ai_disabled(db_app: FastAPI) -> None:
     code, output = _run("ai-check")
     assert code == 2
