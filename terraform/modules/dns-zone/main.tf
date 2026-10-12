@@ -7,7 +7,7 @@
 
 resource "aws_route53_zone" "this" {
   # checkov:skip=CKV2_AWS_38: DNSSEC needs a DS record in the parent zone, and the registrar's DNS (Porkbun) cannot hold DS records for a delegated name. Recorded as a residual risk in ADR-0025.
-  # checkov:skip=CKV2_AWS_39: Query logs for a public zone go to CloudWatch Logs in us-east-1 under a second KMS key; deferred to Phase 9 (observability) with the edge logs.
+  # checkov:skip=CKV2_AWS_39: Query logs for a public zone go to CloudWatch Logs in us-east-1 under a second KMS key; deferred to Phase 5 with the CloudFront and WAF logs, which need the same us-east-1 log destination.
   name          = var.zone_name
   comment       = "SentinelEdge platform zone, delegated from the parent domain (ADR-0025)."
   force_destroy = false
