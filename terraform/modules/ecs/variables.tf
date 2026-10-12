@@ -167,3 +167,14 @@ variable "bedrock_profile_regions" {
   type        = list(string)
   default     = ["us-east-1", "us-east-2", "us-west-2"]
 }
+
+variable "audit_anchor_bucket" {
+  description = "The Object Lock bucket for audit-chain anchors (module audit-anchors)."
+  type        = string
+}
+
+variable "anchor_schedule" {
+  description = "When the audit chain is anchored (EventBridge Scheduler expression)."
+  type        = string
+  default     = "rate(1 hour)"
+}

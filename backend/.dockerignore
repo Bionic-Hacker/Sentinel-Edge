@@ -4,3 +4,4 @@
 !alembic.ini
 !requirements.txt
 **/__pycache__
+!certs/**

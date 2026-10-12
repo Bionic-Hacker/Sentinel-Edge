@@ -4,6 +4,7 @@
 #            RDS master credentials (db/bootstrap-roles.sh, the same script as locally and in CI)
 #   migrate  run once per release: Alembic as sentinel_migrator, the schema owner
 #   api      the service behind the internal ALB, as sentinel_app, which has only per-table grants
+#   anchor   hourly: anchors the audit chain's head in an S3 Object Lock bucket (ADR-0005)
 #
 # Each task family has its own execution role, which can read only that family's secrets, and
 # only the API has a task role (for Bedrock). No container gets a shell: ECS Exec is off, every
@@ -11,7 +12,7 @@
 # digest.
 
 locals {
-  families = toset(["api", "migrate", "dbadmin"])
+  families = toset(["api", "migrate", "dbadmin", "anchor"])
 
   # Where the RDS certificate bundle sits in both images (Phase 4 M3).
   rds_ca_path = "/srv/certs/rds-global-bundle.pem"

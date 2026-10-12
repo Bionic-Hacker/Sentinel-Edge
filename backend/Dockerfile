@@ -32,6 +32,8 @@ WORKDIR /srv
 COPY --chown=root:root app ./app
 COPY --chown=root:root alembic.ini ./
 COPY --chown=root:root alembic ./alembic
+# Certificate authorities for verified TLS to RDS in AWS (backend/certs/README.md).
+COPY --chown=root:root certs /srv/certs
 USER 10001:10001
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=10s --retries=3 \

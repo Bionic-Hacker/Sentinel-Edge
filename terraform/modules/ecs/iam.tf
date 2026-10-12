@@ -29,11 +29,13 @@ locals {
     api     = [var.secret_arns["db_app_password"], var.secret_arns["jwt_signing_key"], var.secret_arns["mfa_encryption_key"]]
     migrate = [var.secret_arns["db_migrator_password"]]
     dbadmin = [var.master_secret_arn, var.secret_arns["db_app_password"], var.secret_arns["db_migrator_password"]]
+    anchor  = [var.secret_arns["db_app_password"]]
   }
   family_repository = {
     api     = var.api_repository_arn
     migrate = var.api_repository_arn
     dbadmin = var.dbadmin_repository_arn
+    anchor  = var.api_repository_arn
   }
 }
 
@@ -126,4 +128,49 @@ resource "aws_iam_role_policy" "api_task" {
   name   = "invoke-one-model"
   role   = aws_iam_role.api_task.id
   policy = data.aws_iam_policy_document.api_task.json
+}
+
+# The anchor task: write new anchors and read them back. It cannot delete them, change their
+# retention or bypass Object Lock (no s3:DeleteObject*, s3:PutObjectRetention or
+# s3:BypassGovernanceRetention).
+resource "aws_iam_role" "anchor_task" {
+  name               = "${var.name}-anchor-task"
+  description        = "Hourly audit anchor: put and read objects under anchors/ in one bucket."
+  assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
+}
+
+data "aws_iam_policy_document" "anchor_task" {
+  statement {
+    sid       = "WriteAndReadAnchors"
+    actions   = ["s3:PutObject", "s3:GetObject"]
+    resources = ["arn:aws:s3:::${var.audit_anchor_bucket}/anchors/*"]
+  }
+  statement {
+    sid       = "ListAnchors"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::${var.audit_anchor_bucket}"]
+
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["anchors/*"]
+    }
+  }
+  statement {
+    sid       = "EncryptAnchorsWithThePlatformKey"
+    actions   = ["kms:GenerateDataKey", "kms:Decrypt"]
+    resources = [var.kms_key_arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["s3.${var.region}.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "anchor_task" {
+  name   = "anchor-audit-chain"
+  role   = aws_iam_role.anchor_task.id
+  policy = data.aws_iam_policy_document.anchor_task.json
 }

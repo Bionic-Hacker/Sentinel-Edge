@@ -14,6 +14,7 @@ output "task_definitions" {
     api     = aws_ecs_task_definition.api.family
     migrate = aws_ecs_task_definition.migrate.family
     dbadmin = aws_ecs_task_definition.dbadmin.family
+    anchor  = aws_ecs_task_definition.anchor.family
   }
 }
 

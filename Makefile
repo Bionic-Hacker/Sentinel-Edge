@@ -7,7 +7,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
         create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
         governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear \
-        tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock
+        tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock rds-ca images-push ecs-task
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -172,6 +172,16 @@ tf-output: ## Show a stack's outputs: make tf-output STACK=bootstrap
 
 tf-lock: ## Record provider checksums for Linux, macOS and CI in a stack's lock file: make tf-lock STACK=account
 	./scripts/tf.sh $(tf-stack) lock
+
+rds-ca: ## Fetch and check Amazon RDS's CA bundle into backend/certs (then review and commit it)
+	./scripts/rds-ca.sh
+
+images-push: ## Build the API and dbadmin images from this commit, push to ECR, pin digests for dev
+	./scripts/images-push.sh
+
+ecs-task: ## Run a one-off task in the deploy window and wait: make ecs-task TASK=dbadmin|migrate|anchor|anchor-check
+	@test -n "$(TASK)" || { echo "Usage: make ecs-task TASK=dbadmin|migrate|anchor|anchor-check"; exit 2; }
+	./scripts/ecs-task.sh "$(TASK)"
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install

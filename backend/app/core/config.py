@@ -141,6 +141,12 @@ class Settings(BaseSettings):
     ai_tokens_per_day: int = Field(default=200_000, ge=1_000, le=10_000_000)
     ai_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
+    # Off-host anchors of the audit chain's head (ADR-0005, Phase 4): an S3 bucket with Object
+    # Lock. Unset locally; `audit-anchor` then refuses to run.
+    audit_anchor_bucket: str | None = Field(
+        default=None, pattern=r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+    )
+
     @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
     @classmethod
     def _split_csv(cls, value: object) -> object:

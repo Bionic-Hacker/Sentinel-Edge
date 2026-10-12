@@ -5,7 +5,9 @@
 # Used in three places, so the database privilege model is identical everywhere:
 #   - docker-compose: mounted into /docker-entrypoint-initdb.d, runs on first start of `db`
 #   - CI and local tests: run against a throwaway PostgreSQL
-#   - AWS (Phase 4): run once against RDS as a one-off task with the master credentials
+#   - AWS (Phase 4): run once per deploy window against RDS, as the dbadmin task with the RDS
+#     master credentials. That master is not a superuser, which the role attributes and the
+#     schema hand-over below allow for.
 #
 # Connection uses standard libpq variables (PGHOST, PGPORT, PGUSER, PGDATABASE, PGPASSWORD).
 # Inside the postgres image's init phase, PGUSER/PGDATABASE fall back to POSTGRES_USER/POSTGRES_DB.
@@ -40,10 +42,30 @@ SELECT 'CREATE ROLE sentinel_migrator'
 SELECT 'CREATE ROLE sentinel_app'
  WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'sentinel_app') \gexec
 
-ALTER ROLE sentinel_migrator WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
-  NOBYPASSRLS NOINHERIT PASSWORD :'migrator_password';
-ALTER ROLE sentinel_app WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
-  NOBYPASSRLS NOINHERIT PASSWORD :'app_password';
+ALTER ROLE sentinel_migrator WITH LOGIN NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD :'migrator_password';
+ALTER ROLE sentinel_app WITH LOGIN NOCREATEDB NOCREATEROLE NOINHERIT PASSWORD :'app_password';
+
+-- SUPERUSER, REPLICATION and BYPASSRLS can be changed only by a role that has them. A superuser
+-- (local, CI) clears them explicitly. RDS's master is not a superuser and could never have set
+-- them, so there they are checked instead, and the run fails if either role has any of them.
+SELECT format('ALTER ROLE %I WITH NOSUPERUSER NOREPLICATION NOBYPASSRLS', r)
+  FROM unnest(ARRAY['sentinel_migrator', 'sentinel_app']) AS r
+ WHERE (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) \gexec
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles
+              WHERE rolname IN ('sentinel_migrator', 'sentinel_app')
+                AND (rolsuper OR rolreplication OR rolbypassrls)) THEN
+    RAISE EXCEPTION 'an application role has SUPERUSER, REPLICATION or BYPASSRLS';
+  END IF;
+END
+$$;
+
+-- Handing the schema to sentinel_migrator needs the right to SET ROLE to it. A superuser has it
+-- already; RDS's master (PostgreSQL 16 and later) needs the membership granted, without
+-- inheriting the role's privileges.
+SELECT format('GRANT sentinel_migrator TO %I WITH INHERIT FALSE, SET TRUE', current_user)
+ WHERE NOT (SELECT rolsuper FROM pg_roles WHERE rolname = current_user) \gexec
 
 -- Only these two roles may connect to the application database.
 REVOKE ALL ON DATABASE :"dbname" FROM PUBLIC;
@@ -53,8 +75,11 @@ GRANT CONNECT ON DATABASE :"dbname" TO sentinel_migrator, sentinel_app;
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 CREATE SCHEMA IF NOT EXISTS sentinel AUTHORIZATION sentinel_migrator;
 ALTER SCHEMA sentinel OWNER TO sentinel_migrator;
+-- Grants on the schema are made by its owner (a non-superuser master has no rights on it).
+SET ROLE sentinel_migrator;
 REVOKE ALL ON SCHEMA sentinel FROM PUBLIC;
 GRANT USAGE ON SCHEMA sentinel TO sentinel_app;
+RESET ROLE;
 
 -- Per-database role settings.
 ALTER ROLE sentinel_migrator IN DATABASE :"dbname" SET search_path = sentinel;

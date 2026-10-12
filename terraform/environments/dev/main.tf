@@ -81,6 +81,15 @@ module "ecr_dbadmin" {
   kms_key_arn     = data.aws_kms_alias.platform.target_key_arn
 }
 
+# Anchors of the audit chain's head (ADR-0005): S3 with Object Lock. Kept between windows (a few
+# cents a month at most) so anchors outlive the database they vouch for.
+module "audit_anchors" {
+  source = "../../modules/audit-anchors"
+
+  name        = local.name
+  kms_key_arn = data.aws_kms_alias.platform.target_key_arn
+}
+
 # ---------------------------------------------------------------------------------------------
 # The workload (Phase 4), only while `workload = true` during a deploy window (ADR-0026).
 # Between windows none of it exists and nothing here is billed.
@@ -154,6 +163,7 @@ module "ecs" {
   api_desired_count      = var.api_desired_count
   use_spot               = var.use_spot
   ai_provider            = var.ai_provider
+  audit_anchor_bucket    = module.audit_anchors.bucket
 
   # The values must be in Secrets Manager before any task reads them.
   depends_on = [module.app_secret_values]

@@ -210,6 +210,9 @@ class ChainVerification:
     head_hash: str
     first_break_seq: int | None
     problem: str | None
+    # seq of the last record verified (0 for an empty chain). Sequence values can skip numbers
+    # (a rolled-back transaction consumes one), so this is not always records_checked.
+    head_seq: int = 0
 
     @property
     def intact(self) -> bool:
@@ -232,11 +235,17 @@ def verify_chain(db: Session) -> ChainVerification:
     """Walk the whole chain in order. Reports the first record whose link or content is wrong."""
     expected_prev = GENESIS_HASH
     count = 0
+    head_seq = 0
     for entry in _iter_records(db):
         count += 1
         if entry.prev_hash != expected_prev:
-            return ChainVerification(count, expected_prev, entry.seq, "broken link to previous")
+            return ChainVerification(
+                count, expected_prev, entry.seq, "broken link to previous", head_seq
+            )
         if compute_record_hash(entry.prev_hash, canonical_payload(entry)) != entry.record_hash:
-            return ChainVerification(count, expected_prev, entry.seq, "content does not match hash")
+            return ChainVerification(
+                count, expected_prev, entry.seq, "content does not match hash", head_seq
+            )
         expected_prev = entry.record_hash
-    return ChainVerification(count, expected_prev, None, None)
+        head_seq = entry.seq
+    return ChainVerification(count, expected_prev, None, None, head_seq)

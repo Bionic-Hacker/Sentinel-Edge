@@ -55,9 +55,15 @@ output "ecr_dbadmin_repository_url" {
   value       = module.ecr_dbadmin.repository_url
 }
 
+output "audit_anchor_bucket" {
+  description = "Where the audit chain's head is anchored (S3 Object Lock)."
+  value       = module.audit_anchors.bucket
+}
+
 output "workload" {
   description = "What make ecs-task needs during a deploy window (null between windows)."
   value = var.workload ? {
+    region           = var.region
     cluster          = module.ecs[0].cluster_name
     service          = module.ecs[0].service_name
     task_definitions = module.ecs[0].task_definitions

@@ -26,6 +26,18 @@ mock_provider "aws" {
     target = data.aws_iam_policy_document.api_task
     values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
   }
+  override_data {
+    target = data.aws_iam_policy_document.anchor_task
+    values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
+  }
+  override_data {
+    target = data.aws_iam_policy_document.scheduler_assume
+    values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
+  }
+  override_data {
+    target = data.aws_iam_policy_document.scheduler
+    values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
+  }
 }
 
 variables {
@@ -45,6 +57,7 @@ variables {
   db_host                = "sentineledge-dev.abc.us-east-2.rds.amazonaws.com"
   db_name                = "sentineledge"
   master_secret_arn      = "arn:aws:secretsmanager:us-east-2:123456789012:secret:rds!db-0000-AbCdEf"
+  audit_anchor_bucket    = "sentineledge-dev-audit-anchors-0001"
   secret_arns = {
     db_app_password      = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/db-app-password-AbCdEf"
     db_migrator_password = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/db-migrator-password-AbCdEf"
@@ -57,7 +70,7 @@ run "every_container_is_hardened" {
   command = apply
 
   assert {
-    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin] :
+    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor] :
       jsondecode(td.container_definitions)[0].readonlyRootFilesystem == true &&
       jsondecode(td.container_definitions)[0].privileged == false &&
       jsondecode(td.container_definitions)[0].linuxParameters.capabilities.drop == ["ALL"] &&
@@ -89,6 +102,34 @@ run "the_api_enforces_deployed_defaults" {
   assert {
     condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_PUBLIC_ORIGINS"]) == "https://sentineledge.example.com"
     error_message = "The public origin is the platform's HTTPS name."
+  }
+}
+
+run "every_app_task_starts_as_a_deployed_environment" {
+  command = apply
+
+  assert {
+    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.anchor] :
+      one([for e in jsondecode(td.container_definitions)[0].environment : e.value if e.name == "SENTINEL_PUBLIC_ORIGINS"]) == "https://sentineledge.example.com"
+    ])
+    error_message = "Migrations and the anchor task load the same settings as the API: they need the HTTPS origin too, or the app refuses to start."
+  }
+}
+
+run "the_anchor_task_runs_hourly_and_cannot_delete" {
+  command = apply
+
+  assert {
+    condition     = aws_scheduler_schedule.anchor.schedule_expression == "rate(1 hour)"
+    error_message = "The audit chain is anchored every hour."
+  }
+  assert {
+    condition     = length([for st in data.aws_iam_policy_document.anchor_task.statement : st if length([for a in st.actions : a if strcontains(lower(a), "delete") || strcontains(a, "Retention") || strcontains(a, "Bypass")]) > 0]) == 0
+    error_message = "The anchor task must not be able to delete anchors or change their retention."
+  }
+  assert {
+    condition     = toset([for s in jsondecode(aws_ecs_task_definition.anchor.container_definitions)[0].secrets : s.name]) == toset(["SENTINEL_DB_PASSWORD"])
+    error_message = "The anchor task needs only the app role's password."
   }
 }
 

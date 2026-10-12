@@ -32,6 +32,11 @@ locals {
     { name = "SENTINEL_DB_NAME", value = var.db_name },
     { name = "SENTINEL_DB_SSLMODE", value = "verify-full" },
     { name = "SENTINEL_DB_SSLROOTCERT", value = local.rds_ca_path },
+    # Every app task validates these at start (a deployed environment refuses a plain-HTTP origin),
+    # so migrations and the anchor task need them as much as the API does.
+    { name = "SENTINEL_TRUSTED_HOSTS", value = var.host_name },
+    { name = "SENTINEL_PUBLIC_ORIGINS", value = "https://${var.host_name}" },
+    { name = "SENTINEL_AWS_REGION", value = var.region },
   ]
 }
 
@@ -60,14 +65,11 @@ resource "aws_ecs_task_definition" "api" {
     user         = "10001:10001"
     portMappings = [{ containerPort = var.app_port, protocol = "tcp" }]
     environment = concat(local.app_environment, [
-      { name = "SENTINEL_TRUSTED_HOSTS", value = var.host_name },
-      { name = "SENTINEL_PUBLIC_ORIGINS", value = "https://${var.host_name}" },
       # The ALB (and, in Phase 5, CloudFront's VPC origin) connect from the app subnets; the
       # API trusts X-Forwarded-For from those addresses only.
       { name = "SENTINEL_TRUSTED_PROXY_CIDRS", value = join(",", var.trusted_proxy_cidrs) },
       { name = "SENTINEL_AI_PROVIDER", value = var.ai_provider },
       { name = "SENTINEL_AI_MODEL", value = "us.${var.bedrock_model_id}" },
-      { name = "SENTINEL_AWS_REGION", value = var.region },
     ])
     secrets = [
       { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },
@@ -154,5 +156,41 @@ resource "aws_ecs_task_definition" "dbadmin" {
       { name = "SENTINEL_DB_MIGRATOR_PASSWORD", valueFrom = var.secret_arns["db_migrator_password"] },
     ]
     logConfiguration = { logDriver = "awslogs", options = local.log_options["dbadmin"] }
+  })])
+}
+
+# Hourly (EventBridge Scheduler, anchor.tf): verify the audit chain and anchor its head in the
+# Object Lock bucket (ADR-0005).
+resource "aws_ecs_task_definition" "anchor" {
+  family                   = "${var.name}-anchor"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.execution["anchor"].arn
+  task_role_arn            = aws_iam_role.anchor_task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  volume {
+    name = "tmp"
+  }
+
+  container_definitions = jsonencode([merge(local.hardening, {
+    name      = "anchor"
+    image     = var.api_image
+    essential = true
+    user      = "10001:10001"
+    command   = ["python", "-m", "app.cli", "audit-anchor", "export"]
+    environment = concat(local.app_environment, [
+      { name = "SENTINEL_AUDIT_ANCHOR_BUCKET", value = var.audit_anchor_bucket },
+    ])
+    secrets = [
+      { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },
+    ]
+    logConfiguration = { logDriver = "awslogs", options = local.log_options["anchor"] }
   })])
 }
