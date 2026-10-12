@@ -66,7 +66,7 @@ saved plan.
   - The CloudFront distribution is kept between windows (free when idle), so its alias record
     does not change. `.dev` is HSTS-preloaded, so browsers never use plain HTTP for it.
 - **Not done, recorded:** DNSSEC (Porkbun's DNS cannot hold the DS record a delegated name needs)
-  and Route 53 query logging (deferred to Phase 9 with the edge logs). Both are written in place
+  and Route 53 query logging (deferred to Phase 5 with the CloudFront and WAF logs). Both are written in place
   as Checkov exceptions.
 
 **NAT is a switch:** `nat_mode` is `none` between windows (no egress, nothing hourly), `instance`
