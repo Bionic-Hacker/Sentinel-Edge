@@ -46,3 +46,9 @@ reports/
 
 # Book build output (the PDF itself is committed)
 docs/book/build/
+
+# Public CA certificates, not secrets: Amazon RDS (backend/certs/README.md)
+!backend/certs/rds-global-bundle.pem
+
+# Public CA certificates, not secrets: Amazon RDS (backend/certs/README.md)
+!backend/certs/rds-global-bundle.pem
