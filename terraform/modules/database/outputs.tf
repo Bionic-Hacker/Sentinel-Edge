@@ -22,3 +22,8 @@ output "instance_arn" {
   description = "Instance ARN."
   value       = aws_db_instance.this.arn
 }
+
+output "identifier" {
+  description = "Instance identifier (the CloudWatch dimension)."
+  value       = aws_db_instance.this.identifier
+}

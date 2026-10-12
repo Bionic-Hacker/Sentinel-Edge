@@ -19,7 +19,7 @@ or read.
 | 9 | Application validation | Rejects malformed and over-posted input; limits output | C-API-04, C-API-06 | P1 pattern, P2+ |
 | 10 | Database security | Least-privilege roles, encryption, parameterisation | C-DB-01..04 | P2–4 |
 | 11 | IAM | Least privilege per function, no static keys | C-IAM-01..03, C-AWS-01 | **P3**, P11 |
-| 12 | Secrets management | Secrets never in code, images, Terraform, or CI config | C-SEC-01..02 | P1 (scan), P4 |
+| 12 | Secrets management | Secrets never in code, images, Terraform state, or CI config | C-SEC-01..04 | P1 (scan), P2 (scoping), P4 |
 | 13 | Logging | Traceability and forensics | C-LOG-01..04, C-AUD-01..03 | P1 (app), P2 (audit), **P3 (account trail)** |
 | 14 | Monitoring and detection | Detects abuse and failures; turns signals into incidents | C-MON-01..02, C-SO-01..09 | **P7 (detection, incidents)**, **P3 (account alarms)**, P4 (app alarms) |
 | 15 | Vulnerability management | Findings are tracked to closure with SLAs | C-VM-01..06 | P8 |
@@ -217,8 +217,9 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 | C-WAF-03 | Rate-based WAF rules | 5 |
 | C-WAF-04 | WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008) | 5 |
 | C-LB-01 | ALB desync mitigation (strictest) and invalid-header dropping | 4 |
-| C-DB-02 | Encryption at rest (KMS) and in transit (`rds.force_ssl`) | 4 |
-| C-DB-04 | Automated database backups | 4 |
+| C-DB-02 | Encryption at rest (KMS) and in transit (`rds.force_ssl`, TLS 1.2 minimum) on RDS (`modules/database`) | 4 |
+| C-DB-04 | Automated database backups (one day in dev; no final snapshot of synthetic data) | 4 |
 | C-IAM-02 | No static cloud keys for CI. GitHub OIDC (ADR-0010) is denied by this account's SCPs, so Phase 11 redesigns it | 11 |
-| C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head | 4 |
-| C-MON-01 | CloudWatch alarms for errors, latency and security signals | 4 |
+| C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head: hourly `audit-anchor export`, `audit-anchor check` catches a removed tail (`modules/audit-anchors`, `app/services/audit_anchor.py`) | 4 |
+| C-SEC-04 | Secrets never in Terraform plans or state: RDS-managed master secret; ephemeral, write-only application secrets; one execution role per task reading only its own (ADR-0026) | 4 |
+| C-MON-01 | CloudWatch alarms for the workload: no healthy task, server errors, bursts of refused or unrouted requests, database CPU and storage, logged errors (`modules/workload-alarms`) | 4 |

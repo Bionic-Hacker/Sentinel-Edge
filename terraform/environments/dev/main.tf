@@ -168,3 +168,15 @@ module "ecs" {
   # The values must be in Secrets Manager before any task reads them.
   depends_on = [module.app_secret_values]
 }
+
+module "workload_alarms" {
+  source = "../../modules/workload-alarms"
+  count  = local.workload
+
+  name                    = local.name
+  alerts_topic_name       = "${var.project}-security-alerts"
+  alb_arn_suffix          = module.alb[0].arn_suffix
+  target_group_arn_suffix = module.alb[0].target_group_arn_suffix
+  db_identifier           = module.database[0].identifier
+  api_log_group           = module.ecs[0].log_groups["api"]
+}
