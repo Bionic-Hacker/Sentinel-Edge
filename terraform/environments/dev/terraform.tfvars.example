@@ -6,3 +6,7 @@ account_id = "123456789012"
 # app_domain = "sentineledge.example.com"
 # Once the registrar's NS records for app_domain resolve (docs/aws-setup.md):
 # dns_delegated = true
+# Deploy window (Phase 4, docs/aws-deploy-window.md): nat_mode = "instance", then
+# workload = true. images.auto.tfvars (written by make images-push) supplies the images.
+# workload          = true
+# api_desired_count = 0   # first apply of a window; 1 after make ecs-task TASK=dbadmin and TASK=migrate

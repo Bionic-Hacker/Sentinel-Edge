@@ -37,7 +37,7 @@ aws --version
 terraform version
 ```
 
-Terraform 1.10 or later is required (S3 state locking). CI uses 1.15.9. TFLint is optional
+Terraform 1.11 or later is required (S3 state locking, and write-only secrets from Phase 4). CI uses 1.15.9. TFLint is optional
 locally (`make tf-check` skips it if missing); CI always runs it.
 
 ## Signing in

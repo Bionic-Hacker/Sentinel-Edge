@@ -49,3 +49,23 @@ output "dns_delegation" {
     values        = module.dns_zone[0].name_servers
   }
 }
+
+output "ecr_dbadmin_repository_url" {
+  description = "Where the role-bootstrap image is pushed."
+  value       = module.ecr_dbadmin.repository_url
+}
+
+output "workload" {
+  description = "What make ecs-task needs during a deploy window (null between windows)."
+  value = var.workload ? {
+    cluster          = module.ecs[0].cluster_name
+    service          = module.ecs[0].service_name
+    task_definitions = module.ecs[0].task_definitions
+    log_groups       = module.ecs[0].log_groups
+    subnets          = module.network.app_subnet_ids
+    security_group   = module.security_groups.app_security_group_id
+    alb_dns_name     = module.alb[0].dns_name
+    alb_arn          = module.alb[0].arn
+    db_host          = module.database[0].address
+  } : null
+}
