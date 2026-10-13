@@ -9,7 +9,6 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.v1.router import api_v1
 from app.core.api_metrics import ApiMetrics, ApiMetricsMiddleware
@@ -19,7 +18,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.http_inspection import HttpInspectionMiddleware, SecurityEventRecorder
 from app.core.logging import configure_logging
-from app.core.middleware import SecurityMiddleware
+from app.core.middleware import HostCheckMiddleware, SecurityMiddleware
 from app.core.rate_limiting import enforce_ip_limits
 from app.db.session import build_engine, build_session_factory
 from app.security.mfa import MfaService
@@ -71,7 +70,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Order matters: the last added middleware runs first. SecurityMiddleware is outermost so
     # that every response — including Host rejections and errors — gets headers and a
     # correlation ID.
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+    # The Host allow-list, except for the liveness probe that load balancers address by IP.
+    app.add_middleware(HostCheckMiddleware, allowed_hosts=settings.trusted_hosts)
     # Detect-only attack analysis (Phase 7): sees the routed request and its final status.
     app.add_middleware(HttpInspectionMiddleware, recorder=app.state.event_recorder)
     app.add_middleware(ApiMetricsMiddleware, metrics=app.state.api_metrics)

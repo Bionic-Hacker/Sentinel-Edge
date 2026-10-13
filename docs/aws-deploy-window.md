@@ -146,5 +146,6 @@ their bucket, locked for 30 days.
 | `audit-anchor check` fails | The newest audit records were removed or changed | Treat as an incident (docs/runbooks); the anchor cannot be altered |
 | `RunInstances`: the instance type is not eligible for Free Tier | The Free plan launches only Free Tier types | Keep `nat_instance_type` at `t4g.micro` (the module refuses `t4g.nano`) |
 | `CreateBucket` … explicit deny in a service control policy | The Free plan's SCP denies new S3 buckets in us-east-1 | Buckets live in the home Region; the SPA bucket uses the edge module's `aws.home` provider |
+| Target health: `Health checks failed with these codes: [400]` | An image older than the liveness-probe Host exemption | `make images-push`, then plan and apply |
 | An apply stops partway | One resource failed; the others stay created and billed | Fix, then plan again: the plan adds only what is missing |
 | Spend looks wrong | Something hourly survived the window | docs/runbooks/aws-cost-runaway.md |

@@ -40,7 +40,7 @@ def test_headers_on_unhandled_exception(client_with_failing_route: TestClient) -
 
 
 def test_headers_on_host_rejection(client: TestClient) -> None:
-    response = client.get("/api/v1/health", headers={"Host": "evil.example"})
+    response = client.get("/api/v1/ready", headers={"Host": "evil.example"})
     assert response.status_code == 400
     assert response.headers["X-Content-Type-Options"] == "nosniff"
 
