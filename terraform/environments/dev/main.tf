@@ -180,3 +180,58 @@ module "workload_alarms" {
   db_identifier           = module.database[0].identifier
   api_log_group           = module.ecs[0].log_groups["api"]
 }
+
+# ---------------------------------------------------------------------------------------------
+# The edge (Phase 5, ADR-0027): WAF and CloudFront in us-east-1, the platform's name pointed at
+# the distribution. Created and removed with the workload.
+# ---------------------------------------------------------------------------------------------
+
+module "waf" {
+  source    = "../../modules/waf"
+  count     = local.workload
+  providers = { aws = aws.us_east_1 }
+
+  name = "${local.name}-edge"
+}
+
+module "edge" {
+  source    = "../../modules/edge"
+  count     = local.workload
+  providers = { aws = aws.us_east_1 }
+
+  name            = local.name
+  domain          = var.app_domain
+  zone_id         = module.dns_zone[0].zone_id
+  certificate_arn = module.certificate_edge[0].issued_certificate_arn
+  web_acl_arn     = module.waf[0].arn
+  alb_arn         = module.alb[0].arn
+  alb_dns_name    = module.alb[0].dns_name
+}
+
+# CloudFront's VPC origin connects from a security group AWS creates in this VPC when the first
+# VPC origin exists. The ALB admits HTTPS from that group and nothing else (ADR-0001).
+data "aws_security_group" "cloudfront_vpc_origin" {
+  count = local.workload
+
+  filter {
+    name   = "group-name"
+    values = ["CloudFront-VPCOrigins-Service-SG"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [module.network.vpc_id]
+  }
+
+  depends_on = [module.edge]
+}
+
+resource "aws_vpc_security_group_ingress_rule" "alb_from_cloudfront" {
+  count = local.workload
+
+  security_group_id            = module.security_groups.alb_security_group_id
+  description                  = "HTTPS from the CloudFront VPC origin only"
+  ip_protocol                  = "tcp"
+  from_port                    = 443
+  to_port                      = 443
+  referenced_security_group_id = data.aws_security_group.cloudfront_vpc_origin[0].id
+}

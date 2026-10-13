@@ -73,5 +73,9 @@ output "workload" {
     alb_dns_name     = module.alb[0].dns_name
     alb_arn          = module.alb[0].arn
     db_host          = module.database[0].address
+    distribution_id  = module.edge[0].distribution_id
+    spa_bucket       = module.edge[0].spa_bucket
+    waf_log_group    = module.waf[0].log_group
+    url              = "https://${var.app_domain}"
   } : null
 }

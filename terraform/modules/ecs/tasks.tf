@@ -70,6 +70,8 @@ resource "aws_ecs_task_definition" "api" {
       { name = "SENTINEL_TRUSTED_PROXY_CIDRS", value = join(",", var.trusted_proxy_cidrs) },
       { name = "SENTINEL_AI_PROVIDER", value = var.ai_provider },
       { name = "SENTINEL_AI_MODEL", value = "us.${var.bedrock_model_id}" },
+      # Two attempts must fit inside CloudFront's 60-second origin timeout (Phase 5).
+      { name = "SENTINEL_AI_TIMEOUT_SECONDS", value = "25" },
     ])
     secrets = [
       { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },

@@ -3,8 +3,9 @@
 #   CloudFront VPC origin ──443──► alb ──8000──► app ──5432──► db
 #
 # The ALB's ingress rule names CloudFront's VPC-origin security group, which CloudFront creates in
-# Phase 5; until then the ALB admits nothing. The app may also leave the VPC on 443 for AWS APIs
-# and Bedrock (through NAT, when NAT is on). The database has no egress at all.
+# Phase 5; that rule lives in environments/dev with the edge. Until then the ALB admits nothing.
+# The app may also leave the VPC on 443 for AWS APIs and Bedrock (through NAT, when NAT is on).
+# The database has no egress at all.
 #
 # Groups are attached in Phase 4 (ALB, ECS, RDS), so Checkov's "attached" check is excused here.
 
