@@ -86,9 +86,9 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-ORG-01 | I | Plaintext CloudFront→origin traffic | 1×2 | HTTPS-only listener on the ALB, TLS 1.3/1.2 with forward-secret ciphers, the ACM certificate for the platform's name (`modules/alb`) | C-EDGE-02 | Planned (P4): built, verified in the deploy window |
-| T-ORG-02 | S | Spoofed `X-Forwarded-For` to evade IP controls | 2×2 | Proxy-header trust only from configured proxy networks, chain walked right to left | C-NET-03 | **Mitigated locally (P6, tested)**: trusted local proxy network, nginx overwrites the header; ALB subnets in P4 |
-| T-ORG-03 | T | HTTP request smuggling / desync | 1×3 | ALB desync mitigation "strictest", drop invalid headers; other host names refused at the ALB (`modules/alb`) | C-LB-01 | Planned (P4): built, verified in the deploy window |
+| T-ORG-01 | I | Plaintext CloudFront→origin traffic | 1×2 | HTTPS-only listener on the ALB, TLS 1.3/1.2 with forward-secret ciphers, the ACM certificate for the platform's name (`modules/alb`) | C-LB-01, C-EDGE-02 | **Mitigated (P4)**: HTTPS-only internal ALB, verified in the deploy window |
+| T-ORG-02 | S | Spoofed `X-Forwarded-For` to evade IP controls | 2×2 | Proxy-header trust only from configured proxy networks, chain walked right to left | C-NET-03 | **Mitigated (P4, P6)**: proxy headers trusted only from the app subnets (ALB, CloudFront's VPC origin) and the local proxy network |
+| T-ORG-03 | T | HTTP request smuggling / desync | 1×3 | ALB desync mitigation "strictest", drop invalid headers; other host names refused at the ALB (`modules/alb`) | C-LB-01 | **Mitigated (P4)**: verified in the deploy window |
 
 ### TB3 — Browser session → API
 
@@ -172,10 +172,10 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | C-NET-00, C-NET-01, C-NET-02 | Local analogue **mitigated (P1)**; network and groups mitigated (P3); RDS built (P4), not publicly accessible, verified in the deploy window |
-| T-DB-02 | I | Credential theft | 2×3 | Per-container secrets; Secrets Manager with rotation in AWS | C-SEC-03 | Local scoping **mitigated (P2)**; Secrets Manager built (P4): one execution role per task, reading only its own secrets |
+| T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | C-NET-00, C-NET-01, C-NET-02 | **Mitigated (P1, P3, P4)**: RDS in isolated subnets, not publicly accessible, verified in the deploy window |
+| T-DB-02 | I | Credential theft | 2×3 | Per-container secrets; Secrets Manager with rotation in AWS | C-SEC-03 | **Mitigated (P2, P4)**: Secrets Manager, one execution role per task reading only its own secrets |
 | T-DB-03 | E | Over-privileged app DB role | 2×3 | Separate migration and runtime roles (ADR-0015) | C-DB-01 | **Mitigated (P2)**: privilege-matrix test |
-| T-DB-04 | I | Unencrypted data at rest or in transit | 1×3 | KMS, `rds.force_ssl`, TLS 1.2 minimum; the app verifies the server certificate and host name against Amazon's CA bundle (`verify-full`) | C-DB-02, C-DB-03 | Planned (P4): built, verified in the deploy window |
+| T-DB-04 | I | Unencrypted data at rest or in transit | 1×3 | KMS, `rds.force_ssl`, TLS 1.2 minimum; the app verifies the server certificate and host name against Amazon's CA bundle (`verify-full`) | C-DB-02, C-DB-03 | **Mitigated (P4)**: verified in the deploy window |
 
 ### TB5 — API → AI provider (and attacker data into the AI)
 
@@ -201,7 +201,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images | C-CICD-02, C-CICD-06, C-CICD-10 | **Mitigated (P1, P8)** |
 | T-SEC-01 | I | Secret committed to git | 2×3 | Gitleaks pre-commit + CI (full history), `.gitignore` | C-SEC-01, C-SEC-02 | **Mitigated (P1)** |
 | T-SEC-03 | I | A new administrator's one-time password left in a task's log (kept a year) | 1×3 | In a deployed environment `create-admin` writes it to one Secrets Manager secret and refuses to print it; the task's role can write that secret but not read it | C-SEC-04 | Planned (P5): built and tested, verified in the deploy window |
-| T-SEC-02 | I | Secrets readable from Terraform plans, state or logs (anyone with the state bucket or a CI log gets the database passwords and signing keys) | 1×3 | The RDS master password generated and held by RDS; application secrets generated during apply as ephemeral values and written through write-only arguments, never stored in state (ADR-0026) | C-SEC-04 | Planned (P4): built, verified in the deploy window |
+| T-SEC-02 | I | Secrets readable from Terraform plans, state or logs (anyone with the state bucket or a CI log gets the database passwords and signing keys) | 1×3 | The RDS master password generated and held by RDS; application secrets generated during apply as ephemeral values and written through write-only arguments, never stored in state (ADR-0026) | C-SEC-04 | **Mitigated (P4)**: no secret value in any plan or state of the deploy window |
 | T-IAC-01 | T | Dev change applied to production | 1×3 | Per-stack roots and state keys, `allowed_account_ids` (ADR-0014) | C-IAC-01 | **Mitigated (P3)** |
 | T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | C-IAC-02 | **Mitigated (P3)** |
 | T-IAC-03 | T | An unreviewed or stale plan applied, or a plan applied to the wrong account or as root | 1×3 | Saved-plan-only apply, identity and account guard, root refused | C-IAC-03, C-IAC-01 | **Mitigated (P3)** |
@@ -213,7 +213,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-DNS-01 | S | A certificate issued for the platform's name by someone else, or the name taken over (including through a delegation left pointing at a deleted Route 53 zone) | 1×3 | CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner; the zone is `prevent_destroy` and the teardown removes the delegation first | C-DNS-01 | Mitigated (P3) |
 | T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes from reviewed plans, PR approval; rule tests in `modules/waf` | C-WAF-04, C-GOV-02, C-GOV-03 | Planned (P5): built, verified in the deploy window |
 | T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | The API's task role has no WAF permissions at all (ADR-0008, ADR-0026) | C-WAF-04, C-IAM-01 | Planned (P5): built, verified in the deploy window |
-| T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2)** except tail deletion by a table owner: hourly anchors of the chain head in S3 Object Lock, and `audit-anchor check` (built and tested, P4; live in the deploy window) |
+| T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2, P4)**: hash chain, plus hourly anchors of its head in S3 Object Lock; `audit-anchor check` verified in the deploy window |
 | T-CNT-01 | E | Container breakout / privilege escalation | 1×3 | Non-root, read-only FS, `cap_drop: ALL`, no-new-privileges | C-CNT-01 | **Mitigated (P1, local)** |
 
 ## 4. Attack paths (top three)
