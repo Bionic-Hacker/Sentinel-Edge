@@ -1,4 +1,4 @@
-import { useId, type ComponentProps, type InputHTMLAttributes, type ReactNode } from "react";
+import { useId, useState, type ComponentProps, type InputHTMLAttributes, type ReactNode } from "react";
 import type { ApiError } from "../lib/api/client";
 
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -84,6 +84,39 @@ export function Panel({ title, children }: { title: string; children: ReactNode 
     <section className="rounded-md border border-line bg-surface p-5">
       <h2 className="mb-4 text-base font-semibold">{title}</h2>
       {children}
+    </section>
+  );
+}
+
+/** A panel that starts closed: its title is a button, and the content mounts only once opened. */
+export function CollapsiblePanel({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <section className="rounded-md border border-line bg-surface">
+      <h2 className="text-base font-semibold">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between rounded-md px-5 py-4 text-left hover:bg-raised"
+        >
+          {title}
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className={`h-4 w-4 text-ink-muted transition-transform ${open ? "rotate-180" : ""}`}
+          >
+            <path d="M5 7.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </h2>
+      {open && (
+        <div id={id} className="px-5 pb-5">
+          {children}
+        </div>
+      )}
     </section>
   );
 }

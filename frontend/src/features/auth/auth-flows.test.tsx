@@ -23,6 +23,11 @@ async function renderAt(path: string, routes: Parameters<typeof mockApi>[0]) {
   return fetchMock;
 }
 
+/** Administrators see Change password and Users as closed panels; open Users. */
+async function openUsers() {
+  await userEvent.setup().click(await screen.findByRole("button", { name: "Users" }));
+}
+
 describe("route guards", () => {
   it("sends anonymous visitors to sign in", async () => {
     await renderAt("/settings", { "POST /api/v1/auth/refresh": unauthorized });
@@ -155,6 +160,7 @@ describe("account recovery (ADR-0028)", () => {
         }),
     });
 
+    await openUsers();
     await screen.findByRole("table", { name: "Users and their roles" });
     await user.type(screen.getByLabelText("Email"), "new@example.com");
     await user.type(screen.getByLabelText("Name"), "New Analyst");
@@ -189,6 +195,24 @@ describe("role-aware pages", () => {
     expect(screen.queryByRole("heading", { name: "Users" })).not.toBeInTheDocument();
   });
 
+  it("keeps Change password and Users closed for administrators until opened", async () => {
+    const admin = profile({ role: "ADMIN", mfa_enabled: true });
+    await renderAt("/settings", {
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(admin)),
+      "/api/v1/users": () => jsonResponse({ items: [] }),
+    });
+    const password = await screen.findByRole("button", { name: "Change password" });
+    const users = screen.getByRole("button", { name: "Users" });
+    expect(password).toHaveAttribute("aria-expanded", "false");
+    expect(users).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Users and their roles" })).not.toBeInTheDocument();
+
+    await userEvent.setup().click(password);
+    expect(password).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Current password")).toBeInTheDocument();
+  });
+
   it("lists users for administrators", async () => {
     const admin = profile({ role: "ADMIN", mfa_enabled: true, display_name: "Ada Admin" });
     await renderAt("/settings", {
@@ -212,6 +236,7 @@ describe("role-aware pages", () => {
           ],
         }),
     });
+    await openUsers();
     const table = await screen.findByRole("table", { name: "Users and their roles" });
     expect(within(table).getByText("(you)")).toBeInTheDocument();
     // An admin cannot change their own role from the UI (the API refuses it too).
@@ -253,6 +278,7 @@ describe("role-aware pages", () => {
     const deleteCalls = () =>
       fetchMock.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "DELETE");
 
+    await openUsers();
     const table = await screen.findByRole("table", { name: "Users and their roles" });
     // No trash can on your own row: an admin cannot delete themselves.
     expect(within(table).queryByRole("button", { name: `Delete ${admin.email}` })).not.toBeInTheDocument();
