@@ -19,7 +19,7 @@ system that doesn't exist yet as if it did.
 | [bedrock-setup.md](bedrock-setup.md) | Using Amazon Bedrock for the AI engine: a one-model role, short-lived credentials, cost bounds | Phase 9; Phase 3 (this account) |
 | [aws-setup.md](aws-setup.md) | The AWS account and its constraints, signing in, the Terraform stacks, the domain, standing costs, teardown | Phase 3 |
 | [../terraform/README.md](../terraform/README.md) | Terraform stacks, state, guards, layout, how it is tested and scanned | Phase 3 |
-| [adr/](adr/) | Architecture decision records 0001–0026 | Phase 1–10, 3, 4 |
+| [adr/](adr/) | Architecture decision records 0001–0027 | Phase 1–10, 3, 4, 5 |
 | [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); AI prompt injection (Phase 9); governance (Phase 10); AWS cost runaway (Phase 3) | Phase 2, 3, 7–10 |
 | [aws-deploy-window.md](aws-deploy-window.md) | Switching the workload on in AWS, roles and migrations, checks, switching it off; its IAM roles, secrets and logging are in ADR-0026 | Phase 4 |
 | cost.md | The deploy window's resource inventory, estimates and destroy checklist (standing costs: aws-setup.md) | Phase 4 |

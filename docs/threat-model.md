@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.9 (Phase 4: the AWS workload, built; applied in the deploy window)
+- **Version:** 0.10 (Phase 5: the edge, built; Phases 4 and 5 applied together in the deploy window)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
   this document is loaded into the application as SentinelEdge's own threat model, read-only
@@ -69,12 +69,14 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-EDGE-01 | D | Volumetric / L7 flood | 2×2 | Shield Standard, WAF rate rules, CloudFront | C-WAF-01, C-WAF-03 | Planned (P5) |
-| T-EDGE-02 | T/I | TLS downgrade or weak ciphers | 1×3 | `TLSv1.2_2021` policy, HSTS | C-EDGE-01, C-WEB-01 | HSTS mitigated (app); edge P5 |
-| T-EDGE-03 | E | **Origin bypass** around CloudFront/WAF | 2×3 | Internal ALB with no public address (built, P4), reached only through CloudFront's VPC origin (P5) (ADR-0001, ADR-0026) | C-EDGE-02 | Planned (P4–5) |
-| T-EDGE-04 | T | Cache poisoning / cache deception | 1×3 | `/api/*` uncached, `Cache-Control: no-store`, Host allow-list | C-EDGE-03, C-API-07, C-WEB-01 | Partly mitigated (P1 headers + Host); edge P5 |
+| T-EDGE-01 | D | Volumetric / L7 flood | 2×2 | Shield Standard and CloudFront absorb volume; WAF rate rules per IP (sign-in 100, API 2000 per 5 minutes), the app's own limiter behind them (`modules/waf`) | C-WAF-01, C-WAF-03 | Planned (P5): built, verified in the deploy window |
+| T-EDGE-02 | T/I | TLS downgrade or weak ciphers | 1×3 | `TLSv1.2_2021` viewer policy, HTTP redirected (refused for the API), HSTS two years; `.dev` is HSTS-preloaded | C-EDGE-01, C-WEB-01 | HSTS mitigated (app); edge Planned (P5): built, verified in the deploy window |
+| T-EDGE-03 | E | **Origin bypass** around CloudFront/WAF | 2×3 | Internal ALB with no public address; its only ingress is CloudFront's VPC-origin security group (ADR-0001, ADR-0026, ADR-0027); `make edge-check` proves it unreachable | C-EDGE-02 | Planned (P5): built, verified in the deploy window |
+| T-EDGE-04 | T | Cache poisoning / cache deception | 1×3 | `/api/*` never cached at the edge (CachingDisabled), `Cache-Control: no-store`, Host allow-list; only hashed assets are long-cached | C-EDGE-03, C-API-07, C-WEB-01 | Partly mitigated (P1 headers + Host); edge Planned (P5): built, verified in the deploy window |
 | T-EDGE-05 | S | Host header injection | 2×2 | TrustedHostMiddleware, no wildcards | C-API-07 | **Mitigated (P1)** |
-| T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03 | **Mitigated (P1, local)**; CloudFront P5 |
+| T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response; CloudFront's policy is identical to nginx's (`test_edge_headers_match_nginx`) | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03 | **Mitigated (P1, local)**; CloudFront Planned (P5): built, verified in the deploy window |
+| T-EDGE-07 | I | The SPA bucket read directly, around CloudFront and WAF | 1×2 | Private bucket, public access blocked; only this distribution may read it (OAC, `AWS:SourceArn`) | C-EDGE-04 | Planned (P5): built, verified in the deploy window |
+| T-EDGE-08 | S | The API reached through the distribution's own `*.cloudfront.net` name, outside the platform's origin and cookie scope | 1×2 | Host forwarded to the origin: the origin certificate names only the platform, and the ALB forwards only that host (`make edge-check`) | C-LB-01, C-API-07 | Planned (P5): built, verified in the deploy window |
 
 ### TB2 — Edge → Origin
 
@@ -192,6 +194,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-CICD-02 | T | Malicious or hijacked third-party action | 1×3 | SHA-pinned actions, read-only token, Dependabot | C-CICD-03 | **Mitigated (P1)** |
 | T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images | C-CICD-02, C-CICD-06, C-CICD-10 | **Mitigated (P1, P8)** |
 | T-SEC-01 | I | Secret committed to git | 2×3 | Gitleaks pre-commit + CI (full history), `.gitignore` | C-SEC-01, C-SEC-02 | **Mitigated (P1)** |
+| T-SEC-03 | I | A new administrator's one-time password left in a task's log (kept a year) | 1×3 | In a deployed environment `create-admin` writes it to one Secrets Manager secret and refuses to print it; the task's role can write that secret but not read it | C-SEC-04 | Planned (P5): built and tested, verified in the deploy window |
 | T-SEC-02 | I | Secrets readable from Terraform plans, state or logs (anyone with the state bucket or a CI log gets the database passwords and signing keys) | 1×3 | The RDS master password generated and held by RDS; application secrets generated during apply as ephemeral values and written through write-only arguments, never stored in state (ADR-0026) | C-SEC-04 | Planned (P4): built, verified in the deploy window |
 | T-IAC-01 | T | Dev change applied to production | 1×3 | Per-stack roots and state keys, `allowed_account_ids` (ADR-0014) | C-IAC-01 | **Mitigated (P3)** |
 | T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | C-IAC-02 | **Mitigated (P3)** |
@@ -202,8 +205,8 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-AWS-03 | E | The root user or a full-access session used where less would do, including a session copied into a container | 2×3 | No root (Builder ID); `tf.sh` refuses root; root-use alarm; the local API gets a one-model role, never the signed-in session | C-IAM-01, C-MON-02, C-AI-07 | **Mitigated (P3)** |
 | T-COST-01 | D | Runaway spend ("denial of wallet"): a forgotten NAT, ALB or database, or abuse of a paid API | 2×2 | Credit ceiling (Free plan), budget alerts, nothing hourly at rest, one deploy window then destroy; AI quotas (C-AI-06) | C-COST-01, C-AI-06 | **Mitigated (P3)** |
 | T-DNS-01 | S | A certificate issued for the platform's name by someone else, or the name taken over (including through a delegation left pointing at a deleted Route 53 zone) | 1×3 | CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner; the zone is `prevent_destroy` and the teardown removes the delegation first | C-DNS-01 | Mitigated (P3) |
-| T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes, PR approval | C-WAF-04, C-GOV-02, C-GOV-03 | Planned (P5) |
-| T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | App holds read-only WAF permissions (ADR-0008) | C-WAF-04, C-IAM-01 | Planned (P5) |
+| T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes from reviewed plans, PR approval; rule tests in `modules/waf` | C-WAF-04, C-GOV-02, C-GOV-03 | Planned (P5): built, verified in the deploy window |
+| T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | The API's task role has no WAF permissions at all (ADR-0008, ADR-0026) | C-WAF-04, C-IAM-01 | Planned (P5): built, verified in the deploy window |
 | T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2)** except tail deletion by a table owner: hourly anchors of the chain head in S3 Object Lock, and `audit-anchor check` (built and tested, P4; live in the deploy window) |
 | T-CNT-01 | E | Container breakout / privilege escalation | 1×3 | Non-root, read-only FS, `cap_drop: ALL`, no-new-privileges | C-CNT-01 | **Mitigated (P1, local)** |
 

@@ -1,8 +1,8 @@
 # The AWS deploy window
 
-How the workload (Phase 4) is switched on in AWS, checked and switched off again (ADR-0026).
-Phase 5 adds the edge steps to this page. Between windows only free or near-free resources
-exist: the network, the DNS zone, the certificates, two empty ECR repositories, the audit-anchor
+How the workload (Phase 4, ADR-0026) and the edge (Phase 5, ADR-0027) are switched on in AWS,
+checked and switched off again. One switch, `workload`, brings both. Between windows only free or
+near-free resources exist: the network, the DNS zone, the certificates, two empty ECR repositories, the audit-anchor
 bucket and two KMS keys (about $2.50 a month).
 
 Everything here runs from your machine, signed in with `aws login` (docs/aws-setup.md), and every
@@ -17,7 +17,9 @@ Terraform change is applied only from a plan you read first.
 | RDS `db.t4g.micro` with 20 GB | ≈ $0.019 |
 | NAT instance and its public address | ≈ $0.009 |
 | Secrets, alarms, logs, one-off tasks | ≈ $0.006 |
-| **Total** | **≈ $0.07 an hour, $1.70 a day** |
+| AWS WAF: web ACL and 7 rules, prorated | ≈ $0.017 |
+| CloudFront, S3, Route 53 queries | free tier |
+| **Total** | **≈ $0.09 an hour, $2.10 a day** |
 
 Paid from the sign-up credits; on the Free plan the account cannot be billed.
 
@@ -55,8 +57,9 @@ make tf-plan STACK=dev 2>&1 | grep -E "Plan:"
 make tf-apply STACK=dev
 ```
 
-The plan only adds: the NAT instance, the database, secrets, ALB, ECS, the schedule and the
-alarms. RDS takes about ten minutes to create.
+The plan only adds: the NAT instance, the database, secrets, ALB, ECS, the schedule, the alarms,
+WAF and the CloudFront distribution with its alias records. RDS takes about ten minutes to
+create, CloudFront a few more.
 
 ## 4. Roles, then migrations
 
@@ -77,19 +80,37 @@ make tf-plan STACK=dev 2>&1 | grep -E "Plan:"     # 0 to add, 1 to change
 make tf-apply STACK=dev
 ```
 
-## 6. Check it
+## 6. Publish the SPA and check the edge
 
 ```fish
-set out (./scripts/tf.sh dev output-json)
-set cluster (echo $out | python3 -c 'import json,sys; print(json.load(sys.stdin)["workload"]["value"]["cluster"])')
-aws ecs wait services-stable --cluster $cluster --services api
-aws ecs describe-services --cluster $cluster --services api --query 'services[0].[runningCount,desiredCount]' --output text
+make spa-push
+make edge-check
+```
+
+`make edge-check` tests the edge from the internet and must end with `All edge checks passed.`:
+HTTP redirected, TLS 1.2 or later, the SPA's headers identical to the local ones, the API ready,
+WAF blocking an SQL injection and a Log4j probe, the ALB private and unreachable, and no API under
+any other name.
+
+## 7. Create your administrator
+
+```fish
+make ecs-task TASK=create-admin EMAIL=you@example.com
+```
+
+It prints the AWS command that reads the one-time password, once, from Secrets Manager; the
+password is never printed by the task or kept in its log. Sign in at
+`https://sentineledge.bionichacker.dev`, set a new password and enroll MFA.
+
+## 8. Anchor the audit chain
+
+```fish
 make ecs-task TASK=anchor
 make ecs-task TASK=anchor-check
 ```
 
-Expect `1 1`, then `Anchored seq=…` and `Audit chain matches the anchor`. The ALB is internal: it is
-reached from the internet only through CloudFront (Phase 5).
+Expect `Anchored seq=…` and `Audit chain matches the anchor`. The schedule then anchors it every
+hour while the window is open.
 
 ## Switch everything off
 
@@ -105,8 +126,10 @@ make tf-plan STACK=dev 2>&1 | grep -E "Plan:"     # 0 to add, 0 to change, N to 
 make tf-apply STACK=dev
 ```
 
-The database is deleted without a final snapshot (its data is synthetic) and the secrets at once,
-so the next window recreates both. Anchors stay in their bucket, locked for 30 days.
+This removes the edge too: WAF, the distribution (it takes several minutes to disable) and the
+alias records, so the name stops resolving. The database is deleted without a final snapshot (its
+data is synthetic) and the secrets at once, so the next window recreates both. Anchors stay in
+their bucket, locked for 30 days.
 
 ## When something goes wrong
 
@@ -117,5 +140,8 @@ so the next window recreates both. Anchors stay in their bucket, locked for 30 d
 | A task stops with `CannotPullContainerError` or `ResourceInitializationError` | No NAT, or the secret or image is unreachable | `nat_mode = "instance"`; check the task's stopped reason in the console |
 | `dbadmin` fails with `permission denied` | The roles script ran as an unexpected user | Check `PGUSER` comes from the RDS master secret (task definition) |
 | The API starts and stops | It refuses its settings in a deployed environment, or cannot verify the database's certificate | `aws logs tail /ecs/sentineledge-dev/api` |
+| `make edge-check`: a WAF probe is not blocked | The web ACL is not attached, or a rule is in count mode | `aws wafv2 get-web-acl-for-resource` for the distribution; plan the dev stack again |
+| The site shows `502` | CloudFront cannot complete TLS to the ALB, or no healthy task | Check the ALB target health; the API must be running (step 5) |
+| `create-admin` exits 2 | `SENTINEL_ADMIN_OTP_SECRET` missing in the task | Re-apply the dev stack (the admin task definition sets it) |
 | `audit-anchor check` fails | The newest audit records were removed or changed | Treat as an incident (docs/runbooks); the anchor cannot be altered |
 | Spend looks wrong | Something hourly survived the window | docs/runbooks/aws-cost-runaway.md |

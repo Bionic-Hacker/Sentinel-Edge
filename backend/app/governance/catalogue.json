@@ -824,7 +824,7 @@
    "phase": 5,
    "ref": "C-EDGE-01",
    "status": "planned",
-   "title": "CloudFront TLS policy TLSv1.2_2021 and HSTS at the edge"
+   "title": "CloudFront TLS policy TLSv1.2_2021, HTTP redirected (refused for /api/*), HSTS at the edge (modules/edge)"
   },
   {
    "evidence": [],
@@ -836,7 +836,7 @@
    "phase": 4,
    "ref": "C-EDGE-02",
    "status": "planned",
-   "title": "Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001)"
+   "title": "Private origin: CloudFront VPC origin to an internal ALB over HTTPS; the ALB admits only the VPC origin's security group (ADR-0001, ADR-0027)"
   },
   {
    "evidence": [],
@@ -848,7 +848,19 @@
    "phase": 5,
    "ref": "C-EDGE-03",
    "status": "planned",
-   "title": "CloudFront response headers policy"
+   "title": "CloudFront response headers policy, identical to the local nginx headers (test_edge_headers_match_nginx)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "EDGE",
+   "implementation": "",
+   "layer": null,
+   "phase": 5,
+   "ref": "C-EDGE-04",
+   "status": "planned",
+   "title": "SPA bucket private, readable only by this distribution through Origin Access Control"
   },
   {
    "evidence": [
@@ -1595,7 +1607,7 @@
    "phase": 4,
    "ref": "C-SEC-04",
    "status": "planned",
-   "title": "Secrets never in Terraform plans or state: RDS-managed master secret; ephemeral, write-only application secrets; one execution role per task reading only its own (ADR-0026)"
+   "title": "Secrets never in Terraform plans, state or logs: RDS-managed master secret; ephemeral, write-only application secrets; one execution role per task reading only its own; an administrator's one-time password written to Secrets Manager, never printed when deployed (ADR-0026, ADR-0027)"
   },
   {
    "evidence": [
@@ -1930,7 +1942,7 @@
    "phase": 5,
    "ref": "C-WAF-01",
    "status": "planned",
-   "title": "AWS managed rule groups (core, known bad inputs, SQL injection)"
+   "title": "AWS managed rule groups: IP reputation, core rule set, known bad inputs (Log4j), SQL injection (modules/waf)"
   },
   {
    "evidence": [],
@@ -1942,7 +1954,7 @@
    "phase": 5,
    "ref": "C-WAF-02",
    "status": "planned",
-   "title": "Custom WAF rules for SentinelEdge's own endpoints"
+   "title": "SentinelEdge's own WAF rules: a 64 KB body cap at the edge; WAF logs with Authorization and Cookie redacted"
   },
   {
    "evidence": [],
@@ -1954,7 +1966,7 @@
    "phase": 5,
    "ref": "C-WAF-03",
    "status": "planned",
-   "title": "Rate-based WAF rules"
+   "title": "Rate-based WAF rules per IP: /api/v1/auth/* 100 and /api/* 2000 per 5 minutes"
   },
   {
    "evidence": [],
@@ -1966,7 +1978,7 @@
    "phase": 5,
    "ref": "C-WAF-04",
    "status": "planned",
-   "title": "WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008)"
+   "title": "WAF changes only through reviewed Terraform; the application has no WAF permissions at all (ADR-0008)"
   },
   {
    "evidence": [
@@ -2027,7 +2039,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "d83f14f1be0d6e1145e1e588455496dc32aeea94f5c9e1a63c442600d1494bb7",
+ "digest": "6278ded818c17df1b148eff6af9f53d04334536dcb3c84f3887ba6acfe882719",
  "format": 1,
  "model": {
   "elements": [
@@ -2592,14 +2604,14 @@
     "group": "TB1 — Internet → Edge",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Shield Standard, WAF rate rules, CloudFront",
+    "mitigation": "Shield Standard and CloudFront absorb volume; WAF rate rules per IP (sign-in 100, API 2000 per 5 minutes), the app's own limiter behind them (modules/waf)",
     "owasp": "",
     "phases": [
      5
     ],
     "ref": "T-EDGE-01",
     "status": "planned",
-    "status_text": "Planned (P5)",
+    "status_text": "Planned (P5): built, verified in the deploy window",
     "stride": "D",
     "title": "Volumetric / L7 flood"
    },
@@ -2614,14 +2626,14 @@
     "group": "TB1 — Internet → Edge",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "TLSv1.2_2021 policy, HSTS",
+    "mitigation": "TLSv1.2_2021 viewer policy, HTTP redirected (refused for the API), HSTS two years; .dev is HSTS-preloaded",
     "owasp": "",
     "phases": [
      5
     ],
     "ref": "T-EDGE-02",
     "status": "partly_mitigated",
-    "status_text": "HSTS mitigated (app); edge P5",
+    "status_text": "HSTS mitigated (app); edge Planned (P5): built, verified in the deploy window",
     "stride": "T/I",
     "title": "TLS downgrade or weak ciphers"
    },
@@ -2635,14 +2647,14 @@
     "group": "TB1 — Internet → Edge",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Internal ALB with no public address (built, P4), reached only through CloudFront's VPC origin (P5) (ADR-0001, ADR-0026)",
+    "mitigation": "Internal ALB with no public address; its only ingress is CloudFront's VPC-origin security group (ADR-0001, ADR-0026, ADR-0027); make edge-check proves it unreachable",
     "owasp": "",
     "phases": [
-     4
+     5
     ],
     "ref": "T-EDGE-03",
     "status": "planned",
-    "status_text": "Planned (P4–5)",
+    "status_text": "Planned (P5): built, verified in the deploy window",
     "stride": "E",
     "title": "Origin bypass around CloudFront/WAF"
    },
@@ -2658,7 +2670,7 @@
     "group": "TB1 — Internet → Edge",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "/api/* uncached, Cache-Control: no-store, Host allow-list",
+    "mitigation": "/api/* never cached at the edge (CachingDisabled), Cache-Control: no-store, Host allow-list; only hashed assets are long-cached",
     "owasp": "",
     "phases": [
      1,
@@ -2666,7 +2678,7 @@
     ],
     "ref": "T-EDGE-04",
     "status": "partly_mitigated",
-    "status_text": "Partly mitigated (P1 headers + Host); edge P5",
+    "status_text": "Partly mitigated (P1 headers + Host); edge Planned (P5): built, verified in the deploy window",
     "stride": "T",
     "title": "Cache poisoning / cache deception"
    },
@@ -2704,7 +2716,7 @@
     "group": "TB1 — Internet → Edge",
     "impact": 2,
     "likelihood": 2,
-    "mitigation": "Security headers on every response",
+    "mitigation": "Security headers on every response; CloudFront's policy is identical to nginx's (test_edge_headers_match_nginx)",
     "owasp": "",
     "phases": [
      1,
@@ -2712,9 +2724,52 @@
     ],
     "ref": "T-EDGE-06",
     "status": "mitigated",
-    "status_text": "Mitigated (P1, local); CloudFront P5",
+    "status_text": "Mitigated (P1, local); CloudFront Planned (P5): built, verified in the deploy window",
     "stride": "T",
     "title": "Clickjacking, MIME sniffing, XSS via missing headers"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-04"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 1,
+    "mitigation": "Private bucket, public access blocked; only this distribution may read it (OAC, AWS:SourceArn)",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-07",
+    "status": "planned",
+    "status_text": "Planned (P5): built, verified in the deploy window",
+    "stride": "I",
+    "title": "The SPA bucket read directly, around CloudFront and WAF"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-LB-01",
+     "C-API-07"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 1,
+    "mitigation": "Host forwarded to the origin: the origin certificate names only the platform, and the ALB forwards only that host (make edge-check)",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-08",
+    "status": "planned",
+    "status_text": "Planned (P5): built, verified in the deploy window",
+    "stride": "S",
+    "title": "The API reached through the distribution's own *.cloudfront.net name, outside the platform's origin and cookie scope"
    },
    {
     "boundaries": [
@@ -4309,6 +4364,29 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 1,
+    "mitigation": "In a deployed environment create-admin writes it to one Secrets Manager secret and refuses to print it; the task's role can write that secret but not read it",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-SEC-03",
+    "status": "planned",
+    "status_text": "Planned (P5): built and tested, verified in the deploy window",
+    "stride": "I",
+    "title": "A new administrator's one-time password left in a task's log (kept a year)"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
+     "C-SEC-04"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
     "mitigation": "The RDS master password generated and held by RDS; application secrets generated during apply as ephemeral values and written through write-only arguments, never stored in state (ADR-0026)",
     "owasp": "",
     "phases": [
@@ -4546,14 +4624,14 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Terraform-only changes, PR approval",
+    "mitigation": "Terraform-only changes from reviewed plans, PR approval; rule tests in modules/waf",
     "owasp": "",
     "phases": [
      5
     ],
     "ref": "T-WAF-01",
     "status": "planned",
-    "status_text": "Planned (P5)",
+    "status_text": "Planned (P5): built, verified in the deploy window",
     "stride": "T",
     "title": "WAF rule disabled without review"
    },
@@ -4570,14 +4648,14 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "App holds read-only WAF permissions (ADR-0008)",
+    "mitigation": "The API's task role has no WAF permissions at all (ADR-0008, ADR-0026)",
     "owasp": "",
     "phases": [
      5
     ],
     "ref": "T-WAF-02",
     "status": "planned",
-    "status_text": "Planned (P5)",
+    "status_text": "Planned (P5): built, verified in the deploy window",
     "stride": "E",
     "title": "Compromised app used to weaken WAF"
    },
@@ -4631,7 +4709,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.9"
+  "version": "0.10"
  },
  "requirements": [
   {

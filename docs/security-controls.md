@@ -209,17 +209,18 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 
 | ID | Control | Phase |
 |---|---|---|
-| C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021` and HSTS at the edge | 5 |
-| C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001) | 4 |
-| C-EDGE-03 | CloudFront response headers policy | 5 |
-| C-WAF-01 | AWS managed rule groups (core, known bad inputs, SQL injection) | 5 |
-| C-WAF-02 | Custom WAF rules for SentinelEdge's own endpoints | 5 |
-| C-WAF-03 | Rate-based WAF rules | 5 |
-| C-WAF-04 | WAF changes only through reviewed Terraform; the app has read-only WAF access (ADR-0008) | 5 |
+| C-EDGE-01 | CloudFront TLS policy `TLSv1.2_2021`, HTTP redirected (refused for `/api/*`), HSTS at the edge (`modules/edge`) | 5 |
+| C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS; the ALB admits only the VPC origin's security group (ADR-0001, ADR-0027) | 4 |
+| C-EDGE-03 | CloudFront response headers policy, identical to the local nginx headers (`test_edge_headers_match_nginx`) | 5 |
+| C-EDGE-04 | SPA bucket private, readable only by this distribution through Origin Access Control | 5 |
+| C-WAF-01 | AWS managed rule groups: IP reputation, core rule set, known bad inputs (Log4j), SQL injection (`modules/waf`) | 5 |
+| C-WAF-02 | SentinelEdge's own WAF rules: a 64 KB body cap at the edge; WAF logs with Authorization and Cookie redacted | 5 |
+| C-WAF-03 | Rate-based WAF rules per IP: `/api/v1/auth/*` 100 and `/api/*` 2000 per 5 minutes | 5 |
+| C-WAF-04 | WAF changes only through reviewed Terraform; the application has no WAF permissions at all (ADR-0008) | 5 |
 | C-LB-01 | ALB desync mitigation (strictest) and invalid-header dropping | 4 |
 | C-DB-02 | Encryption at rest (KMS) and in transit (`rds.force_ssl`, TLS 1.2 minimum) on RDS (`modules/database`) | 4 |
 | C-DB-04 | Automated database backups (one day in dev; no final snapshot of synthetic data) | 4 |
 | C-IAM-02 | No static cloud keys for CI. GitHub OIDC (ADR-0010) is denied by this account's SCPs, so Phase 11 redesigns it | 11 |
 | C-AUD-03 | Audit archive with S3 Object Lock anchoring the chain head: hourly `audit-anchor export`, `audit-anchor check` catches a removed tail (`modules/audit-anchors`, `app/services/audit_anchor.py`) | 4 |
-| C-SEC-04 | Secrets never in Terraform plans or state: RDS-managed master secret; ephemeral, write-only application secrets; one execution role per task reading only its own (ADR-0026) | 4 |
+| C-SEC-04 | Secrets never in Terraform plans, state or logs: RDS-managed master secret; ephemeral, write-only application secrets; one execution role per task reading only its own; an administrator's one-time password written to Secrets Manager, never printed when deployed (ADR-0026, ADR-0027) | 4 |
 | C-MON-01 | CloudWatch alarms for the workload: no healthy task, server errors, bursts of refused or unrouted requests, database CPU and storage, logged errors (`modules/workload-alarms`) | 4 |
