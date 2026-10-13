@@ -28,17 +28,24 @@ locals {
 }
 
 # ---- The SPA bucket: private, reachable only by this distribution ----
+# In the account's home Region: this account's guardrails deny creating S3 buckets in us-east-1,
+# and CloudFront reads an origin bucket in any Region.
 
 resource "aws_s3_bucket" "spa" {
+  provider = aws.home
+
   # checkov:skip=CKV_AWS_18: Every request through the edge is in the WAF logs; S3 access logs would repeat them.
   # checkov:skip=CKV_AWS_144: The bucket holds a build that make spa-push recreates; replication adds nothing.
-  # checkov:skip=CKV_AWS_145: The SPA is public content served to every visitor; SSE-S3 suffices, and SSE-KMS would need the key in us-east-1 shared with CloudFront.
+  # checkov:skip=CKV_AWS_145: The SPA is public content served to every visitor; SSE-S3 suffices, and SSE-KMS would mean granting CloudFront use of the platform key.
   # checkov:skip=CKV2_AWS_62: No consumer for event notifications.
+
   bucket_prefix = "${var.name}-spa-"
   force_destroy = true
 }
 
 resource "aws_s3_bucket_public_access_block" "spa" {
+  provider = aws.home
+
   bucket                  = aws_s3_bucket.spa.id
   block_public_acls       = true
   block_public_policy     = true
@@ -47,6 +54,8 @@ resource "aws_s3_bucket_public_access_block" "spa" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "spa" {
+  provider = aws.home
+
   bucket = aws_s3_bucket.spa.id
   rule {
     object_ownership = "BucketOwnerEnforced"
@@ -54,6 +63,8 @@ resource "aws_s3_bucket_ownership_controls" "spa" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "spa" {
+  provider = aws.home
+
   bucket = aws_s3_bucket.spa.id
   rule {
     apply_server_side_encryption_by_default {
@@ -63,6 +74,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "spa" {
 }
 
 resource "aws_s3_bucket_versioning" "spa" {
+  provider = aws.home
+
   bucket = aws_s3_bucket.spa.id
   versioning_configuration {
     status = "Enabled"
@@ -70,6 +83,8 @@ resource "aws_s3_bucket_versioning" "spa" {
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "spa" {
+  provider = aws.home
+
   bucket = aws_s3_bucket.spa.id
   rule {
     id     = "old-builds"
@@ -117,6 +132,8 @@ data "aws_iam_policy_document" "spa" {
 }
 
 resource "aws_s3_bucket_policy" "spa" {
+  provider = aws.home
+
   bucket = aws_s3_bucket.spa.id
   policy = data.aws_iam_policy_document.spa.json
 

@@ -98,6 +98,8 @@ API's log.
   T-ORG-03, T-AUD-01's remaining tail deletion, and T-SEC-02 (secrets in Terraform state, new).
 - Controls C-LB-01, C-DB-02, C-DB-04, C-AUD-03, C-MON-01 and C-SEC-04 (new) are built; C-EDGE-02
   completes with Phase 5's VPC origin.
+- The Free plan launches only Free Tier instance types, so the NAT instance is a `t4g.micro`
+  (`t4g.nano` is refused at plan time; found in the first window).
 - Accepted for dev: single-AZ database and one NAT; Spot interruptions (the service replaces the
   task); TLS ends at the ALB.
 

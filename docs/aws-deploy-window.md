@@ -15,11 +15,11 @@ Terraform change is applied only from a plan you read first.
 | API task, 0.5 vCPU and 1 GB, on Fargate Spot | ≈ $0.008 |
 | Internal ALB | ≈ $0.030 |
 | RDS `db.t4g.micro` with 20 GB | ≈ $0.019 |
-| NAT instance and its public address | ≈ $0.009 |
+| NAT instance (`t4g.micro`) and its public address | ≈ $0.013 |
 | Secrets, alarms, logs, one-off tasks | ≈ $0.006 |
 | AWS WAF: web ACL and 7 rules, prorated | ≈ $0.017 |
 | CloudFront, S3, Route 53 queries | free tier |
-| **Total** | **≈ $0.09 an hour, $2.10 a day** |
+| **Total** | **≈ $0.09 an hour, $2.20 a day** |
 
 Paid from the sign-up credits; on the Free plan the account cannot be billed.
 
@@ -144,4 +144,7 @@ their bucket, locked for 30 days.
 | The site shows `502` | CloudFront cannot complete TLS to the ALB, or no healthy task | Check the ALB target health; the API must be running (step 5) |
 | `create-admin` exits 2 | `SENTINEL_ADMIN_OTP_SECRET` missing in the task | Re-apply the dev stack (the admin task definition sets it) |
 | `audit-anchor check` fails | The newest audit records were removed or changed | Treat as an incident (docs/runbooks); the anchor cannot be altered |
+| `RunInstances`: the instance type is not eligible for Free Tier | The Free plan launches only Free Tier types | Keep `nat_instance_type` at `t4g.micro` (the module refuses `t4g.nano`) |
+| `CreateBucket` … explicit deny in a service control policy | The Free plan's SCP denies new S3 buckets in us-east-1 | Buckets live in the home Region; the SPA bucket uses the edge module's `aws.home` provider |
+| An apply stops partway | One resource failed; the others stay created and billed | Fix, then plan again: the plan adds only what is missing |
 | Spend looks wrong | Something hourly survived the window | docs/runbooks/aws-cost-runaway.md |

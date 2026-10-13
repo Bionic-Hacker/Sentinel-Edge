@@ -2,13 +2,17 @@
 # Run by scripts/tf-check.sh (make tf-check, and CI).
 
 mock_provider "aws" {
+  alias = "home"
   mock_resource "aws_s3_bucket" {
     defaults = {
       arn                         = "arn:aws:s3:::sentineledge-dev-spa-0001"
       id                          = "sentineledge-dev-spa-0001"
-      bucket_regional_domain_name = "sentineledge-dev-spa-0001.s3.us-east-1.amazonaws.com"
+      bucket_regional_domain_name = "sentineledge-dev-spa-0001.s3.us-east-2.amazonaws.com"
     }
   }
+}
+
+mock_provider "aws" {
   mock_resource "aws_cloudfront_distribution" {
     defaults = {
       arn            = "arn:aws:cloudfront::123456789012:distribution/E0000000000000"
@@ -37,6 +41,10 @@ variables {
 
 run "viewers_get_modern_tls_and_waf" {
   command = apply
+  providers = {
+    aws      = aws
+    aws.home = aws.home
+  }
 
   assert {
     condition     = aws_cloudfront_distribution.this.viewer_certificate[0].minimum_protocol_version == "TLSv1.2_2021" && aws_cloudfront_distribution.this.viewer_certificate[0].ssl_support_method == "sni-only"
@@ -54,6 +62,10 @@ run "viewers_get_modern_tls_and_waf" {
 
 run "the_api_is_reached_only_through_the_vpc_origin" {
   command = apply
+  providers = {
+    aws      = aws
+    aws.home = aws.home
+  }
 
   assert {
     condition     = one([for o in aws_cloudfront_distribution.this.origin : length(o.vpc_origin_config) if o.origin_id == "api"]) == 1
@@ -71,6 +83,10 @@ run "the_api_is_reached_only_through_the_vpc_origin" {
 
 run "the_spa_bucket_is_private" {
   command = apply
+  providers = {
+    aws      = aws
+    aws.home = aws.home
+  }
 
   assert {
     condition     = aws_s3_bucket_public_access_block.spa.block_public_policy && aws_s3_bucket_public_access_block.spa.restrict_public_buckets
@@ -88,6 +104,10 @@ run "the_spa_bucket_is_private" {
 
 run "spa_headers_match_the_local_edge" {
   command = apply
+  providers = {
+    aws      = aws
+    aws.home = aws.home
+  }
 
   assert {
     condition     = one(one(aws_cloudfront_response_headers_policy.spa.security_headers_config).content_security_policy).content_security_policy == local.spa_headers["Content-Security-Policy"]
@@ -109,6 +129,10 @@ run "spa_headers_match_the_local_edge" {
 
 run "the_name_points_at_the_distribution" {
   command = apply
+  providers = {
+    aws      = aws
+    aws.home = aws.home
+  }
 
   assert {
     condition     = length(aws_route53_record.alias) == 2 && aws_route53_record.alias["A"].alias[0].name == "d111111abcdef8.cloudfront.net"

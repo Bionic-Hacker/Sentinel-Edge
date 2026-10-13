@@ -198,7 +198,7 @@ module "waf" {
 module "edge" {
   source    = "../../modules/edge"
   count     = local.workload
-  providers = { aws = aws.us_east_1 }
+  providers = { aws = aws.us_east_1, aws.home = aws }
 
   name            = local.name
   domain          = var.app_domain

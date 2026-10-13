@@ -22,7 +22,8 @@ removed with the workload in each deploy window.
   The viewer's Host header is forwarded (managed AllViewer policy), so the origin certificate and
   the ALB's host rule both match the platform's name; under any other name, including the
   distribution's own `*.cloudfront.net`, the API is not served. Responses are never cached.
-- Everything else comes from a **private S3 bucket through Origin Access Control**: public access
+- Everything else comes from a **private S3 bucket through Origin Access Control**, in the home
+  Region (the Free plan's service control policy denies creating buckets in us-east-1): public access
   blocked, and the bucket policy lets only this distribution read it. A CloudFront Function routes
   paths without a file extension to `index.html`, as nginx's `try_files` does. It runs only on the
   default behaviour, never on `/api/*`.

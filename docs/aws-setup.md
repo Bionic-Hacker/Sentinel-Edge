@@ -92,7 +92,7 @@ for CloudFront, one in us-east-2 for the internal ALB). All of it is free while 
 | `nat_mode` | Egress for the app tier | Cost |
 |---|---|---|
 | `none` (default) | None: the resting state between deploy windows | $0 |
-| `instance` | One t4g.nano NAT instance (IMDSv2, encrypted, no SSH, no role) | ≈ $0.009/hour |
+| `instance` | One t4g.micro NAT instance (IMDSv2, encrypted, no SSH, no role; the Free plan refuses t4g.nano) | ≈ $0.013/hour |
 | `gateway` | One managed NAT gateway | ≈ $0.05/hour |
 
 **The domain** (ADR-0025). The owner's domain, `bionichacker.dev`, is registered at Porkbun and

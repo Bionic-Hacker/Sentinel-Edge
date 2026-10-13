@@ -16,12 +16,12 @@ say() { printf 'spa-push: %s\n' "$*"; }
   || die "the working tree has uncommitted changes: commit them, so the site matches a commit"
 
 outputs="$("$ROOT/scripts/tf.sh" dev output-json)"
-read -r bucket distribution < <(printf '%s' "$outputs" | python3 -c '
+read -r bucket distribution region < <(printf '%s' "$outputs" | python3 -c '
 import json, sys
 w = (json.load(sys.stdin).get("workload") or {}).get("value")
 if not w:
     sys.exit("spa-push: the workload is off: set workload = true and apply the dev stack first")
-print(w["spa_bucket"], w["distribution_id"])
+print(w["spa_bucket"], w["distribution_id"], w["region"])
 ')
 [[ -n "${bucket:-}" ]] || die "could not read the dev stack's edge outputs"
 
@@ -32,16 +32,16 @@ DIST="$ROOT/frontend/dist"
 
 S3="s3://$bucket"
 say "uploading to $bucket"
-aws s3 sync "$DIST/assets" "$S3/assets" --region us-east-1 --only-show-errors \
+aws s3 sync "$DIST/assets" "$S3/assets" --region "$region" --only-show-errors \
   --cache-control "public, max-age=31536000, immutable"
-aws s3 sync "$DIST" "$S3" --region us-east-1 --only-show-errors \
+aws s3 sync "$DIST" "$S3" --region "$region" --only-show-errors \
   --exclude "assets/*" --exclude "index.html" --cache-control "no-cache"
 # index.html last, so it never names assets that are not there yet.
-aws s3 cp "$DIST/index.html" "$S3/index.html" --region us-east-1 --only-show-errors \
+aws s3 cp "$DIST/index.html" "$S3/index.html" --region "$region" --only-show-errors \
   --cache-control "no-cache" --content-type "text/html; charset=utf-8"
 
 # Remove what this build no longer has (old versions expire after a week).
-stale="$(aws s3api list-objects-v2 --region us-east-1 --bucket "$bucket" --query 'Contents[].Key' --output json \
+stale="$(aws s3api list-objects-v2 --region "$region" --bucket "$bucket" --query 'Contents[].Key' --output json \
   | python3 -c '
 import json, os, sys
 root = sys.argv[1]
@@ -52,7 +52,7 @@ for key in json.load(sys.stdin) or []:
 ' "$DIST")"
 if [[ -n "$stale" ]]; then
   while IFS= read -r key; do
-    aws s3 rm "$S3/$key" --region us-east-1 --only-show-errors
+    aws s3 rm "$S3/$key" --region "$region" --only-show-errors
   done <<< "$stale"
   say "removed $(printf '%s\n' "$stale" | wc -l) file(s) the new build no longer has"
 fi
