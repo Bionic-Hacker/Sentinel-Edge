@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SENTINEL_", extra="ignore")
 
     environment: Environment = Environment.LOCAL
-    app_version: str = Field(default="0.8.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    app_version: str = Field(default="0.9.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     log_level: LogLevel = LogLevel.INFO
     enable_api_docs: bool = False
     trusted_hosts: Annotated[list[str], NoDecode] = Field(
@@ -140,6 +140,12 @@ class Settings(BaseSettings):
     # Tokens (input + output) all users together may spend in 24 hours.
     ai_tokens_per_day: int = Field(default=200_000, ge=1_000, le=10_000_000)
     ai_timeout_seconds: int = Field(default=30, ge=5, le=120)
+
+    # Off-host anchors of the audit chain's head (ADR-0005, Phase 4): an S3 bucket with Object
+    # Lock. Unset locally; `audit-anchor` then refuses to run.
+    audit_anchor_bucket: str | None = Field(
+        default=None, pattern=r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+    )
 
     @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
     @classmethod

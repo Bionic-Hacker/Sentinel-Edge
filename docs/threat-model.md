@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.8 (Phase 3: Terraform foundation)
+- **Version:** 0.9.1 (Phase 4 released: the AWS workload, applied and verified in the deploy window)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
   this document is loaded into the application as SentinelEdge's own threat model, read-only
@@ -71,7 +71,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 |---|---|---|---|---|---|---|
 | T-EDGE-01 | D | Volumetric / L7 flood | 2×2 | Shield Standard, WAF rate rules, CloudFront | C-WAF-01, C-WAF-03 | Planned (P5) |
 | T-EDGE-02 | T/I | TLS downgrade or weak ciphers | 1×3 | `TLSv1.2_2021` policy, HSTS | C-EDGE-01, C-WEB-01 | HSTS mitigated (app); edge P5 |
-| T-EDGE-03 | E | **Origin bypass** around CloudFront/WAF | 2×3 | Internal ALB via VPC origin (ADR-0001) | C-EDGE-02 | Planned (P4–5) |
+| T-EDGE-03 | E | **Origin bypass** around CloudFront/WAF | 2×3 | Internal ALB with no public address (built, P4), reached only through CloudFront's VPC origin (P5) (ADR-0001, ADR-0026) | C-EDGE-02 | Planned (P4–5) |
 | T-EDGE-04 | T | Cache poisoning / cache deception | 1×3 | `/api/*` uncached, `Cache-Control: no-store`, Host allow-list | C-EDGE-03, C-API-07, C-WEB-01 | Partly mitigated (P1 headers + Host); edge P5 |
 | T-EDGE-05 | S | Host header injection | 2×2 | TrustedHostMiddleware, no wildcards | C-API-07 | **Mitigated (P1)** |
 | T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03 | **Mitigated (P1, local)**; CloudFront P5 |
@@ -80,9 +80,9 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-ORG-01 | I | Plaintext CloudFront→origin traffic | 1×2 | HTTPS listener on ALB | C-EDGE-02 | Planned (P4) |
-| T-ORG-02 | S | Spoofed `X-Forwarded-For` to evade IP controls | 2×2 | Proxy-header trust only from configured proxy networks, chain walked right to left | C-NET-03 | **Mitigated locally (P6, tested)**: trusted local proxy network, nginx overwrites the header; ALB subnets in P4 |
-| T-ORG-03 | T | HTTP request smuggling / desync | 1×3 | ALB desync mitigation "strictest", drop invalid headers | C-LB-01 | Planned (P4) |
+| T-ORG-01 | I | Plaintext CloudFront→origin traffic | 1×2 | HTTPS-only listener on the ALB, TLS 1.3/1.2 with forward-secret ciphers, the ACM certificate for the platform's name (`modules/alb`) | C-LB-01, C-EDGE-02 | **Mitigated (P4)**: HTTPS-only internal ALB, verified in the deploy window |
+| T-ORG-02 | S | Spoofed `X-Forwarded-For` to evade IP controls | 2×2 | Proxy-header trust only from configured proxy networks, chain walked right to left | C-NET-03 | **Mitigated (P4, P6)**: proxy headers trusted only from the app subnets (ALB, CloudFront's VPC origin) and the local proxy network |
+| T-ORG-03 | T | HTTP request smuggling / desync | 1×3 | ALB desync mitigation "strictest", drop invalid headers; other host names refused at the ALB (`modules/alb`) | C-LB-01 | **Mitigated (P4)**: verified in the deploy window |
 
 ### TB3 — Browser session → API
 
@@ -164,10 +164,10 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | C-NET-00, C-NET-01, C-NET-02 | Local analogue **mitigated (P1)**; network and groups mitigated (P3); RDS P4 |
-| T-DB-02 | I | Credential theft | 2×3 | Per-container secrets; Secrets Manager with rotation in AWS | C-SEC-03 | Local scoping **mitigated (P2)**; Secrets Manager P4 |
+| T-DB-01 | I | Database exposed to the internet | 1×3 | Isolated subnets, `publicly_accessible=false`, SG, Checkov | C-NET-00, C-NET-01, C-NET-02 | **Mitigated (P1, P3, P4)**: RDS in isolated subnets, not publicly accessible, verified in the deploy window |
+| T-DB-02 | I | Credential theft | 2×3 | Per-container secrets; Secrets Manager with rotation in AWS | C-SEC-03 | **Mitigated (P2, P4)**: Secrets Manager, one execution role per task reading only its own secrets |
 | T-DB-03 | E | Over-privileged app DB role | 2×3 | Separate migration and runtime roles (ADR-0015) | C-DB-01 | **Mitigated (P2)**: privilege-matrix test |
-| T-DB-04 | I | Unencrypted data at rest or in transit | 1×3 | KMS, `rds.force_ssl` | C-DB-02, C-DB-03 | Planned (P4) |
+| T-DB-04 | I | Unencrypted data at rest or in transit | 1×3 | KMS, `rds.force_ssl`, TLS 1.2 minimum; the app verifies the server certificate and host name against Amazon's CA bundle (`verify-full`) | C-DB-02, C-DB-03 | **Mitigated (P4)**: verified in the deploy window |
 
 ### TB5 — API → AI provider (and attacker data into the AI)
 
@@ -192,6 +192,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-CICD-02 | T | Malicious or hijacked third-party action | 1×3 | SHA-pinned actions, read-only token, Dependabot | C-CICD-03 | **Mitigated (P1)** |
 | T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images | C-CICD-02, C-CICD-06, C-CICD-10 | **Mitigated (P1, P8)** |
 | T-SEC-01 | I | Secret committed to git | 2×3 | Gitleaks pre-commit + CI (full history), `.gitignore` | C-SEC-01, C-SEC-02 | **Mitigated (P1)** |
+| T-SEC-02 | I | Secrets readable from Terraform plans, state or logs (anyone with the state bucket or a CI log gets the database passwords and signing keys) | 1×3 | The RDS master password generated and held by RDS; application secrets generated during apply as ephemeral values and written through write-only arguments, never stored in state (ADR-0026) | C-SEC-04 | **Mitigated (P4)**: no secret value in any plan or state of the deploy window |
 | T-IAC-01 | T | Dev change applied to production | 1×3 | Per-stack roots and state keys, `allowed_account_ids` (ADR-0014) | C-IAC-01 | **Mitigated (P3)** |
 | T-IAC-02 | I | Terraform state disclosure | 1×3 | Encrypted, private, versioned state bucket | C-IAC-02 | **Mitigated (P3)** |
 | T-IAC-03 | T | An unreviewed or stale plan applied, or a plan applied to the wrong account or as root | 1×3 | Saved-plan-only apply, identity and account guard, root refused | C-IAC-03, C-IAC-01 | **Mitigated (P3)** |
@@ -203,7 +204,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-DNS-01 | S | A certificate issued for the platform's name by someone else, or the name taken over (including through a delegation left pointing at a deleted Route 53 zone) | 1×3 | CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner; the zone is `prevent_destroy` and the teardown removes the delegation first | C-DNS-01 | Mitigated (P3) |
 | T-WAF-01 | T | WAF rule disabled without review | 2×3 | Terraform-only changes, PR approval | C-WAF-04, C-GOV-02, C-GOV-03 | Planned (P5) |
 | T-WAF-02 | E | Compromised app used to weaken WAF | 1×3 | App holds read-only WAF permissions (ADR-0008) | C-WAF-04, C-IAM-01 | Planned (P5) |
-| T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2)** except tail deletion by a table owner (Object Lock anchor, P4) |
+| T-AUD-01 | R | Audit records altered or deleted | 2×3 | Hash chain, INSERT-only grants, triggers, Object Lock (ADR-0005) | C-AUD-01, C-AUD-02, C-AUD-03 | **Mitigated (P2, P4)**: hash chain, plus hourly anchors of its head in S3 Object Lock; `audit-anchor check` verified in the deploy window |
 | T-CNT-01 | E | Container breakout / privilege escalation | 1×3 | Non-root, read-only FS, `cap_drop: ALL`, no-new-privileges | C-CNT-01 | **Mitigated (P1, local)** |
 
 ## 4. Attack paths (top three)
@@ -235,8 +236,9 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   deSEC's dedyn.io) suspended new names. The domain is chosen before Phase 5; until then no
   certificate is requested and nothing is served.
 - One NAT for both zones in dev: a zone outage takes egress with it. Accepted for a demo.
-- Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash
-  is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.
+- Audit-log tail deletion by someone with table-owner rights is detectable only while anchors are
+  being written, that is during a deploy window (hourly, S3 Object Lock, ADR-0026). Locally the
+  verify output's head hash is the only anchor.
 - One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).
 - Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per
   2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot

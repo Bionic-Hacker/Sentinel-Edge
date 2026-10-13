@@ -66,3 +66,56 @@ variable "caa_iodef" {
   type        = string
   default     = ""
 }
+
+# --- Phase 4: the deploy-window switch and the workload's settings (ADR-0026) ---
+
+variable "workload" {
+  description = "true during a deploy window: the database, secrets, internal ALB and ECS exist. false between windows: none of them do."
+  type        = bool
+  default     = false
+
+  validation {
+    condition     = !var.workload || (var.nat_mode != "none" && var.dns_delegated && var.app_domain != "")
+    error_message = "The workload needs nat_mode instance or gateway (tasks pull images and read secrets through NAT) and an issued certificate (app_domain set and dns_delegated = true)."
+  }
+  validation {
+    condition     = !var.workload || (var.api_image != "" && var.dbadmin_image != "")
+    error_message = "The workload needs api_image and dbadmin_image: run make images-push first (it writes images.auto.tfvars)."
+  }
+}
+
+variable "api_image" {
+  description = "API image by digest. make images-push writes it to images.auto.tfvars."
+  type        = string
+  default     = ""
+}
+
+variable "dbadmin_image" {
+  description = "Role-bootstrap image by digest. make images-push writes it to images.auto.tfvars."
+  type        = string
+  default     = ""
+}
+
+variable "api_desired_count" {
+  description = "Running API tasks. 0 for the first apply of a window, until the roles and migrations have run."
+  type        = number
+  default     = 1
+}
+
+variable "use_spot" {
+  description = "Run the API on Fargate Spot (about 70% cheaper; interrupted tasks are replaced)."
+  type        = bool
+  default     = true
+}
+
+variable "ai_provider" {
+  description = "The API's AI provider in AWS: bedrock (through the task role) or disabled."
+  type        = string
+  default     = "bedrock"
+}
+
+variable "app_secrets_generation" {
+  description = "Increase to generate and store new application secrets (rotation)."
+  type        = number
+  default     = 1
+}

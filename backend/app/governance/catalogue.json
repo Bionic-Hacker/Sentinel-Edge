@@ -521,16 +521,21 @@
    "title": "Append-only: grants (SELECT/INSERT) and triggers that block even the owner"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_audit_anchor.py"
+    }
+   ],
+   "evidence_text": "test_audit_anchor.py; in the window Anchored seq=14 and Audit chain matches the anchor",
    "extensions": [],
    "family": "AUD",
-   "implementation": "",
+   "implementation": "terraform/modules/audit-anchors, app/services/audit_anchor.py, modules/ecs (anchor task)",
    "layer": "Logging",
    "phase": 4,
    "ref": "C-AUD-03",
-   "status": "planned",
-   "title": "Audit archive with S3 Object Lock anchoring the chain head"
+   "status": "implemented",
+   "title": "Audit archive: the chain head anchored hourly in S3 Object Lock (governance, 30 days); audit-anchor check catches a removed or changed tail; the anchor role cannot delete or bypass"
   },
   {
    "evidence": [],
@@ -758,15 +763,15 @@
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "database.tftest.hcl; the API reached the database as the app role in the window (/api/v1/ready)",
    "extensions": [],
    "family": "DB",
-   "implementation": "",
+   "implementation": "terraform/modules/database, backend/certs, app/core/config.py",
    "layer": "Database security",
    "phase": 4,
    "ref": "C-DB-02",
-   "status": "planned",
-   "title": "Encryption at rest (KMS) and in transit (rds.force_ssl)"
+   "status": "implemented",
+   "title": "RDS PostgreSQL 17 encrypted under the platform key; rds.force_ssl and TLS 1.2 minimum; the app verifies the server certificate and host name (verify-full) against Amazon's CA bundle"
   },
   {
    "evidence": [
@@ -787,15 +792,15 @@
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "database.tftest.hcl (dev_defaults_are_the_cheapest)",
    "extensions": [],
    "family": "DB",
-   "implementation": "",
+   "implementation": "terraform/modules/database",
    "layer": "Database security",
    "phase": 4,
    "ref": "C-DB-04",
-   "status": "planned",
-   "title": "Automated database backups"
+   "status": "implemented",
+   "title": "Automated backups (one day in dev); no final snapshot of synthetic data"
   },
   {
    "evidence": [
@@ -833,10 +838,10 @@
    "family": "EDGE",
    "implementation": "",
    "layer": "CDN / edge",
-   "phase": 4,
+   "phase": 5,
    "ref": "C-EDGE-02",
    "status": "planned",
-   "title": "Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001)"
+   "title": "Private origin: CloudFront VPC origin to an internal ALB over HTTPS (ADR-0001); the internal ALB is built in Phase 4"
   },
   {
    "evidence": [],
@@ -1363,16 +1368,21 @@
    "title": "Browser session: token in memory only, cross-tab refresh lock"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make tf-check"
+    }
+   ],
+   "evidence_text": "make tf-check (alb.tftest.hcl); the edge check in the deploy window (v0.10.0): the ALB resolves only to private addresses and cannot be reached",
    "extensions": [],
    "family": "LB",
-   "implementation": "",
+   "implementation": "terraform/modules/alb",
    "layer": "Load balancer",
    "phase": 4,
    "ref": "C-LB-01",
-   "status": "planned",
-   "title": "ALB desync mitigation (strictest) and invalid-header dropping"
+   "status": "implemented",
+   "title": "Internal ALB, HTTPS only (TLS 1.3, and 1.2 with forward-secret AEAD ciphers); only the platform's host name is forwarded; invalid headers dropped; desync mitigation strictest"
   },
   {
    "evidence": [
@@ -1438,15 +1448,15 @@
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "workload-alarms.tftest.hcl; the alarms existed in the window",
    "extensions": [],
    "family": "MON",
-   "implementation": "",
+   "implementation": "terraform/modules/workload-alarms",
    "layer": "Monitoring and detection",
    "phase": 4,
    "ref": "C-MON-01",
-   "status": "planned",
-   "title": "CloudWatch alarms for errors, latency and security signals"
+   "status": "implemented",
+   "title": "CloudWatch alarms for the workload: no healthy task, server errors, bursts of refused or unrouted requests, database CPU and storage, logged errors, to the security-alerts topic"
   },
   {
    "evidence": [],
@@ -1579,11 +1589,23 @@
    "extensions": [],
    "family": "SEC",
    "implementation": "docker-compose.yml",
-   "layer": null,
+   "layer": "Secrets management",
    "phase": 2,
    "ref": "C-SEC-03",
    "status": "implemented",
    "title": "Secrets scoped per container (API never receives migrator/admin passwords)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "app-secrets.tftest.hcl, ecs.tftest.hcl (secrets_go_only_where_needed); no secret value in the window's plans",
+   "extensions": [],
+   "family": "SEC",
+   "implementation": "terraform/modules/app-secrets, app-secret-values, modules/ecs/iam.tf",
+   "layer": "Secrets management",
+   "phase": 4,
+   "ref": "C-SEC-04",
+   "status": "implemented",
+   "title": "Secrets never in plans, state or logs: RDS-managed master secret; application secrets generated by Secrets Manager as ephemeral values and written write-only; one execution role per task reading only its own secrets"
   },
   {
    "evidence": [
@@ -2015,7 +2037,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "1cf7b2738165c5bd25462f6378a4ce8a7aeb7e92150e7fe88d9c71480ec4463d",
+ "digest": "6f535fce6b247809519b2b1971da760bd3fc0f16878ef32adaa657491228def9",
  "format": 1,
  "model": {
   "elements": [
@@ -2399,9 +2421,9 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 3)"
     },
-    "description": "Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash is anchored externally (S3 Object Lock, Phase 4). See ADR-0005 addendum.",
+    "description": "Audit-log tail deletion by someone with table-owner rights is detectable only while anchors are being written, that is during a deploy window (hourly, S3 Object Lock, ADR-0026). Locally the verify output's head hash is the only anchor.",
     "kind": "residual_risk",
-    "name": "Audit-log tail deletion by someone with table-owner rights is not detectable until the head hash is anchored externally (S3 Object Lock, Phase 4)",
+    "name": "Audit-log tail deletion by someone with table-owner rights is detectable only while anchors are being written, that is during a deploy window (hourly, S3 Object Lock, ADR-0026)",
     "ref": "RR-7"
    },
    {
@@ -2623,7 +2645,7 @@
     "group": "TB1 — Internet → Edge",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "Internal ALB via VPC origin (ADR-0001)",
+    "mitigation": "Internal ALB with no public address (built, P4), reached only through CloudFront's VPC origin (P5) (ADR-0001, ADR-0026)",
     "owasp": "",
     "phases": [
      4
@@ -2709,19 +2731,20 @@
      "TB2"
     ],
     "controls": [
+     "C-LB-01",
      "C-EDGE-02"
     ],
     "group": "TB2 — Edge → Origin",
     "impact": 2,
     "likelihood": 1,
-    "mitigation": "HTTPS listener on ALB",
+    "mitigation": "HTTPS-only listener on the ALB, TLS 1.3/1.2 with forward-secret ciphers, the ACM certificate for the platform's name (modules/alb)",
     "owasp": "",
     "phases": [
      4
     ],
     "ref": "T-ORG-01",
-    "status": "planned",
-    "status_text": "Planned (P4)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P4): HTTPS-only internal ALB, verified in the deploy window",
     "stride": "I",
     "title": "Plaintext CloudFront→origin traffic"
    },
@@ -2742,8 +2765,8 @@
      6
     ],
     "ref": "T-ORG-02",
-    "status": "partly_mitigated",
-    "status_text": "Mitigated locally (P6, tested): trusted local proxy network, nginx overwrites the header; ALB subnets in P4",
+    "status": "mitigated",
+    "status_text": "Mitigated (P4, P6): proxy headers trusted only from the app subnets (ALB, CloudFront's VPC origin) and the local proxy network",
     "stride": "S",
     "title": "Spoofed X-Forwarded-For to evade IP controls"
    },
@@ -2757,14 +2780,14 @@
     "group": "TB2 — Edge → Origin",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "ALB desync mitigation \"strictest\", drop invalid headers",
+    "mitigation": "ALB desync mitigation \"strictest\", drop invalid headers; other host names refused at the ALB (modules/alb)",
     "owasp": "",
     "phases": [
      4
     ],
     "ref": "T-ORG-03",
-    "status": "planned",
-    "status_text": "Planned (P4)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P4): verified in the deploy window",
     "stride": "T",
     "title": "HTTP request smuggling / desync"
    },
@@ -3902,8 +3925,8 @@
      4
     ],
     "ref": "T-DB-01",
-    "status": "partly_mitigated",
-    "status_text": "Local analogue mitigated (P1); network and groups mitigated (P3); RDS P4",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, P3, P4): RDS in isolated subnets, not publicly accessible, verified in the deploy window",
     "stride": "I",
     "title": "Database exposed to the internet"
    },
@@ -3924,8 +3947,8 @@
      4
     ],
     "ref": "T-DB-02",
-    "status": "partly_mitigated",
-    "status_text": "Local scoping mitigated (P2); Secrets Manager P4",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2, P4): Secrets Manager, one execution role per task reading only its own secrets",
     "stride": "I",
     "title": "Credential theft"
    },
@@ -3961,14 +3984,14 @@
     "group": "TB4 — API → Database",
     "impact": 3,
     "likelihood": 1,
-    "mitigation": "KMS, rds.force_ssl",
+    "mitigation": "KMS, rds.force_ssl, TLS 1.2 minimum; the app verifies the server certificate and host name against Amazon's CA bundle (verify-full)",
     "owasp": "",
     "phases": [
      4
     ],
     "ref": "T-DB-04",
-    "status": "planned",
-    "status_text": "Planned (P4)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P4): verified in the deploy window",
     "stride": "I",
     "title": "Unencrypted data at rest or in transit"
    },
@@ -4292,6 +4315,29 @@
      "TB8"
     ],
     "controls": [
+     "C-SEC-04"
+    ],
+    "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "The RDS master password generated and held by RDS; application secrets generated during apply as ephemeral values and written through write-only arguments, never stored in state (ADR-0026)",
+    "owasp": "",
+    "phases": [
+     4
+    ],
+    "ref": "T-SEC-02",
+    "status": "mitigated",
+    "status_text": "Mitigated (P4): no secret value in any plan or state of the deploy window",
+    "stride": "I",
+    "title": "Secrets readable from Terraform plans, state or logs (anyone with the state bucket or a CI log gets the database passwords and signing keys)"
+   },
+   {
+    "boundaries": [
+     "TB6",
+     "TB7",
+     "TB8"
+    ],
+    "controls": [
      "C-IAC-01"
     ],
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
@@ -4568,7 +4614,7 @@
     ],
     "ref": "T-AUD-01",
     "status": "mitigated",
-    "status_text": "Mitigated (P2) except tail deletion by a table owner (Object Lock anchor, P4)",
+    "status_text": "Mitigated (P2, P4): hash chain, plus hourly anchors of its head in S3 Object Lock; audit-anchor check verified in the deploy window",
     "stride": "R",
     "title": "Audit records altered or deleted"
    },
@@ -4596,7 +4642,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.8"
+  "version": "0.9.1"
  },
  "requirements": [
   {

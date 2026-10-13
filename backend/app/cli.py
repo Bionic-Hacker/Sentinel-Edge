@@ -8,6 +8,7 @@
     python -m app.cli dast-session issue|revoke                              (make dast)
     python -m app.cli openapi                                                (make dast)
     python -m app.cli ai-check                                               (make ai-check)
+    python -m app.cli audit-anchor export|check                              (AWS: scheduled task)
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ from app.security.passwords import PasswordHasher
 from app.security.rate_limit import RateLimiter
 from app.services import audit
 from app.services.audit import SYSTEM_CONTEXT, AuditAction, verify_chain
+from app.services.audit_anchor import AnchorError, check_anchor, export_anchor, latest_anchor
 from app.services.governance import sync_catalogue
 from app.services.risk_governance import accepted_risks_toml
 from app.services.vulnerabilities import ScanImportError, import_scan
@@ -387,6 +389,53 @@ def ai_check(db: Session, settings: Settings, out: TextIO, show_answer: bool = F
     return 0 if status == "completed" else 1
 
 
+def _s3_client(region: str) -> Any:
+    # Imported here so boto3 loads only for this command.
+    import boto3
+    from botocore.config import Config
+
+    return boto3.client(
+        "s3",
+        region_name=region,
+        config=Config(
+            retries={"max_attempts": 3, "mode": "standard"}, user_agent_extra="sentineledge"
+        ),
+    )
+
+
+def audit_anchor(db: Session, settings: Settings, action: str, out: TextIO, s3: Any = None) -> int:
+    """Anchor the audit chain's head in S3 Object Lock, or check the database against the newest
+    anchor (ADR-0005). Exit 1 on any mismatch, so a scheduled run that finds one fails visibly."""
+    bucket = settings.audit_anchor_bucket
+    if not bucket:
+        print("SENTINEL_AUDIT_ANCHOR_BUCKET is not set: anchors exist only in AWS.", file=out)
+        return 2
+    s3 = s3 or _s3_client(settings.aws_region)
+    try:
+        if action == "export":
+            anchor = export_anchor(db, s3, bucket, settings.environment.value)
+            print(
+                f"Anchored seq={anchor.head_seq} ({anchor.records} records), "
+                f"head {anchor.head_hash}, as {anchor.key}",
+                file=out,
+            )
+            return 0
+        latest = latest_anchor(s3, bucket)
+        if latest is None:
+            print("No anchor yet: run `audit-anchor export` first.", file=out)
+            return 1
+        check_anchor(db, latest)
+    except AnchorError as exc:
+        print(f"AUDIT ANCHOR FAILED: {exc}", file=out)
+        return 1
+    print(
+        f"Audit chain matches the anchor of {latest.created_at:%Y-%m-%d %H:%M} UTC "
+        f"(seq={latest.head_seq}).",
+        file=out,
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m app.cli", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -415,6 +464,10 @@ def build_parser() -> argparse.ArgumentParser:
         "ai-check", help="send one synthetic analysis to the AI provider and check the answer"
     )
     ai.add_argument("--show-answer", action="store_true", help="also print the model's raw answer")
+    anchor = commands.add_parser(
+        "audit-anchor", help="anchor the audit chain's head in S3 Object Lock, or check it"
+    )
+    anchor.add_argument("action", choices=["export", "check"])
     return parser
 
 
@@ -423,6 +476,7 @@ def main(
     settings: Settings | None = None,
     out: TextIO = sys.stdout,
     stdin: TextIO = sys.stdin,
+    s3: Any = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     settings = settings or get_settings()
@@ -448,6 +502,8 @@ def main(
                 return dast_session(db, settings, args.action, out)
             if args.command == "openapi":
                 return print_openapi(settings, args.server, out)
+            if args.command == "audit-anchor":
+                return audit_anchor(db, settings, args.action, out, s3=s3)
             if args.command == "ai-check":
                 return ai_check(db, settings, out, show_answer=args.show_answer)
             if args.command == "export-accepted-risks":

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run Terraform for one SentinelEdge stack, with the guards ADR-0014 asks for.
 #
-#   scripts/tf.sh <stack> <init|plan|apply|destroy-plan|output|lock>
+#   scripts/tf.sh <stack> <init|plan|apply|destroy-plan|output|output-json|lock>
 #
 #   stack: bootstrap | account | dev
 #
@@ -22,7 +22,7 @@ STACKS=(bootstrap account dev)
 PLATFORMS=(-platform=linux_amd64 -platform=darwin_arm64)
 
 die() { printf 'tf: %s\n' "$*" >&2; exit 2; }
-usage() { die "usage: scripts/tf.sh <bootstrap|account|dev> <init|plan|apply|destroy-plan|output|lock>"; }
+usage() { die "usage: scripts/tf.sh <bootstrap|account|dev> <init|plan|apply|destroy-plan|output|output-json|lock>"; }
 
 [[ $# -eq 2 ]] || usage
 STACK="$1"
@@ -37,10 +37,10 @@ esac
 
 command -v terraform >/dev/null || die "terraform is not installed (see docs/aws-setup.md)"
 TF_VERSION="$(terraform version -json | python3 -c 'import json,sys; print(json.load(sys.stdin)["terraform_version"])')"
-python3 - "$TF_VERSION" <<'PY' || die "Terraform $TF_VERSION is too old: 1.10 or later is needed for S3 state locking"
+python3 - "$TF_VERSION" <<'PY' || die "Terraform $TF_VERSION is too old: 1.11 or later is needed (S3 state locking, write-only secrets)"
 import sys
 major, minor = (int(p) for p in sys.argv[1].split(".")[:2])
-sys.exit(0 if (major, minor) >= (1, 10) else 1)
+sys.exit(0 if (major, minor) >= (1, 11) else 1)
 PY
 
 tf() { terraform -chdir="$DIR" "$@"; }
@@ -64,7 +64,7 @@ check_identity() {
   arn="$(aws sts get-caller-identity --query Arn --output text)"
   [[ "$have" == "$want" ]] || die "signed in to account $have, but $STACK may only change $want"
   [[ "$arn" != *":root" ]] || die "refusing to run as the root user: sign in with aws login (docs/aws-setup.md)"
-  printf 'tf: %s in account %s as %s\n' "$STACK" "$have" "${arn##*/}"
+  printf 'tf: %s in account %s as %s\n' "$STACK" "$have" "${arn##*/}" >&2
   export_credentials
 }
 
@@ -149,6 +149,11 @@ case "$CMD" in
   output)
     [[ "$STACK" == bootstrap ]] || check_identity
     tf output
+    ;;
+  output-json)
+    # For scripts (images-push.sh, ecs-task.sh): the same guard, machine-readable output.
+    [[ "$STACK" == bootstrap ]] || check_identity
+    tf output -json
     ;;
   lock)
     # `init` already records HashiCorp's signed checksums (zh:) for every platform. This adds the

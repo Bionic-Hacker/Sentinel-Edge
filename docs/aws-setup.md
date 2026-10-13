@@ -37,7 +37,7 @@ aws --version
 terraform version
 ```
 
-Terraform 1.10 or later is required (S3 state locking). CI uses 1.15.9. TFLint is optional
+Terraform 1.11 or later is required (S3 state locking, and write-only secrets from Phase 4). CI uses 1.15.9. TFLint is optional
 locally (`make tf-check` skips it if missing); CI always runs it.
 
 ## Signing in
@@ -140,7 +140,7 @@ same, so the new request validates as soon as the delegation is live.
 | `account` | Platform KMS key; CloudTrail bucket and log group; 4 alarms (always-free tier) | ≈ $1/month |
 | `dev` (`nat_mode = "none"`) | Flow-log group; empty ECR repository; Route 53 zone; certificates are free | ≈ $0.50/month |
 
-The deploy window (Phases 4 and 5) adds the hourly resources: see ADR-0016 and the Phase 4 notes.
+The deploy window (Phases 4 and 5) adds the hourly resources, switched on and off by `workload` and `nat_mode`: see [aws-deploy-window.md](aws-deploy-window.md) and ADR-0026.
 
 ## Tearing down
 

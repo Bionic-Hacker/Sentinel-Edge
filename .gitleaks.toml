@@ -18,3 +18,12 @@ regexes = ['''CHANGE_ME''']
 [[allowlists]]
 description = "Synthetic values used by security tests to prove they never leak"
 paths = ['''backend/tests/security/test_error_handling\.py''', '''backend/tests/unit/test_logging\.py''']
+
+[[allowlists]]
+# Matched against the detected value only (not by path: a path allowlist skips whole files).
+description = "Not secrets: the two example temporary passwords in the user-administration tests, and ACM key-algorithm names"
+regexes = [
+  '''^k7m2x-p9qra-4tz8h-cw3ny$''',
+  '''^b3n8q-x2wkd-7hzrm-p5cvt$''',
+  '''^(EC_prime256v1|EC_secp384r1|EC_secp521r1|RSA_(1024|2048|3072|4096))$''',
+]
