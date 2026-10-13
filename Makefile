@@ -5,9 +5,10 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
 
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
+        create-admin verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
         governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear \
-        tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock rds-ca images-push ecs-task
+        tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock rds-ca images-push ecs-task \
+        spa-push edge-check
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -44,9 +45,6 @@ verify-hardening: ## Check container, network and HTTP hardening of the running 
 create-admin: ## Create an ADMIN with a one-time password: make create-admin EMAIL=you@example.com
 	@test -n "$(EMAIL)" || { echo "Usage: make create-admin EMAIL=you@example.com"; exit 2; }
 	docker compose exec api python -m app.cli create-admin --email "$(EMAIL)"
-
-outbox: ## Show the local email outbox (password-reset links)
-	docker compose exec api python -m app.cli outbox
 
 verify-audit: ## Verify the audit log hash chain
 	docker compose exec api python -m app.cli verify-audit
@@ -179,9 +177,15 @@ rds-ca: ## Fetch and check Amazon RDS's CA bundle into backend/certs (then revie
 images-push: ## Build the API and dbadmin images from this commit, push to ECR, pin digests for dev
 	./scripts/images-push.sh
 
-ecs-task: ## Run a one-off task in the deploy window and wait: make ecs-task TASK=dbadmin|migrate|anchor|anchor-check
-	@test -n "$(TASK)" || { echo "Usage: make ecs-task TASK=dbadmin|migrate|anchor|anchor-check"; exit 2; }
-	./scripts/ecs-task.sh "$(TASK)"
+ecs-task: ## Run a one-off task in the deploy window: make ecs-task TASK=dbadmin|migrate|anchor|anchor-check|create-admin [EMAIL=]
+	@test -n "$(TASK)" || { echo "Usage: make ecs-task TASK=dbadmin|migrate|anchor|anchor-check|create-admin [EMAIL=you@example.com]"; exit 2; }
+	EMAIL="$(EMAIL)" ./scripts/ecs-task.sh "$(TASK)"
+
+spa-push: ## Build the SPA from this commit and publish it to the edge (deploy window)
+	./scripts/spa-push.sh
+
+edge-check: ## Check the deployed edge from the internet: TLS, headers, WAF, private origin
+	./scripts/edge-check.sh
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install

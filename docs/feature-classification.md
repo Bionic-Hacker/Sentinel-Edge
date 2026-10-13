@@ -31,10 +31,10 @@ as a real AWS control. SentinelEdge enforces this in code (ADR-0009), not only h
 | Area | Implemented now (LOCAL) | Planned LOCAL | Planned REAL_AWS | Planned SIMULATED / DEMO |
 |---|---|---|---|---|
 | AWS foundation | — | — | **Implemented (P3):** encrypted Terraform state, account guardrails, multi-region CloudTrail, CIS alarms, budget; three-tier VPC, flow logs, security-group chain (`aws.foundation`, `aws.network`) | — |
-| Platform | Health, secure errors, structured logging, Host allow-list | — | ECS, ALB, RDS (P4) | — |
-| Edge / WAF / TLS | API + local edge security headers | — | CloudFront, WAF, ACM, WAF logs (P5) | — |
+| Platform | Health, secure errors, structured logging, Host allow-list | — | **Implemented (P4):** ECS, ALB, RDS, CloudWatch, audit anchors (`aws.compute`, `aws.observability`) | — |
+| Edge / WAF / TLS | API + local edge security headers | — | **Implemented (P5):** CloudFront, WAF, certificate monitoring, WAF log ingestion (`aws.edge`, `aws.waf`, `aws.certificates`, `aws.waf_logs`) | — |
 | Identity | Auth, MFA, RBAC, user admin (P2) | — | — | — |
-| API security | Host allow-list, mass-assignment sweep, API inventory and metrics, OWASP API mapping, rate limiting, SSRF guard, trusted client IP (P6) | — | WAF rate rules (P5) | — |
+| API security | Host allow-list, mass-assignment sweep, API inventory and metrics, OWASP API mapping, rate limiting, SSRF guard, trusted client IP (P6) | — | **Implemented (P5):** WAF rate rules | — |
 | Security operations | Security events, HTTP attack analysis (detect-only), correlation rules, incident workflow, security dashboard, application inventory (P7) | Retention policy (P12) | WAF log ingestion (P5) | **Implemented (P7):** attack simulator, simulated WAF rule toggling |
 | AppSec / DevSecOps | Pre-commit + CI gates; scanning (Semgrep, Bandit, Trivy, Gitleaks, Checkov), scan gate, SBOMs, authenticated DAST against the local stack; vulnerability management with SLAs and risk acceptance (P8) | Automation tools (P11) | GitHub OIDC to AWS, scans of deployed environments (P11) | — |
 | AI security | Analyses of events, incidents, findings and threat models with guardrails, a verbatim-evidence output contract and lead-approved, tighten-only proposals; the deterministic `offline` analyser (P9) | — | Amazon Bedrock calls when enabled (P9; no infrastructure); task-role access from the deployed API (P4) | — |

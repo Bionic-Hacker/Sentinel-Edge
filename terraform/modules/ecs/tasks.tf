@@ -11,14 +11,18 @@ locals {
     }
   }
 
+  # Written exactly as ECS returns it (empty lists, hostPort below), or every plan replaces the
+  # task definitions.
   hardening = {
     readonlyRootFilesystem = true
     privileged             = false
     linuxParameters = {
-      capabilities       = { drop = ["ALL"] }
+      capabilities       = { add = [], drop = ["ALL"] }
       initProcessEnabled = false
     }
-    mountPoints = [{ sourceVolume = "tmp", containerPath = "/tmp", readOnly = false }]
+    mountPoints    = [{ sourceVolume = "tmp", containerPath = "/tmp", readOnly = false }]
+    systemControls = []
+    volumesFrom    = []
   }
 
   # Configuration shared by the API and migrations: what backend/app/core/config.py reads.
@@ -55,7 +59,8 @@ resource "aws_ecs_task_definition" "api" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {
@@ -63,13 +68,20 @@ resource "aws_ecs_task_definition" "api" {
     image        = var.api_image
     essential    = true
     user         = "10001:10001"
-    portMappings = [{ containerPort = var.app_port, protocol = "tcp" }]
+    portMappings = [{ containerPort = var.app_port, hostPort = var.app_port, protocol = "tcp" }]
     environment = concat(local.app_environment, [
       # The ALB (and, in Phase 5, CloudFront's VPC origin) connect from the app subnets; the
       # API trusts X-Forwarded-For from those addresses only.
       { name = "SENTINEL_TRUSTED_PROXY_CIDRS", value = join(",", var.trusted_proxy_cidrs) },
       { name = "SENTINEL_AI_PROVIDER", value = var.ai_provider },
       { name = "SENTINEL_AI_MODEL", value = "us.${var.bedrock_model_id}" },
+      # Two attempts must fit inside CloudFront's 60-second origin timeout (Phase 5).
+      { name = "SENTINEL_AI_TIMEOUT_SECONDS", value = "25" },
+      # The edge read back (ADR-0029): real WAF blocks and ACM certificates, read-only.
+      { name = "SENTINEL_WAF_LOG_REGION", value = var.waf_log_region },
+      { name = "SENTINEL_CERTIFICATE_REGIONS", value = join(",", var.certificate_regions) },
+      ], var.waf_log_group == null ? [] : [
+      { name = "SENTINEL_WAF_LOG_GROUP", value = var.waf_log_group },
     ])
     secrets = [
       { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },
@@ -101,7 +113,8 @@ resource "aws_ecs_task_definition" "migrate" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {
@@ -132,7 +145,8 @@ resource "aws_ecs_task_definition" "dbadmin" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   # libpq reads PG* variables; the script refuses to run as an application role.
@@ -176,7 +190,8 @@ resource "aws_ecs_task_definition" "anchor" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {
@@ -192,5 +207,42 @@ resource "aws_ecs_task_definition" "anchor" {
       { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },
     ]
     logConfiguration = { logDriver = "awslogs", options = local.log_options["anchor"] }
+  })])
+}
+
+# On demand (make ecs-task TASK=create-admin EMAIL=…): create an administrator. The command is
+# replaced at run time with the e-mail address; the default only prints the usage.
+resource "aws_ecs_task_definition" "admin" {
+  family                   = "${var.name}-admin"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.execution["admin"].arn
+  task_role_arn            = aws_iam_role.admin_task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  volume {
+    name                = "tmp"
+    configure_at_launch = false
+  }
+
+  container_definitions = jsonencode([merge(local.hardening, {
+    name      = "admin"
+    image     = var.api_image
+    essential = true
+    user      = "10001:10001"
+    command   = ["python", "-m", "app.cli", "create-admin", "--help"]
+    environment = concat(local.app_environment, [
+      { name = "SENTINEL_ADMIN_OTP_SECRET", value = var.admin_otp_secret_arn },
+    ])
+    secrets = [
+      { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },
+    ]
+    logConfiguration = { logDriver = "awslogs", options = local.log_options["admin"] }
   })])
 }

@@ -1,6 +1,6 @@
 # ADR-0011: Security headers at both the edge and the application
 
-- **Status:** Accepted — application and local edge in Phase 1; CloudFront in Phase 5
+- **Status:** Accepted — application and local edge in Phase 1; CloudFront in Phase 5 (built and verified identical, `make edge-check`)
 - **Date:** 2026-10-06
 
 ## Decision

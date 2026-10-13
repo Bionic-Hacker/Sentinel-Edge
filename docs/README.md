@@ -7,7 +7,7 @@ system that doesn't exist yet as if it did.
 |---|---|---|
 | [book/](book/) | **The engineering book (PDF):** build plan, blueprint, phases as built, reproduction guide | Rebuilt every release |
 | [architecture.md](architecture.md) | Target and local architecture, components, data model, roles | Phase 1 |
-| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.9.1 (Phase 4) |
+| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.13 (Phase 5) |
 | [security-controls.md](security-controls.md) | Defense-in-depth layers, control catalogue, control matrix | Phase 1; updated every phase |
 | [feature-classification.md](feature-classification.md) | REAL_AWS / LOCAL / SIMULATED / DEMO rules and register | Phase 1 |
 | [security-headers.md](security-headers.md) | Every header and why it is set | Phase 1 |
@@ -19,13 +19,13 @@ system that doesn't exist yet as if it did.
 | [bedrock-setup.md](bedrock-setup.md) | Using Amazon Bedrock for the AI engine: a one-model role, short-lived credentials, cost bounds | Phase 9; Phase 3 (this account) |
 | [aws-setup.md](aws-setup.md) | The AWS account and its constraints, signing in, the Terraform stacks, the domain, standing costs, teardown | Phase 3 |
 | [../terraform/README.md](../terraform/README.md) | Terraform stacks, state, guards, layout, how it is tested and scanned | Phase 3 |
-| [adr/](adr/) | Architecture decision records 0001–0026 | Phase 1–10, 3, 4 |
+| [adr/](adr/) | Architecture decision records 0001–0029 | Phase 1–10, 3, 4, 5 |
 | [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); AI prompt injection (Phase 9); governance (Phase 10); AWS cost runaway (Phase 3) | Phase 2, 3, 7–10 |
 | [aws-deploy-window.md](aws-deploy-window.md) | Switching the workload on in AWS, roles and migrations, checks, switching it off; its IAM roles, secrets and logging are in ADR-0026 | Phase 4 |
-| cost.md | The deploy window's resource inventory, estimates and destroy checklist (standing costs: aws-setup.md) | Phase 4 |
-| waf.md | Rule groups, rate rules, exceptions, change workflow | Phase 5 |
-| cdn-security.md | CloudFront, origin protection, cache behaviours | Phase 5 |
-| certificate-management.md | ACM lifecycle, DNS validation, trust chains, renewal, revocation | Phase 5 |
+| [cost.md](cost.md) | What runs when, what it costs, and the destroy checklist | Phase 4–5 |
+| [waf.md](waf.md) | Rule groups, rate rules, logging and read-back, change workflow, false positives | Phase 5 |
+| [cdn-security.md](cdn-security.md) | CloudFront, the private origin, cache behaviours, headers | Phase 5 |
+| [certificate-management.md](certificate-management.md) | ACM issue, DNS validation, CAA, renewal, monitoring, revocation | Phase 5 |
 | [incident-response.md](incident-response.md) | Detection to incident, lifecycle, roles, evidence handling | Phase 7 |
 | vulnerability-management.md | Sources, severity, SLAs, statuses | Phase 8 |
 | sbom.md | Generation, storage, use | Phase 8 |

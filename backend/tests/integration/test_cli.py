@@ -1,4 +1,4 @@
-"""Operator CLI: first admin with no default credentials, outbox, audit verification."""
+"""Operator CLI: first admin with no default credentials, audit verification."""
 
 from __future__ import annotations
 
@@ -60,16 +60,6 @@ def test_create_admin_refuses_duplicates_and_bad_email(db_app: FastAPI) -> None:
     create_user(db_app, "admin@example.com")
     assert _run("create-admin", "--email", "admin@example.com")[0] == 1
     assert _run("create-admin", "--email", "not-an-email")[0] == 2
-
-
-def test_outbox_shows_reset_messages(db_app: FastAPI, db_client: TestClient) -> None:
-    assert "empty" in _run("outbox")[1]
-    create_user(db_app, "analyst@example.com")
-    db_client.post("/api/v1/auth/password/forgot", json={"email": "analyst@example.com"})
-    code, output = _run("outbox")
-    assert code == 0
-    assert "Reset your SentinelEdge password" in output
-    assert "/reset-password#token=" in output
 
 
 def test_verify_audit_reports_intact_and_broken(
@@ -141,3 +131,64 @@ def test_ai_check_with_ai_disabled(db_app: FastAPI) -> None:
     code, output = _run("ai-check")
     assert code == 2
     assert "AI is disabled" in output
+
+
+SECRET_ARN = (
+    "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/admin-otp-AbCdEf"
+)
+
+
+class FakeSecretsManager:
+    def __init__(self, fail: bool = False) -> None:
+        self.values: dict[str, str] = {}
+        self.fail = fail
+
+    def put_secret_value(self, SecretId: str, SecretString: str) -> dict[str, str]:  # noqa: N803
+        if self.fail:
+            raise RuntimeError("AccessDenied")
+        self.values[SecretId] = SecretString
+        return {"ARN": SecretId}
+
+
+def test_create_admin_in_aws_stores_the_password_and_never_prints_it(
+    db_app: FastAPI, db_client: TestClient
+) -> None:
+    sm = FakeSecretsManager()
+    out = io.StringIO()
+    code = main(
+        ["create-admin", "--email", "admin@example.com"],
+        settings=make_settings(admin_otp_secret=SECRET_ARN),
+        out=out,
+        secretsmanager=sm,
+    )
+    assert code == 0
+    password = sm.values[SECRET_ARN]
+    assert password not in out.getvalue()
+    assert "stored in Secrets Manager" in out.getvalue()
+    assert login(db_client, "admin@example.com", password).status_code == 200
+
+
+def test_a_deployed_environment_refuses_to_print_a_password(db_app: FastAPI) -> None:
+    settings = make_settings(
+        environment="dev",
+        db_sslmode="verify-full",
+        public_origins=["https://sentineledge.example.com"],
+        password_hash_memory_kib=19456,
+        password_hash_time_cost=2,
+        rate_limit_enabled=True,
+    )
+    out = io.StringIO()
+    assert main(["create-admin", "--email", "admin@example.com"], settings=settings, out=out) == 2
+    assert "One-time password" not in out.getvalue()
+
+
+def test_no_account_is_created_when_the_password_cannot_be_stored(db_app: FastAPI) -> None:
+    out = io.StringIO()
+    with pytest.raises(RuntimeError, match="AccessDenied"):
+        main(
+            ["create-admin", "--email", "admin@example.com"],
+            settings=make_settings(admin_otp_secret=SECRET_ARN),
+            out=out,
+            secretsmanager=FakeSecretsManager(fail=True),
+        )
+    assert _run("create-admin", "--email", "admin@example.com")[0] == 0

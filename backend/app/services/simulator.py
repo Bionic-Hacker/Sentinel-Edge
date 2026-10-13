@@ -14,7 +14,7 @@ Safe by construction:
 The simulated WAF decides with the real HTTP analysis rules (app.security.http_analysis). Each
 rule's mode (block, count, off) can be changed here, the only place in SentinelEdge where a WAF
 rule can be switched from the dashboard; real AWS WAF rules change only through Terraform
-(ADR-0008, Phase 5). With a rule in count or off mode, the request "reaches" SentinelEdge and
+(ADR-0008). With a rule in count or off mode, the request "reaches" SentinelEdge and
 the application-layer analysis records it as well: the simulation shows defense in depth.
 """
 
@@ -168,7 +168,7 @@ CATALOGUE: tuple[ScenarioInfo, ...] = (
         Scenario.CERTIFICATE_EXPIRY,
         "Certificate expiration",
         "One certificate has expired after a failed renewal; another expires in 12 days.",
-        "Certificate monitoring events (simulated until ACM monitoring in Phase 5); an "
+        "Certificate monitoring events (simulated; real ACM checks run in AWS, ADR-0029); an "
         "expired certificate opens a critical incident",
     ),
     ScenarioInfo(
@@ -244,7 +244,6 @@ class Target:
 
 TARGETS = (
     Target("POST", "/api/v1/auth/login", "email", True, 422),
-    Target("POST", "/api/v1/auth/password/forgot", "email", True, 422),
     Target("GET", "/api/v1/audit-logs", "actor", False, 401),
     Target("GET", "/api/v1/security-events", "source_ip", False, 401),
     Target("GET", "/api/v1/api-security/inventory", "callback", False, 401),

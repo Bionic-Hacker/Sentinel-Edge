@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SENTINEL_", extra="ignore")
 
     environment: Environment = Environment.LOCAL
-    app_version: str = Field(default="0.9.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
+    app_version: str = Field(default="0.10.0", pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$")
     log_level: LogLevel = LogLevel.INFO
     enable_api_docs: bool = False
     trusted_hosts: Annotated[list[str], NoDecode] = Field(
@@ -101,8 +101,8 @@ class Settings(BaseSettings):
     refresh_token_ttl_seconds: int = Field(default=8 * 3600, ge=300, le=7 * 24 * 3600)
     session_max_age_seconds: int = Field(default=24 * 3600, ge=300, le=30 * 24 * 3600)
     mfa_challenge_ttl_seconds: int = Field(default=300, ge=60, le=900)
-    password_reset_ttl_seconds: int = Field(default=1800, ge=300, le=86400)
-    invite_ttl_seconds: int = Field(default=72 * 3600, ge=3600, le=7 * 24 * 3600)
+    # How long an administrator-issued temporary password signs in before it must be reissued.
+    temporary_password_ttl_seconds: int = Field(default=72 * 3600, ge=3600, le=7 * 24 * 3600)
     max_failed_logins: int = Field(default=5, ge=3, le=20)
     lockout_seconds: int = Field(default=900, ge=60, le=86400)
     # Argon2id cost. Defaults follow RFC 9106's second recommended profile (64 MiB, t=3, p=4).
@@ -141,18 +141,57 @@ class Settings(BaseSettings):
     ai_tokens_per_day: int = Field(default=200_000, ge=1_000, le=10_000_000)
     ai_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
+    # Where `create-admin` stores the one-time password in AWS (a Secrets Manager secret ARN), so
+    # it never reaches a terminal or a log. A deployed environment refuses to print it (Phase 5).
+    admin_otp_secret: str | None = Field(
+        default=None,
+        pattern=r"^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$",
+    )
+
     # Off-host anchors of the audit chain's head (ADR-0005, Phase 4): an S3 bucket with Object
     # Lock. Unset locally; `audit-anchor` then refuses to run.
     audit_anchor_bucket: str | None = Field(
         default=None, pattern=r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
     )
 
-    @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
+    # The edge in AWS (Phase 5): where the API reads real WAF blocks and ACM certificates. Both
+    # unset locally, where the WAF and certificate pages say so instead of showing anything.
+    waf_log_group: str | None = Field(
+        default=None, pattern=r"^aws-waf-logs-[A-Za-z0-9_./#-]{1,240}$"
+    )
+    waf_log_region: str = Field(default="us-east-1", pattern=r"^[a-z]{2}-[a-z]+-[0-9]$")
+    certificate_regions: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    # How often the API pulls WAF logs and checks certificates while either is configured.
+    aws_sync_interval_seconds: int = Field(default=300, ge=60, le=3600)
+
+    @field_validator(
+        "trusted_hosts",
+        "public_origins",
+        "trusted_proxy_cidrs",
+        "certificate_regions",
+        mode="before",
+    )
     @classmethod
     def _split_csv(cls, value: object) -> object:
         if isinstance(value, str):
             return [h.strip() for h in value.split(",") if h.strip()]
         return value
+
+    @field_validator("waf_log_group", mode="before")
+    @classmethod
+    def _empty_is_unset(cls, value: object) -> object:
+        return None if value == "" else value
+
+    @field_validator("certificate_regions")
+    @classmethod
+    def _valid_regions(cls, value: list[str]) -> list[str]:
+        if any(not re.fullmatch(r"[a-z]{2}-[a-z]+-[0-9]", r) for r in value):
+            raise ValueError("certificate_regions must be AWS region names")
+        return list(dict.fromkeys(value))
+
+    @property
+    def aws_edge_enabled(self) -> bool:
+        return bool(self.waf_log_group or self.certificate_regions)
 
     @field_validator("trusted_hosts")
     @classmethod

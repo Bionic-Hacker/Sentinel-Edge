@@ -49,6 +49,8 @@ class AuditAction(StrEnum):
     USER_CREATED = "user.created"
     USER_UPDATED = "user.updated"
     USER_MFA_RESET = "user.mfa_reset"
+    USER_PASSWORD_RESET = "user.password_reset"  # noqa: S105 - action name, not a secret  # nosec B105
+    EDGE_SYNCED = "edge.synced"
     USER_DELETED = "user.deleted"
     AUDIT_VERIFIED = "audit.verified"
     ACCESS_DENIED = "authz.denied"

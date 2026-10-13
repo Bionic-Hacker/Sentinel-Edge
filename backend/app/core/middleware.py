@@ -10,6 +10,7 @@ import logging
 import time
 
 from starlette.datastructures import Headers, MutableHeaders
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.core.correlation import (
@@ -24,6 +25,31 @@ from app.core.security_headers import API_SECURITY_HEADERS
 
 access_log = logging.getLogger("sentineledge.access")
 HEALTH_PATH = "/api/v1/health"
+
+
+class HostCheckMiddleware:
+    """The Host allow-list (TrustedHostMiddleware) for every request but the liveness probe.
+
+    Load balancers and container health checks address the task by IP (``Host: 10.x.y.z:8000``,
+    ``127.0.0.1:8000``) and the ALB cannot send another Host, so a strict allow-list fails every
+    health check in AWS. Only ``GET``/``HEAD`` on the exact liveness path skips the check: its
+    answer is a constant (status and version), with no host-derived content, cookies or data,
+    and it cannot be cached at the edge. Readiness and everything else stay behind the list.
+    """
+
+    def __init__(self, app: ASGIApp, allowed_hosts: list[str]) -> None:
+        self.app = app
+        self.checked = TrustedHostMiddleware(app, allowed_hosts=allowed_hosts)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if (
+            scope["type"] == "http"
+            and scope["path"] == HEALTH_PATH
+            and scope["method"] in ("GET", "HEAD")
+        ):
+            await self.app(scope, receive, send)
+            return
+        await self.checked(scope, receive, send)
 
 
 class SecurityMiddleware:

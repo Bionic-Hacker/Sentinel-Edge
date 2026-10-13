@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.models.audit import AuditLog
-from app.models.outbox import OutboxMessage
 from app.models.user import Role, User
 from app.security.passwords import PasswordHasher
 
@@ -74,11 +73,6 @@ def audit_entries(app: FastAPI, action: str | None = None) -> list[AuditLog]:
         if action is not None:
             query = query.where(AuditLog.action == action)
         return list(db.scalars(query).all())
-
-
-def outbox(app: FastAPI) -> list[OutboxMessage]:
-    with app.state.session_factory() as db:
-        return list(db.scalars(select(OutboxMessage).order_by(OutboxMessage.created_at)).all())
 
 
 def get_user(app: FastAPI, email: str) -> User:

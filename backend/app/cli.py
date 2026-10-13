@@ -1,8 +1,7 @@
-"""Operator command line, run inside the API container (`make create-admin`, `make outbox`,
+"""Operator command line, run inside the API container (`make create-admin`,
 `make verify-audit`). It uses the same database role and settings as the API: no extra privilege.
 
     python -m app.cli create-admin --email admin@example.com
-    python -m app.cli outbox [--limit 5]
     python -m app.cli verify-audit
     python -m app.cli import-scan --application sentineledge < bundle.json   (make scan-import)
     python -m app.cli dast-session issue|revoke                              (make dast)
@@ -35,11 +34,10 @@ from app.db.session import build_engine, build_session_factory
 from app.models.ai import ProposalType, SubjectType
 from app.models.audit import AuditResult
 from app.models.governance import Control
-from app.models.outbox import OutboxMessage
 from app.models.user import Role, User
 from app.models.vulnerability import ScanSource
 from app.schemas.vulnerabilities import ScanReport
-from app.security.passwords import PasswordHasher
+from app.security.passwords import PasswordHasher, generate_temporary_password
 from app.security.rate_limit import RateLimiter
 from app.services import audit
 from app.services.audit import SYSTEM_CONTEXT, AuditAction, verify_chain
@@ -52,7 +50,23 @@ CLI_ACTOR = "system:cli"
 _email = TypeAdapter(EmailStr)
 
 
-def create_admin(db: Session, settings: Settings, email: str, name: str, out: TextIO) -> int:
+def create_admin(
+    db: Session,
+    settings: Settings,
+    email: str,
+    name: str,
+    out: TextIO,
+    secretsmanager: Any = None,
+) -> int:
+    # In a deployed environment the password must go to Secrets Manager: printing it would put a
+    # credential in the task's log, kept for a year.
+    if settings.is_deployed and not settings.admin_otp_secret:
+        print(
+            "error: SENTINEL_ADMIN_OTP_SECRET is not set; a deployed environment never prints "
+            "a password",
+            file=sys.stderr,
+        )
+        return 2
     try:
         normalized = str(_email.validate_python(email)).strip().lower()
     except ValidationError:
@@ -64,7 +78,9 @@ def create_admin(db: Session, settings: Settings, email: str, name: str, out: Te
 
     # No default credentials: a random one-time password the admin must replace at first login,
     # followed by mandatory MFA enrollment (ADMIN requires MFA).
-    password = secrets.token_urlsafe(18)
+    # No expiry, unlike temporary passwords issued in the app (ADR-0028): a first administrator
+    # whose password lapsed could not be recreated under the same address.
+    password = generate_temporary_password()
     user = User(
         email=normalized,
         display_name=name,
@@ -84,27 +100,24 @@ def create_admin(db: Session, settings: Settings, email: str, name: str, out: Te
         resource_id=str(user.id),
         details={"email": normalized, "role": Role.ADMIN.value, "via": "cli"},
     )
+    if settings.admin_otp_secret:
+        # Stored before the commit: if storing fails, no account exists that nobody can sign in to.
+        client = secretsmanager or _aws_client("secretsmanager", settings.aws_region)
+        client.put_secret_value(SecretId=settings.admin_otp_secret, SecretString=password)
     db.commit()
     print(f"Created ADMIN {normalized}", file=out)
-    print(f"One-time password: {password}", file=out)
+    if settings.admin_otp_secret:
+        print(
+            f"One-time password stored in Secrets Manager: {settings.admin_otp_secret}",
+            file=out,
+        )
+    else:
+        print(f"One-time password: {password}", file=out)
     print(
-        "It is shown only once. At first sign-in you must set a new password and enroll "
+        "It is valid once. At first sign-in you must set a new password and enroll "
         "two-factor authentication.",
         file=out,
     )
-    return 0
-
-
-def show_outbox(db: Session, limit: int, out: TextIO) -> int:
-    messages = db.scalars(
-        select(OutboxMessage).order_by(OutboxMessage.created_at.desc()).limit(limit)
-    ).all()
-    if not messages:
-        print("The local outbox is empty.", file=out)
-        return 0
-    for message in reversed(messages):
-        print(f"--- {message.created_at:%Y-%m-%d %H:%M:%S %Z}  to: {message.recipient}", file=out)
-        print(f"Subject: {message.subject}\n\n{message.body}\n", file=out)
     return 0
 
 
@@ -389,13 +402,13 @@ def ai_check(db: Session, settings: Settings, out: TextIO, show_answer: bool = F
     return 0 if status == "completed" else 1
 
 
-def _s3_client(region: str) -> Any:
-    # Imported here so boto3 loads only for this command.
+def _aws_client(service: str, region: str) -> Any:
+    # Imported here so boto3 loads only for the commands that use AWS.
     import boto3
     from botocore.config import Config
 
     return boto3.client(
-        "s3",
+        service,
         region_name=region,
         config=Config(
             retries={"max_attempts": 3, "mode": "standard"}, user_agent_extra="sentineledge"
@@ -410,7 +423,7 @@ def audit_anchor(db: Session, settings: Settings, action: str, out: TextIO, s3: 
     if not bucket:
         print("SENTINEL_AUDIT_ANCHOR_BUCKET is not set: anchors exist only in AWS.", file=out)
         return 2
-    s3 = s3 or _s3_client(settings.aws_region)
+    s3 = s3 or _aws_client("s3", settings.aws_region)
     try:
         if action == "export":
             anchor = export_anchor(db, s3, bucket, settings.environment.value)
@@ -442,8 +455,6 @@ def build_parser() -> argparse.ArgumentParser:
     admin = commands.add_parser("create-admin", help="create an ADMIN with a one-time password")
     admin.add_argument("--email", required=True)
     admin.add_argument("--name", default="Administrator")
-    box = commands.add_parser("outbox", help="show recent local outbox messages")
-    box.add_argument("--limit", type=int, default=5)
     commands.add_parser("verify-audit", help="verify the audit log hash chain")
     commands.add_parser("prune-rate-limits", help="delete rate-limit buckets idle for a day")
     scan = commands.add_parser("import-scan", help="import scan results and SBOMs from stdin")
@@ -477,6 +488,7 @@ def main(
     out: TextIO = sys.stdout,
     stdin: TextIO = sys.stdin,
     s3: Any = None,
+    secretsmanager: Any = None,
 ) -> int:
     args = build_parser().parse_args(argv)
     settings = settings or get_settings()
@@ -484,9 +496,9 @@ def main(
     try:
         with build_session_factory(engine)() as db:
             if args.command == "create-admin":
-                return create_admin(db, settings, args.email, args.name, out)
-            if args.command == "outbox":
-                return show_outbox(db, max(1, min(args.limit, 50)), out)
+                return create_admin(
+                    db, settings, args.email, args.name, out, secretsmanager=secretsmanager
+                )
             if args.command == "import-scan":
                 return import_scan_bundle(
                     db,

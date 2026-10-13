@@ -27,6 +27,10 @@ mock_provider "aws" {
     values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
   }
   override_data {
+    target = data.aws_iam_policy_document.admin_task
+    values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
+  }
+  override_data {
     target = data.aws_iam_policy_document.anchor_task
     values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
   }
@@ -58,6 +62,7 @@ variables {
   db_name                = "sentineledge"
   master_secret_arn      = "arn:aws:secretsmanager:us-east-2:123456789012:secret:rds!db-0000-AbCdEf"
   audit_anchor_bucket    = "sentineledge-dev-audit-anchors-0001"
+  admin_otp_secret_arn   = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/admin-one-time-password-AbCdEf"
   secret_arns = {
     db_app_password      = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/db-app-password-AbCdEf"
     db_migrator_password = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/db-migrator-password-AbCdEf"
@@ -70,7 +75,7 @@ run "every_container_is_hardened" {
   command = apply
 
   assert {
-    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor] :
+    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor, aws_ecs_task_definition.admin] :
       jsondecode(td.container_definitions)[0].readonlyRootFilesystem == true &&
       jsondecode(td.container_definitions)[0].privileged == false &&
       jsondecode(td.container_definitions)[0].linuxParameters.capabilities.drop == ["ALL"] &&
@@ -88,6 +93,26 @@ run "every_container_is_hardened" {
   }
 }
 
+# ECS returns these fields even when they are empty; written any other way, every plan replaces all
+# five task definitions (found in the first deploy window).
+run "task_definitions_are_written_as_ecs_returns_them" {
+  command = plan
+
+  assert {
+    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor, aws_ecs_task_definition.admin] :
+      length(jsondecode(td.container_definitions)[0].linuxParameters.capabilities.add) == 0 &&
+      length(jsondecode(td.container_definitions)[0].systemControls) == 0 &&
+      length(jsondecode(td.container_definitions)[0].volumesFrom) == 0 &&
+      one(td.volume).configure_at_launch == false
+    ])
+    error_message = "Every task definition states the empty lists and configure_at_launch that ECS reports."
+  }
+  assert {
+    condition     = jsondecode(aws_ecs_task_definition.api.container_definitions)[0].portMappings[0].hostPort == 8000
+    error_message = "In awsvpc mode ECS sets hostPort to the container port; state it."
+  }
+}
+
 run "the_api_enforces_deployed_defaults" {
   command = apply
 
@@ -102,6 +127,41 @@ run "the_api_enforces_deployed_defaults" {
   assert {
     condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_PUBLIC_ORIGINS"]) == "https://sentineledge.example.com"
     error_message = "The public origin is the platform's HTTPS name."
+  }
+}
+
+run "the_api_reads_the_edge_only_when_configured" {
+  command = plan
+
+  assert {
+    condition     = length([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e if e.name == "SENTINEL_WAF_LOG_GROUP"]) == 0
+    error_message = "Without a WAF log group the API reads none."
+  }
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_CERTIFICATE_REGIONS"]) == ""
+    error_message = "Without certificate Regions the API checks none."
+  }
+}
+
+run "the_api_reads_waf_blocks_and_certificates_in_aws" {
+  command = plan
+
+  variables {
+    waf_log_group       = "aws-waf-logs-sentineledge-dev-edge"
+    certificate_regions = ["us-east-1", "us-east-2"]
+  }
+
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_WAF_LOG_GROUP"]) == "aws-waf-logs-sentineledge-dev-edge"
+    error_message = "The API is told which WAF log group to read."
+  }
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_CERTIFICATE_REGIONS"]) == "us-east-1,us-east-2"
+    error_message = "The API checks certificates in both Regions."
+  }
+  assert {
+    condition     = length([for e in jsondecode(aws_ecs_task_definition.migrate.container_definitions)[0].environment : e if e.name == "SENTINEL_WAF_LOG_GROUP"]) == 0
+    error_message = "Only the API reads the edge."
   }
 }
 
@@ -130,6 +190,19 @@ run "the_anchor_task_runs_hourly_and_cannot_delete" {
   assert {
     condition     = toset([for s in jsondecode(aws_ecs_task_definition.anchor.container_definitions)[0].secrets : s.name]) == toset(["SENTINEL_DB_PASSWORD"])
     error_message = "The anchor task needs only the app role's password."
+  }
+}
+
+run "the_admin_task_can_only_write_the_one_time_password" {
+  command = apply
+
+  assert {
+    condition     = toset(flatten([for st in data.aws_iam_policy_document.admin_task.statement : st.actions])) == toset(["secretsmanager:PutSecretValue", "kms:GenerateDataKey", "kms:Encrypt"])
+    error_message = "The admin task writes the one-time password and nothing else; it cannot read it back."
+  }
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.admin.container_definitions)[0].environment : e.value if e.name == "SENTINEL_ADMIN_OTP_SECRET"]) == var.admin_otp_secret_arn
+    error_message = "The admin task must know where to store the password, or the app refuses to create the account."
   }
 }
 

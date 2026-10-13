@@ -15,7 +15,7 @@
 | Burst of `auth.login` failures then `auth.account_locked` | Audit logs, filter by actor email |
 | Successful `auth.login` from an unusual source IP or user agent | Audit log details; compare with the user's history |
 | `authz.denied` from an account probing other users' records | Audit logs → `authz.denied`, resource `user` |
-| User reports a password-reset email they didn't request | `auth.password_reset_requested` for that actor |
+| User reports a password reset they didn't ask for, or can't sign in after one | `user.password_reset` for that account: who issued it and when |
 
 Confirm it is not a false positive: a reuse alert can also come from a user's two devices racing,
 but the frontend serializes refresh across tabs, so treat it as theft unless the user can explain it.
@@ -23,7 +23,7 @@ but the frontend serializes refresh across tabs, so treat it as theft unless the
 ## 2. Triage (first 15 minutes)
 1. Identify the account and role. Privileged role → SEV1.
 2. In the audit log, filter by the actor email for the last 24 hours. Note source IPs,
-   correlation IDs and any `user.*` actions the account performed (role changes, invitations).
+   correlation IDs and any `user.*` actions the account performed (role changes, accounts created, password resets).
 3. Check **Incidents** (live view): a refresh-token reuse, or a sign-in from a credential-stuffing
    source (COR-007), has already opened one automatically. Otherwise open one from the matching
    event on the **Threats** page, so the evidence is linked. Triage it (you become the owner) and
@@ -36,12 +36,13 @@ but the frontend serializes refresh across tabs, so treat it as theft unless the
    Do **not** delete the account during an incident: deletion removes its sessions and state,
    which are evidence. Delete only after the investigation is closed, if at all.
 3. If the second factor may also be compromised: **Reset 2FA** (forces re-enrollment).
-4. If the account is the attacker's way in to *other* accounts (it invited users or changed roles),
-   review each `user.created` / `user.updated` record it produced and reverse them.
+4. If the account is the attacker's way in to *other* accounts (it created users, reset passwords or changed roles),
+   review each `user.created` / `user.updated` / `user.password_reset` record it produced and reverse them.
 
 ## 4. Remediation
-1. Ask the user to reset their password through **Forgot your password?** (sessions are revoked
-   again on reset). Admins never set passwords for users.
+1. Settings → Users → **Reset password** (sessions are revoked again). Hand the temporary
+   password to the user through a channel you have verified is theirs, not the one the attacker
+   may control. It expires in 72 hours and must be replaced at sign-in (ADR-0028).
 2. Reactivate the account once the user has a new password and, for privileged roles, MFA.
 3. If many accounts are affected, rotate `SENTINEL_JWT_SIGNING_KEY` (signs **everyone** out).
 

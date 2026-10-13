@@ -1,6 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth, useCurrentUser } from "../app/auth-context";
 import { MODULES } from "../app/modules";
+import { getEnvironment } from "../lib/api/edge";
+import { useApi } from "../lib/useApi";
 import { ApiStatus } from "./ApiStatus";
 
 function UserMenu() {
@@ -20,6 +22,25 @@ function UserMenu() {
         Sign out
       </button>
     </div>
+  );
+}
+
+/** Where this API runs, from the API itself: never assumed by the page. */
+function EnvironmentBanner() {
+  const env = useApi(getEnvironment);
+  if (env.state !== "ready") return <p className="text-sm text-ink-muted">&nbsp;</p>;
+  const { environment, deployed, region } = env.data;
+  return (
+    <p className="text-sm text-ink-muted">
+      {deployed ? (
+        <>
+          <span className="font-medium text-ink">AWS {environment} environment</span>
+          {region ? ` (${region})` : ""}. Real AWS resources; data is synthetic.
+        </>
+      ) : (
+        "Local development environment. No AWS resources are connected."
+      )}
+    </p>
   );
 }
 
@@ -63,9 +84,7 @@ export function Layout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-6 py-3">
-          <p className="text-sm text-ink-muted">
-            Local development environment. No AWS resources are connected.
-          </p>
+          <EnvironmentBanner />
           <div className="flex items-center gap-5">
             <ApiStatus />
             <UserMenu />

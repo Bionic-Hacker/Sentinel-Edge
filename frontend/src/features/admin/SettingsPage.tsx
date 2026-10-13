@@ -1,5 +1,5 @@
 import { useAuth, useCurrentUser } from "../../app/auth-context";
-import { Notice, Panel } from "../../components/forms";
+import { CollapsiblePanel, Notice, Panel } from "../../components/forms";
 import { ChangePasswordForm } from "../auth/ChangePasswordForm";
 import { MfaEnrollment } from "../auth/MfaEnrollment";
 import { UsersAdmin } from "./UsersAdmin";
@@ -34,13 +34,19 @@ export function SettingsPage() {
         )}
       </Panel>
 
-      <Panel title="Change password">
-        <ChangePasswordForm />
-      </Panel>
-
-      {user.role === "ADMIN" && (
-        <Panel title="Users">
-          <UsersAdmin currentUserId={user.id} />
+      {user.role === "ADMIN" ? (
+        <>
+          {/* Administrators: both start closed and open on demand. */}
+          <CollapsiblePanel title="Change password">
+            <ChangePasswordForm />
+          </CollapsiblePanel>
+          <CollapsiblePanel title="Users">
+            <UsersAdmin currentUserId={user.id} />
+          </CollapsiblePanel>
+        </>
+      ) : (
+        <Panel title="Change password">
+          <ChangePasswordForm />
         </Panel>
       )}
     </div>

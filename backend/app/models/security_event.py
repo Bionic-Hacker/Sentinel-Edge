@@ -27,6 +27,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -45,8 +46,8 @@ class EventSource(StrEnum):
     HTTP_ANALYSIS = "http_analysis"  # attack patterns in requests (detect-only)
     AUDIT = "audit"  # audit-chain integrity and privileged changes
     CORRELATION = "correlation"  # a detection rule over several events
-    WAF = "waf"  # edge WAF: SIMULATED until AWS WAF exists (Phase 5)
-    CERTIFICATE = "certificate"  # certificate monitoring: SIMULATED until Phase 5
+    WAF = "waf"  # edge WAF: AWS WAF blocks (REAL_AWS) and the simulated WAF (SIMULATED)
+    CERTIFICATE = "certificate"  # ACM certificate checks (REAL_AWS) and simulated ones
     DEPENDENCY = "dependency"  # simulated dependency findings (the attack simulator)
     APPSEC = "appsec"  # application security scans imported into vulnerability management
 
@@ -102,7 +103,7 @@ class Outcome(StrEnum):
     ALLOWED = "allowed"  # it was served (a success response)
     REJECTED = "rejected"  # refused by validation, authentication or authorization
     THROTTLED = "throttled"  # refused by a rate limit
-    BLOCKED = "blocked"  # stopped at the edge by a WAF (SIMULATED until Phase 5)
+    BLOCKED = "blocked"  # stopped at the edge by a WAF (AWS WAF, or the simulated one)
     DETECTED = "detected"  # an observation with no request of its own (e.g. a detection)
 
 
@@ -124,6 +125,14 @@ class SecurityEvent(Base):
         Index("ix_security_events_category_occurred", "category", "occurred_at"),
         Index("ix_security_events_actor_occurred", "actor_label", "occurred_at"),
         Index("ix_security_events_rule_occurred", "rule_id", "occurred_at"),
+        # Events read from outside (real WAF logs, certificate checks) carry a dedupe key, so a
+        # record pulled twice is stored once (migration 0016).
+        Index(
+            "ux_security_events_dedupe_key",
+            text("(evidence ->> 'dedupe_key')"),
+            unique=True,
+            postgresql_where=text("evidence ? 'dedupe_key'"),
+        ),
     )
 
     # `seq` orders and paginates; `id` is the public, non-enumerable identifier.

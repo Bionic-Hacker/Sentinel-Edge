@@ -23,6 +23,11 @@ async function renderAt(path: string, routes: Parameters<typeof mockApi>[0]) {
   return fetchMock;
 }
 
+/** Administrators see Change password and Users as closed panels; open Users. */
+async function openUsers() {
+  await userEvent.setup().click(await screen.findByRole("button", { name: "Users" }));
+}
+
 describe("route guards", () => {
   it("sends anonymous visitors to sign in", async () => {
     await renderAt("/settings", { "POST /api/v1/auth/refresh": unauthorized });
@@ -101,40 +106,85 @@ describe("sign in", () => {
   });
 });
 
-describe("password reset", () => {
-  it("reads the token from the fragment and removes it from the address bar", async () => {
-    const user = userEvent.setup();
-    window.history.replaceState(null, "", "/reset-password#token=abcdefghijklmnopqrstuvwxyz012345");
-    const fetchMock = await renderAt("/reset-password", {
-      "POST /api/v1/auth/refresh": unauthorized,
-      "POST /api/v1/auth/password/reset": () => new Response(null, { status: 204 }),
-    });
-
-    await waitFor(() => expect(window.location.hash).toBe(""));
-    await user.type(await screen.findByLabelText("New password"), "a fresh long passphrase");
-    await user.type(screen.getByLabelText("Confirm new password"), "a fresh long passphrase");
-    await user.click(screen.getByRole("button", { name: "Set password" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("Password updated");
-    const call = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/password/reset"));
-    expect(JSON.parse(String(call?.[1]?.body)).token).toBe("abcdefghijklmnopqrstuvwxyz012345");
+describe("account recovery (ADR-0028)", () => {
+  it("sends people who forgot their password to an administrator, not to an email link", async () => {
+    await renderAt("/login", { "POST /api/v1/auth/refresh": unauthorized });
+    expect(await screen.findByText("Forgot your password? Ask an administrator to reset it.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /forgot/i })).not.toBeInTheDocument();
   });
 
-  it("explains a missing or malformed token instead of showing the form", async () => {
-    window.history.replaceState(null, "", "/reset-password#token=<script>");
-    await renderAt("/reset-password", { "POST /api/v1/auth/refresh": unauthorized });
-    expect(await screen.findByRole("heading", { name: "Link not valid" })).toBeInTheDocument();
-  });
-
-  it("gives the same answer whether or not the account exists", async () => {
+  it("shows an administrator the temporary password once, for creating and for resetting", async () => {
     const user = userEvent.setup();
-    await renderAt("/forgot-password", {
-      "POST /api/v1/auth/refresh": unauthorized,
-      "POST /api/v1/auth/password/forgot": () => jsonResponse({ status: "accepted" }, 202),
+    const admin = profile({ role: "ADMIN", mfa_enabled: true, display_name: "Ada Admin", email: "ada@example.com" });
+    const analystId = "00000000-0000-4000-8000-0000000000cc";
+    const row = (id: string, email: string, role: string, expires: string | null) => ({
+      id,
+      email,
+      display_name: email.split("@")[0],
+      role,
+      is_active: true,
+      mfa_enabled: role === "ADMIN",
+      must_change_password: expires !== null,
+      temporary_password_expires_at: expires,
+      locked: false,
+      last_login_at: null,
+      created_at: "2026-10-07T00:00:00Z",
     });
-    await user.type(await screen.findByLabelText("Email"), "anyone@example.com");
-    await user.click(screen.getByRole("button", { name: "Send reset link" }));
-    expect(await screen.findByRole("status")).toHaveTextContent("If an account uses that email");
+    const later = new Date(Date.now() + 72 * 3600 * 1000).toISOString();
+    let created = false;
+    const fetchMock = await renderAt("/settings", {
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(admin)),
+      "/api/v1/users": () =>
+        jsonResponse({
+          items: [
+            row(admin.id, admin.email, "ADMIN", null),
+            ...(created ? [row(analystId, "new@example.com", "ANALYST", later)] : []),
+          ],
+        }),
+      "POST /api/v1/users": () => {
+        created = true;
+        return jsonResponse(
+          {
+            user: row(analystId, "new@example.com", "ANALYST", later),
+            temporary_password: "k7m2x-p9qra-4tz8h-cw3ny",
+            expires_at: later,
+          },
+          201,
+        );
+      },
+      [`POST /api/v1/users/${analystId}/password/reset`]: () =>
+        jsonResponse({
+          user: row(analystId, "new@example.com", "ANALYST", later),
+          temporary_password: "b3n8q-x2wkd-7hzrm-p5cvt",
+          expires_at: later,
+        }),
+    });
+
+    await openUsers();
+    await screen.findByRole("table", { name: "Users and their roles" });
+    await user.type(screen.getByLabelText("Email"), "new@example.com");
+    await user.type(screen.getByLabelText("Name"), "New Analyst");
+    await user.click(screen.getByRole("button", { name: "Create user" }));
+    expect(await screen.findByTestId("temporary-password")).toHaveTextContent("k7m2x-p9qra-4tz8h-cw3ny");
+    expect(screen.getByRole("heading", { name: "new@example.com was created" })).toBeInTheDocument();
+    const table = screen.getByRole("table", { name: "Users and their roles" });
+    expect(await within(table).findByText("Awaiting first sign-in")).toBeInTheDocument();
+
+    // Dismissed, it is gone for good: nothing in the page can show it again.
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    expect(screen.queryByTestId("temporary-password")).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toContain("k7m2x-p9qra-4tz8h-cw3ny");
+
+    // A reset asks first, then shows the new one.
+    const resets = () => fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/password/reset"));
+    await user.click(within(table).getByRole("button", { name: "Reset password" }));
+    const dialog = screen.getByRole("alertdialog", { name: "Reset password?" });
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toHaveFocus();
+    expect(resets()).toHaveLength(0);
+    await user.click(within(dialog).getByRole("button", { name: "Reset password" }));
+    expect(await screen.findByTestId("temporary-password")).toHaveTextContent("b3n8q-x2wkd-7hzrm-p5cvt");
+    expect(screen.getByRole("heading", { name: "Password reset for new@example.com" })).toBeInTheDocument();
+    expect(resets()).toHaveLength(1);
   });
 });
 
@@ -143,6 +193,24 @@ describe("role-aware pages", () => {
     await renderAt("/settings", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
     expect(await screen.findByRole("heading", { name: "Your account" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Users" })).not.toBeInTheDocument();
+  });
+
+  it("keeps Change password and Users closed for administrators until opened", async () => {
+    const admin = profile({ role: "ADMIN", mfa_enabled: true });
+    await renderAt("/settings", {
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(admin)),
+      "/api/v1/users": () => jsonResponse({ items: [] }),
+    });
+    const password = await screen.findByRole("button", { name: "Change password" });
+    const users = screen.getByRole("button", { name: "Users" });
+    expect(password).toHaveAttribute("aria-expanded", "false");
+    expect(users).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Users and their roles" })).not.toBeInTheDocument();
+
+    await userEvent.setup().click(password);
+    expect(password).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Current password")).toBeInTheDocument();
   });
 
   it("lists users for administrators", async () => {
@@ -160,6 +228,7 @@ describe("role-aware pages", () => {
               is_active: true,
               mfa_enabled: true,
               must_change_password: false,
+              temporary_password_expires_at: null,
               locked: false,
               last_login_at: null,
               created_at: "2026-10-07T00:00:00Z",
@@ -167,6 +236,7 @@ describe("role-aware pages", () => {
           ],
         }),
     });
+    await openUsers();
     const table = await screen.findByRole("table", { name: "Users and their roles" });
     expect(within(table).getByText("(you)")).toBeInTheDocument();
     // An admin cannot change their own role from the UI (the API refuses it too).
@@ -184,6 +254,7 @@ describe("role-aware pages", () => {
       is_active: true,
       mfa_enabled: role === "ADMIN",
       must_change_password: false,
+      temporary_password_expires_at: null,
       locked: false,
       last_login_at: null,
       created_at: "2026-10-07T00:00:00Z",
@@ -207,6 +278,7 @@ describe("role-aware pages", () => {
     const deleteCalls = () =>
       fetchMock.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "DELETE");
 
+    await openUsers();
     const table = await screen.findByRole("table", { name: "Users and their roles" });
     // No trash can on your own row: an admin cannot delete themselves.
     expect(within(table).queryByRole("button", { name: `Delete ${admin.email}` })).not.toBeInTheDocument();

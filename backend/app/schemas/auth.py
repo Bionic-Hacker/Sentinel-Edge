@@ -39,15 +39,6 @@ class PasswordChangeRequest(StrictModel):
     new_password: str = Field(min_length=1, max_length=1024)
 
 
-class PasswordForgotRequest(StrictModel):
-    email: EmailStr = Field(max_length=254)
-
-
-class PasswordResetRequest(StrictModel):
-    token: str = Field(min_length=1, max_length=128)
-    new_password: str = Field(min_length=1, max_length=1024)
-
-
 class UserProfile(BaseModel):
     id: uuid.UUID
     email: str

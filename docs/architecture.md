@@ -15,13 +15,13 @@ every control it reports on also protects it.
 Internet
   │  DNS: sentineledge.bionichacker.dev, a Route 53 zone (CAA: Amazon only, no wildcards)
   ▼
-CloudFront edge  ─── AWS WAF web ACL evaluated here, before any origin request [Phase 5]
+CloudFront edge  ─── AWS WAF web ACL evaluated here, before any origin request [built, P5]
   │  TLS 1.2+ (ACM cert, us-east-1), response-headers policy
-  ├── /*      → S3 bucket (private, Origin Access Control)                     [Phase 5]
-  └── /api/*  → CloudFront VPC origin → internal ALB (HTTPS, private subnets)  [Phase 4–5]
+  ├── /*      → S3 bucket (private, Origin Access Control)                     [built, P5]
+  └── /api/*  → CloudFront VPC origin → internal ALB (HTTPS, private subnets)  [built, P4–5]
                   │  SG: only the CloudFront VPC-origin security group
                   ▼
-               ECS Fargate tasks: api, worker (private app subnets, no public IP)
+               ECS Fargate tasks: api, one-off tasks (private app subnets, no public IP)
                   │  SG: only the ALB SG on 8000
                   ▼
                RDS PostgreSQL (isolated data subnets, no internet route, KMS, TLS required)
@@ -43,13 +43,13 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
             edge stand-in: SPA + headers                   non-root, read-only   internal-only network
 ```
 
-| Concern | Local (Phase 1) | AWS (planned) |
+| Concern | Local (Phase 1) | AWS (built; runs in deploy windows) |
 |---|---|---|
 | Edge / routing | nginx `web` container | CloudFront (Phase 5) |
 | WAF | none | AWS WAF (Phase 5) |
 | SPA hosting | nginx | S3 + OAC (Phase 5) |
 | API | `api` container | ECS Fargate (Phase 4) |
-| Database isolation | Docker `internal: true` network, no published port | Isolated subnets + SG (**built, Phase 3**); RDS (Phase 4) |
+| Database isolation | Docker `internal: true` network, no published port | Isolated subnets + SG (Phase 3); RDS, not publicly accessible (Phase 4) |
 | Secrets | `.env` (git-ignored, generated, mode 600) | Secrets Manager (Phase 4) |
 | Logs | JSON to stdout | CloudWatch Logs (Phase 4) |
 | Headers | API middleware + nginx | API middleware + CloudFront policy |
@@ -58,11 +58,11 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
 
 | Component | Technology | Status |
 |---|---|---|
-| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, password reset, user admin, audit log viewer, API Security Center, security dashboard, Threats, Incidents, Applications, simulated WAF, attack simulator |
+| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, user admin with temporary passwords (ADR-0028), audit log viewer, API Security Center, security dashboard, Threats, Incidents, Applications, simulated WAF, attack simulator |
 | API | FastAPI, Pydantic v2 | Implemented (local): health/readiness, authentication, MFA, RBAC, user admin, audit log, rate limiting, API inventory, security events, HTTP attack analysis, correlation, incidents, dashboard overview, applications, attack simulator (45 endpoints) |
-| Worker | same image, separate entrypoint | Not needed yet: correlation runs synchronously in the request (ADR-0018). Revisited with WAF log ingestion (Phase 5) and AI analysis (Phase 9) |
+| Worker | same image, separate entrypoint | Not needed yet: correlation runs synchronously in the request (ADR-0018). WAF log ingestion runs on a timer inside the API (Phase 5, ADR-0029) |
 | Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Implemented (local): `sentinel` schema, migrator/app roles (ADR-0015), migrations 0001–0008 |
-| Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `outbox`, `verify-audit` |
+| Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `verify-audit` |
 | AI engine | Amazon Bedrock (ADR-0006, ADR-0024) | Built (Phase 9): `offline` analyser locally, Bedrock on demand when enabled; task role in Phase 4 |
 
 ## 5. Backend structure (ADR-0012)
@@ -76,7 +76,7 @@ app/
   models/        SQLAlchemy ORM                               (Phase 2+)
   schemas/       Pydantic request/response models             (Phase 2+)
   ai/            provider interface, guardrails, output schemas (Phase 9)
-  integrations/aws/  read-only AWS clients                    (Phase 5+)
+  services/aws_edge.py  read-only AWS reads: WAF log, ACM     (Phase 5)
   security/      passwords, tokens, MFA, rate limiter, egress guard, HTTP attack analysis (Phase 2, 6, 7)
 ```
 
@@ -110,7 +110,7 @@ not enumerable. Timestamps are UTC.
 
 | Domain | Entities | Phase |
 |---|---|---|
-| Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed), password_reset_tokens (hashed), outbox_messages | **2 ✓** |
+| Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed); reset tokens and the outbox dropped in 0015 (ADR-0028) | **2 ✓** |
 | Audit | audit_log (hash-chained, append-only by grant and trigger) | **2 ✓** |
 | Inventory | applications **7 ✓**; API endpoints come from the route table and the policy registry, with hourly api_endpoint_stats **6 ✓** | 6, 7 |
 | Rate limiting | rate_limit_buckets | **6 ✓** |

@@ -156,8 +156,8 @@ export function StatTile({
 }: {
   label: string;
   value: ReactNode;
-  note?: string;
-  tone?: "fail" | "warn" | "ok";
+  note?: string | undefined;
+  tone?: "fail" | "warn" | "ok" | undefined;
 }) {
   const color = tone === "fail" ? "text-fail" : tone === "warn" ? "text-prov-sim" : tone === "ok" ? "text-ok" : "text-ink";
   return (

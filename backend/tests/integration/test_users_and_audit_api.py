@@ -1,8 +1,10 @@
-"""User management and the audit log API: BOLA, admin safety rules, invites, audit queries."""
+"""User management and the audit log API: BOLA, admin safety rules, audit queries.
+
+Creating users and resetting passwords with temporary passwords: test_temporary_passwords.py.
+"""
 
 from __future__ import annotations
 
-import re
 import uuid
 
 import pytest
@@ -17,7 +19,6 @@ from tests.helpers import (
     create_user,
     get_user,
     login,
-    outbox,
     session_token,
 )
 
@@ -70,6 +71,7 @@ USER_FIELDS = {
     "is_active",
     "mfa_enabled",
     "must_change_password",
+    "temporary_password_expires_at",
     "locked",
     "last_login_at",
     "created_at",
@@ -88,32 +90,7 @@ def test_user_records_expose_exactly_the_allowed_fields(
     assert "argon2" not in response.text
 
 
-# --- Creating users: invites, not passwords --------------------------------------------------
-
-
-def test_admin_invites_user_without_ever_knowing_their_password(
-    db_app: FastAPI, db_client: TestClient
-) -> None:
-    _, token = _admin(db_app)
-    response = db_client.post(
-        "/api/v1/users",
-        headers=bearer(token),
-        json={"email": "New.Analyst@Example.com", "display_name": "New Analyst", "role": "ANALYST"},
-    )
-    assert response.status_code == 201
-    assert response.json()["email"] == "new.analyst@example.com"
-    assert set(response.json()) == USER_FIELDS  # no password, token or link in the response
-
-    (invite,) = outbox(db_app)
-    assert invite.recipient == "new.analyst@example.com"
-    link = re.search(r"#token=([A-Za-z0-9_-]+)", invite.body)
-    assert link
-    chosen = "the invitee chose this passphrase"
-    reset = db_client.post(
-        "/api/v1/auth/password/reset", json={"token": link.group(1), "new_password": chosen}
-    )
-    assert reset.status_code == 204
-    assert login(db_client, "new.analyst@example.com", chosen).status_code == 200
+# --- Creating users -----------------------------------------------------------------------------
 
 
 def test_duplicate_email_rejected(db_app: FastAPI, db_client: TestClient) -> None:
@@ -233,7 +210,7 @@ def test_admin_mfa_reset(db_app: FastAPI, db_client: TestClient) -> None:
 def test_admin_deletes_user_and_every_credential(db_app: FastAPI, db_client: TestClient) -> None:
     from sqlalchemy import func, select
 
-    from app.models.session import AuthSession, PasswordResetToken, RefreshToken
+    from app.models.session import AuthSession, RefreshToken
 
     _, token = _admin(db_app)
     db_client.post(
@@ -244,13 +221,13 @@ def test_admin_deletes_user_and_every_credential(db_app: FastAPI, db_client: Tes
     leaver = create_user(db_app, "signed-in@example.com")
     login(db_client, "signed-in@example.com")  # creates a session and a refresh token
     leaver_token = session_token(db_app, leaver, mfa_verified=False)
-    invited_id = next(
+    created_id = next(
         u["id"]
         for u in db_client.get("/api/v1/users", headers=bearer(token)).json()["items"]
         if u["email"] == "leaver@example.com"
     )
 
-    for user_id in (invited_id, str(leaver.id)):
+    for user_id in (created_id, str(leaver.id)):
         response = db_client.delete(f"/api/v1/users/{user_id}", headers=bearer(token))
         assert response.status_code == 204
         assert response.content == b""
@@ -262,12 +239,13 @@ def test_admin_deletes_user_and_every_credential(db_app: FastAPI, db_client: Tes
     # A deleted user's live session stops working at once.
     assert db_client.get("/api/v1/auth/me", headers=bearer(leaver_token)).status_code == 401
     assert login(db_client, "signed-in@example.com").status_code == 401
-    gone = [uuid.UUID(invited_id), leaver.id]
+    gone = [uuid.UUID(created_id), leaver.id]
     with db_app.state.session_factory() as db:
         # Refresh tokens hang off sessions, so no session means no refresh token (FK enforced).
-        for model in (AuthSession, PasswordResetToken):
-            left = db.scalar(select(func.count()).select_from(model).where(model.user_id.in_(gone)))
-            assert left == 0, model.__name__
+        left = db.scalar(
+            select(func.count()).select_from(AuthSession).where(AuthSession.user_id.in_(gone))
+        )
+        assert left == 0
         orphaned = (
             select(func.count())
             .select_from(RefreshToken)
@@ -277,7 +255,7 @@ def test_admin_deletes_user_and_every_credential(db_app: FastAPI, db_client: Tes
 
     deleted = audit_entries(db_app, AuditAction.USER_DELETED)
     assert {e.details["email"] for e in deleted} == {"leaver@example.com", "signed-in@example.com"}
-    assert {e.resource_id for e in deleted} == {invited_id, str(leaver.id)}
+    assert {e.resource_id for e in deleted} == {created_id, str(leaver.id)}
     # History survives deletion, and the hash chain is still intact.
     status = db_client.get("/api/v1/audit-logs/verify", headers=bearer(token)).json()
     assert status["intact"] is True
@@ -287,7 +265,7 @@ def test_admin_deletes_user_and_every_credential(db_app: FastAPI, db_client: Tes
     assert any(i["action"] == "auth.login" for i in history)
 
 
-def test_deleted_email_can_be_invited_again(db_app: FastAPI, db_client: TestClient) -> None:
+def test_deleted_email_can_be_created_again(db_app: FastAPI, db_client: TestClient) -> None:
     _, token = _admin(db_app)
     bob, _ = _member(db_app, "bob@example.com")
     db_client.delete(f"/api/v1/users/{bob.id}", headers=bearer(token))
@@ -297,7 +275,7 @@ def test_deleted_email_can_be_invited_again(db_app: FastAPI, db_client: TestClie
         json={"email": "bob@example.com", "display_name": "Bob again", "role": "VIEWER"},
     )
     assert response.status_code == 201
-    assert response.json()["id"] != str(bob.id)
+    assert response.json()["user"]["id"] != str(bob.id)
 
 
 def test_admin_cannot_delete_themselves(db_app: FastAPI, db_client: TestClient) -> None:

@@ -6,6 +6,7 @@ import type {
   EventCategory,
   EventSource,
   IncidentStatus,
+  Provenance,
   Resolution,
   Severity,
   WafMode,
@@ -39,6 +40,7 @@ export const getOverview = (view: DataView, hours: number, signal?: AbortSignal)
 
 export interface EventFilters {
   view?: DataView | "all";
+  provenance?: Provenance | "";
   category?: EventCategory | "";
   source?: EventSource | "";
   min_severity?: Severity | "";

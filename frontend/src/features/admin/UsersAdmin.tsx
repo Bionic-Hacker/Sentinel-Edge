@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ConfirmDialog, TrashIcon } from "../../components/ConfirmDialog";
 import { Button, Field, FormError, Notice } from "../../components/forms";
-import { deleteUser, inviteUser, listUsers, resetUserMfa, updateUser } from "../../lib/api/admin";
+import { createUser, deleteUser, listUsers, resetUserMfa, resetUserPassword, updateUser } from "../../lib/api/admin";
 import type { ApiError } from "../../lib/api/client";
-import { ROLES, type ManagedUser, type Role } from "../../lib/types";
+import { ROLES, type ManagedUser, type Role, type TemporaryPasswordIssued } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -16,17 +16,26 @@ const ROLE_LABEL: Record<Role, string> = {
 
 export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
+  // When the list was loaded: temporary-password expiry is judged against it, not each render.
+  const [loadedAt, setLoadedAt] = useState(0);
   const [error, setError] = useState<ApiError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [pendingDelete, setPendingDelete] = useState<ManagedUser | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pendingReset, setPendingReset] = useState<ManagedUser | null>(null);
+  const [resetting, setResetting] = useState(false);
+  // Held in memory only, until the admin dismisses it: the API never returns it again.
+  const [issued, setIssued] = useState<{ result: TemporaryPasswordIssued; reason: "created" | "reset" } | null>(null);
   const reload = () => setVersion((v) => v + 1);
 
   useEffect(() => {
     const controller = new AbortController();
     listUsers(controller.signal)
-      .then(setUsers)
+      .then((items) => {
+        setUsers(items);
+        setLoadedAt(Date.now());
+      })
       .catch((err: unknown) => {
         if (!controller.signal.aborted) setError(asApiError(err));
       });
@@ -52,8 +61,42 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
     setPendingDelete(null);
   }
 
+  async function confirmReset(user: ManagedUser) {
+    setResetting(true);
+    setError(null);
+    setNotice(null);
+    setIssued(null);
+    try {
+      setIssued({ result: await resetUserPassword(user.id), reason: "reset" });
+      reload();
+    } catch (err) {
+      setError(asApiError(err));
+    } finally {
+      setResetting(false);
+      setPendingReset(null);
+    }
+  }
+
   return (
     <div className="space-y-5">
+      {pendingReset && (
+        <ConfirmDialog
+          title="Reset password?"
+          confirmLabel="Reset password"
+          busy={resetting}
+          onCancel={() => setPendingReset(null)}
+          onConfirm={() => void confirmReset(pendingReset)}
+        >
+          <p>
+            Issue a new temporary password for{" "}
+            <strong className="break-words text-ink">{pendingReset.email}</strong>?
+          </p>
+          <p>
+            Their current password stops working and they are signed out everywhere. You will see the temporary
+            password once; they must replace it at their next sign-in. Their two-factor setup is kept.
+          </p>
+        </ConfirmDialog>
+      )}
       {pendingDelete && (
         <ConfirmDialog
           title="Delete user account?"
@@ -67,18 +110,20 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
             <strong className="break-words text-ink">{pendingDelete.email}</strong>?
           </p>
           <p>
-            They are signed out everywhere and their password, two-factor setup and pending links are removed. This
+            They are signed out everywhere and their password and two-factor setup are removed. This
             cannot be undone. Their audit history is kept.
           </p>
           <p>To block access but keep the account, cancel and use Deactivate instead.</p>
         </ConfirmDialog>
       )}
-      <InviteForm
-        onInvited={(email) => {
-          setNotice(`Invitation sent to ${email}. Running locally? Use make outbox to see it.`);
+      <CreateUserForm
+        onCreated={(result) => {
+          setNotice(null);
+          setIssued({ result, reason: "created" });
           reload();
         }}
       />
+      {issued && <TemporaryPassword issued={issued.result} reason={issued.reason} onDone={() => setIssued(null)} />}
       <FormError error={error} />
       {notice && <Notice>{notice}</Notice>}
       {users === null ? (
@@ -121,10 +166,15 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
                       </select>
                     </td>
                     <td className="px-3 py-2.5">
-                      {!u.is_active ? <span className="text-fail">Deactivated</span> : u.locked ? <span className="text-prov-sim">Locked</span> : u.must_change_password ? <span className="text-ink-muted">Invited</span> : <span className="text-ok">Active</span>}
+                      <UserStatus user={u} now={loadedAt} />
                     </td>
                     <td className="px-3 py-2.5 text-ink-muted">{u.mfa_enabled ? "On" : "Off"}</td>
                     <td className="space-x-2 whitespace-nowrap px-3 py-2.5 text-right">
+                      {!self && (
+                        <Button variant="secondary" onClick={() => setPendingReset(u)}>
+                          Reset password
+                        </Button>
+                      )}
                       {!self && u.mfa_enabled && (
                         <Button variant="secondary" onClick={() => void act(() => resetUserMfa(u.id), `Two-factor reset for ${u.email}. They'll set it up again at next sign-in.`)}>
                           Reset 2FA
@@ -161,7 +211,72 @@ export function UsersAdmin({ currentUserId }: { currentUserId: string }) {
   );
 }
 
-function InviteForm({ onInvited }: { onInvited: (email: string) => void }) {
+function UserStatus({ user, now }: { user: ManagedUser; now: number }) {
+  if (!user.is_active) return <span className="text-fail">Deactivated</span>;
+  if (user.locked) return <span className="text-prov-sim">Locked</span>;
+  const expires = user.temporary_password_expires_at;
+  if (expires !== null) {
+    return new Date(expires).getTime() <= now ? (
+      <span className="text-fail">Temporary password expired</span>
+    ) : (
+      <span className="text-ink-muted">Awaiting first sign-in</span>
+    );
+  }
+  if (user.must_change_password) return <span className="text-ink-muted">Must change password</span>;
+  return <span className="text-ok">Active</span>;
+}
+
+/** Shown once, then gone: the platform keeps only a hash of it. */
+function TemporaryPassword({
+  issued,
+  reason,
+  onDone,
+}: {
+  issued: TemporaryPasswordIssued;
+  reason: "created" | "reset";
+  onDone: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const expires = new Date(issued.expires_at).toLocaleString();
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(issued.temporary_password);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <section
+      aria-labelledby="temporary-password-title"
+      className="space-y-3 rounded-md border border-accent/60 bg-raised p-4"
+    >
+      <h3 id="temporary-password-title" className="font-medium text-ink">
+        {reason === "created" ? `${issued.user.email} was created` : `Password reset for ${issued.user.email}`}
+      </h3>
+      <p className="text-sm text-ink-muted">
+        Give them this temporary password through a channel you trust. It is shown only now, works until {expires},
+        and must be replaced at their first sign-in.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <code
+          data-testid="temporary-password"
+          className="select-all rounded border border-line bg-canvas px-3 py-2 font-mono text-base tracking-wide text-ink"
+        >
+          {issued.temporary_password}
+        </code>
+        <Button variant="secondary" onClick={() => void copy()}>
+          {copied ? "Copied" : "Copy"}
+        </Button>
+        <Button onClick={onDone}>Done</Button>
+      </div>
+    </section>
+  );
+}
+
+function CreateUserForm({ onCreated }: { onCreated: (result: TemporaryPasswordIssued) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
@@ -172,13 +287,13 @@ function InviteForm({ onInvited }: { onInvited: (email: string) => void }) {
     setBusy(true);
     setError(null);
     try {
-      const user = await inviteUser({
+      const result = await createUser({
         email: String(form.get("email")),
         display_name: String(form.get("name")),
         role: String(form.get("role")) as Role,
       });
       formElement.reset();
-      onInvited(user.email);
+      onCreated(result);
     } catch (err) {
       setError(asApiError(err));
     } finally {
@@ -191,17 +306,19 @@ function InviteForm({ onInvited }: { onInvited: (email: string) => void }) {
       <Field label="Email" name="email" type="email" required maxLength={254} />
       <Field label="Name" name="name" required maxLength={100} />
       <div className="space-y-1">
-        <label htmlFor="invite-role" className="block text-sm font-medium">Role</label>
-        <select id="invite-role" name="role" defaultValue="VIEWER" className="w-full rounded border border-line bg-canvas px-2 py-2 text-sm">
+        <label htmlFor="new-user-role" className="block text-sm font-medium">Role</label>
+        <select id="new-user-role" name="role" defaultValue="VIEWER" className="w-full rounded border border-line bg-canvas px-2 py-2 text-sm">
           {ROLES.map((r) => (
             <option key={r} value={r}>{ROLE_LABEL[r]}</option>
           ))}
         </select>
       </div>
-      <Button type="submit" busy={busy}>Invite</Button>
+      <Button type="submit" busy={busy}>Create user</Button>
       <div className="sm:col-span-4">
         <FormError error={error} />
-        <p className="text-xs text-ink-muted">The invitee sets their own password from a one-time link. You never see it.</p>
+        <p className="text-xs text-ink-muted">
+          You get a temporary password to hand over, shown once. They replace it at first sign-in. No email is sent.
+        </p>
       </div>
     </form>
   );

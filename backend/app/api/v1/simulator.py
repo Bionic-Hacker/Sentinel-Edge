@@ -91,7 +91,7 @@ def list_waf_rules(
         web_acl=simulator.WEB_ACL,
         note=(
             "SIMULATED WAF: changing a rule here affects simulations only. Real AWS WAF rules "
-            "change through Terraform (ADR-0008, Phase 5)."
+            "change through Terraform (ADR-0008)."
         ),
         items=[
             WafRuleOut(

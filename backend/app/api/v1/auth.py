@@ -19,7 +19,6 @@ from app.core.request_context import request_context
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.auth import (
-    AcceptedResponse,
     AuthenticatedResponse,
     LoginRequest,
     MfaCodeRequest,
@@ -27,8 +26,6 @@ from app.schemas.auth import (
     MfaRequiredResponse,
     MfaVerifyRequest,
     PasswordChangeRequest,
-    PasswordForgotRequest,
-    PasswordResetRequest,
     RecoveryCodesResponse,
     UserProfile,
 )
@@ -200,27 +197,3 @@ def change_password(
     service: AuthService = Depends(get_auth_service),  # noqa: B008
 ) -> None:
     service.change_password(principal, body.current_password, body.new_password)
-
-
-@router.post(
-    "/password/forgot",
-    response_model=AcceptedResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    dependencies=SameOrigin,
-)
-def forgot_password(
-    body: PasswordForgotRequest,
-    service: AuthService = Depends(get_auth_service),  # noqa: B008
-) -> AcceptedResponse:
-    service.request_password_reset(body.email)
-    return AcceptedResponse()
-
-
-@router.post("/password/reset", status_code=status.HTTP_204_NO_CONTENT, dependencies=SameOrigin)
-def reset_password(
-    body: PasswordResetRequest,
-    response: Response,
-    service: AuthService = Depends(get_auth_service),  # noqa: B008
-) -> None:
-    service.reset_password(body.token, body.new_password)
-    _clear_refresh_cookie(response)

@@ -5,11 +5,14 @@ Run with: ``uvicorn --factory app.main:create_app`` (see Dockerfile).
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
-from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.concurrency import run_in_threadpool
 
 from app.api.v1.router import api_v1
 from app.core.api_metrics import ApiMetrics, ApiMetricsMiddleware
@@ -19,13 +22,27 @@ from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.http_inspection import HttpInspectionMiddleware, SecurityEventRecorder
 from app.core.logging import configure_logging
-from app.core.middleware import SecurityMiddleware
+from app.core.middleware import HostCheckMiddleware, SecurityMiddleware
 from app.core.rate_limiting import enforce_ip_limits
 from app.db.session import build_engine, build_session_factory
 from app.security.mfa import MfaService
 from app.security.passwords import PasswordHasher
 from app.security.rate_limit import RateLimiter
 from app.security.tokens import TokenService
+from app.services import aws_edge
+
+logger = logging.getLogger("sentineledge.main")
+
+
+async def _aws_edge_loop(application: FastAPI, settings: Settings) -> None:
+    """Sync the edge feeds shortly after start, then every aws_sync_interval_seconds."""
+    await asyncio.sleep(30)
+    while True:
+        try:
+            await run_in_threadpool(aws_edge.sync, application.state.session_factory, settings)
+        except Exception as exc:  # the loop must outlive any one failure
+            logger.warning("aws_edge_loop_failed", extra={"error_type": type(exc).__name__})
+        await asyncio.sleep(settings.aws_sync_interval_seconds)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -36,8 +53,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     engine = build_engine(settings)
 
     @asynccontextmanager
-    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        # In AWS, read WAF blocks and check certificates on a timer (ADR-0029).
+        task = (
+            asyncio.create_task(_aws_edge_loop(application, settings))
+            if settings.aws_edge_enabled
+            else None
+        )
         yield
+        if task is not None:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
         engine.dispose()
 
     docs = settings.enable_api_docs
@@ -71,7 +98,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Order matters: the last added middleware runs first. SecurityMiddleware is outermost so
     # that every response — including Host rejections and errors — gets headers and a
     # correlation ID.
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.trusted_hosts)
+    # The Host allow-list, except for the liveness probe that load balancers address by IP.
+    app.add_middleware(HostCheckMiddleware, allowed_hosts=settings.trusted_hosts)
     # Detect-only attack analysis (Phase 7): sees the routed request and its final status.
     app.add_middleware(HttpInspectionMiddleware, recorder=app.state.event_recorder)
     app.add_middleware(ApiMetricsMiddleware, metrics=app.state.api_metrics)

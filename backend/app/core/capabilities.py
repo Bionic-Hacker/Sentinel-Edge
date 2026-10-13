@@ -58,7 +58,7 @@ CAPABILITIES: tuple[Capability, ...] = (
         L,
         DONE,
         1,
-        "Applied by API middleware. CloudFront header policy follows in Phase 5.",
+        "Applied by API middleware; at the edge by an identical CloudFront policy (Phase 5).",
     ),
     _c(
         "platform.error_handling",
@@ -117,12 +117,13 @@ CAPABILITIES: tuple[Capability, ...] = (
     ),
     _c(
         "identity.user_admin",
-        "User administration and invitations",
+        "User administration and temporary passwords",
         "Identity",
         L,
         DONE,
         2,
-        "Admins invite users by one-time link; they never see or set passwords.",
+        "Admins create users and reset passwords with a generated temporary password shown once; "
+        "no email path (ADR-0028).",
     ),
     _c(
         "audit.log",
@@ -142,15 +143,6 @@ CAPABILITIES: tuple[Capability, ...] = (
         2,
         "Separate migrator and runtime roles; grants verified against a privilege matrix.",
     ),
-    _c(
-        "platform.local_outbox",
-        "Local email outbox",
-        "Platform",
-        L,
-        DONE,
-        2,
-        "Invitation and reset emails are stored, not sent. Real delivery would need SES.",
-    ),
     # --- Planned: local functionality --------------------------------------------------
     # --- Phase 6: implemented locally ---------------------------------------------------
     _c(
@@ -169,7 +161,7 @@ CAPABILITIES: tuple[Capability, ...] = (
         L,
         DONE,
         6,
-        "PostgreSQL token buckets per IP and per account; WAF rate rules follow in Phase 5.",
+        "PostgreSQL token buckets per IP and per account; WAF rate rules at the edge (Phase 5).",
     ),
     _c(
         "api.metrics",
@@ -376,36 +368,36 @@ CAPABILITIES: tuple[Capability, ...] = (
         "AWS WAF on CloudFront",
         "WAF",
         R,
-        PLAN,
+        DONE,
         5,
-        "Rules changed only via Terraform; the dashboard reads state and raises change requests.",
+        "Managed rules, rate rules and a body cap; changed only through reviewed Terraform.",
     ),
     _c(
         "aws.edge",
         "CloudFront with VPC origin",
         "Edge Security",
         R,
-        PLAN,
+        DONE,
         5,
-        "Internal ALB origin; no public origin to bypass.",
+        "Internal ALB origin, no public origin to bypass; TLS 1.2+, headers identical to local.",
     ),
     _c(
         "aws.certificates",
         "ACM certificate monitoring",
         "Certificates",
         R,
-        PLAN,
+        DONE,
         5,
-        "Read-only ACM API polling with expiry alerting.",
+        "Read-only ACM reads in both Regions; expiry and failed renewal raise events.",
     ),
     _c(
         "aws.waf_logs",
         "WAF log ingestion",
         "Threats",
         R,
-        PLAN,
+        DONE,
         5,
-        "Real WAF logs from CloudWatch, displayed alongside labelled simulated events.",
+        "Real WAF blocks from CloudWatch every five minutes, next to labelled simulated events.",
     ),
     # --- Simulations and demo data -----------------------------------------------------
     _c(

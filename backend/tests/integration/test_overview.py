@@ -116,8 +116,9 @@ def test_live_view_reflects_real_records(
     assert sum(p["events"] for p in live["series"]) == 4
 
     controls = live["controls"]
-    assert controls["waf"]["status"] == "planned"
-    assert controls["certificates"]["status"] == "planned"
+    # No AWS edge outside a deploy window: the controls say so rather than inventing data.
+    assert controls["waf"]["status"] == "not_connected"
+    assert controls["certificates"]["status"] == "not_connected"
     assert controls["api"]["status"] == "measured"
     assert controls["detection"]["values"] == {"http_rules": 17, "correlation_rules": 7}
 

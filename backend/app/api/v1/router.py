@@ -8,6 +8,7 @@ from app.api.v1 import (
     applications,
     audit_logs,
     auth,
+    edge,
     governance,
     health,
     incidents,
@@ -28,6 +29,7 @@ api_v1.include_router(users.router)
 api_v1.include_router(audit_logs.router)
 api_v1.include_router(api_security.router)
 api_v1.include_router(security_events.router)
+api_v1.include_router(edge.router)
 api_v1.include_router(incidents.router)
 api_v1.include_router(security_overview.router)
 api_v1.include_router(applications.router)

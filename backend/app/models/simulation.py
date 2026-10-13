@@ -3,7 +3,7 @@
 * simulation_runs: who ran which scenario, when, and what it produced. Append-only.
 * simulated_waf_rules: the mode (block, count or off) of each rule in the SIMULATED WAF. This
   is the only WAF rule state SentinelEdge's dashboard can change; real AWS WAF rules change only
-  through Terraform (ADR-0008, Phase 5).
+  through Terraform (ADR-0008).
 """
 
 from __future__ import annotations

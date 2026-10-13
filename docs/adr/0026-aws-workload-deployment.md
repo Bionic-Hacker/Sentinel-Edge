@@ -1,6 +1,6 @@
 # ADR-0026: The AWS workload as built: one switch, secrets outside state, least privilege per task
 
-- **Status:** Accepted (built and tested without AWS; applied in the Phase 4–5 deploy window)
+- **Status:** Accepted (applied and verified in the Phase 4–5 deploy window, 12–13 October 2026)
 - **Date:** 2026-10-12
 - **Phase:** 4
 - **Decided by:** Bionic-Hacker (project owner)
@@ -98,6 +98,11 @@ API's log.
   T-ORG-03, T-AUD-01's remaining tail deletion, and T-SEC-02 (secrets in Terraform state, new).
 - Controls C-LB-01, C-DB-02, C-DB-04, C-AUD-03, C-MON-01 and C-SEC-04 (new) are built; C-EDGE-02
   completes with Phase 5's VPC origin.
+- Health checks address the task by IP, which the Host allow-list refused (400). Only `GET` on
+  the exact liveness path `/api/v1/health` now skips the list; readiness and every other route
+  stay behind it (found in the first window).
+- The Free plan launches only Free Tier instance types, so the NAT instance is a `t4g.micro`
+  (`t4g.nano` is refused at plan time; found in the first window).
 - Accepted for dev: single-AZ database and one NAT; Spot interruptions (the service replaces the
   task); TLS ends at the ALB.
 

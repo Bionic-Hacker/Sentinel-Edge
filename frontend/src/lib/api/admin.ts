@@ -1,12 +1,19 @@
 import type { AuditResult, ManagedUser, Role } from "../types";
 import { apiGet, apiRequest } from "./client";
-import { isAuditPage, isChainStatus, isManagedUser, isUserList } from "./validators";
+import { isAuditPage, isChainStatus, isManagedUser, isTemporaryPasswordIssued, isUserList } from "./validators";
 
 export const listUsers = async (signal?: AbortSignal) =>
   (await apiGet("/api/v1/users", isUserList, signal ? { signal } : {})).items;
 
-export const inviteUser = (body: { email: string; display_name: string; role: Role }) =>
-  apiRequest("/api/v1/users", isManagedUser, { method: "POST", body });
+/** Creates the account; the response carries its temporary password, shown once (ADR-0028). */
+export const createUser = (body: { email: string; display_name: string; role: Role }) =>
+  apiRequest("/api/v1/users", isTemporaryPasswordIssued, { method: "POST", body });
+
+/** Issues a new temporary password and signs the user out everywhere. */
+export const resetUserPassword = (id: string) =>
+  apiRequest(`/api/v1/users/${encodeURIComponent(id)}/password/reset`, isTemporaryPasswordIssued, {
+    method: "POST",
+  });
 
 export const updateUser = (
   id: string,

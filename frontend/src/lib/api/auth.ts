@@ -42,13 +42,3 @@ export const confirmMfaEnrollment = (code: string) =>
     method: "POST",
     body: { code },
   });
-
-export const requestPasswordReset = (email: string) =>
-  apiRequest("/api/v1/auth/password/forgot", null, { ...anon, method: "POST", body: { email } });
-
-export const resetPassword = (token: string, newPassword: string) =>
-  apiRequest("/api/v1/auth/password/reset", null, {
-    ...anon,
-    method: "POST",
-    body: { token, new_password: newPassword },
-  });

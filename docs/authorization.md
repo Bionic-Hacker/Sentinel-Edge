@@ -22,7 +22,6 @@ from it in either direction.
 |---|---|---|---|---|---|---|---|
 | `GET /health`, `GET /ready` | ✓ | | | | | | |
 | `POST /auth/login`, `/auth/mfa/verify`, `/auth/refresh` | ✓¹ | | | | | | |
-| `POST /auth/password/forgot`, `/auth/password/reset` | ✓¹ | | | | | | |
 | `GET /auth/me`, `POST /auth/logout` | | ✓ | | | | | |
 | `POST /auth/password/change`, `/auth/mfa/enroll[/confirm]` | | ✓ | | | | | |
 | `GET /platform/capabilities` | | | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -171,18 +170,19 @@ everywhere because the authenticated DAST scanner signs in as a VIEWER.
 |---|---|---|
 | Reversible | Yes: Reactivate | No |
 | Sessions | Revoked at once | Removed at once |
-| Account, password, 2FA, recovery codes, pending links | Kept | Removed |
-| Email can be invited again | No (still in use) | Yes, as a new account with a new ID |
+| Account, password, 2FA, recovery codes | Kept | Removed |
+| Email can be used for a new account | No (still in use) | Yes, as a new account with a new ID |
 | Audit history | Kept | Kept: records hold the actor's ID and email as plain values, so the hash chain is unaffected (ADR-0005) |
 | Audit record | `user.updated` | `user.deleted`, with the email, name and role at deletion |
 
 Prefer deactivation during an incident, because the account and its state stay available for
 investigation (`docs/runbooks/compromised-credential.md`). Delete accounts that should not exist:
-a mistaken invite, or a departed user once any investigation is closed. The UI asks for explicit
+one created by mistake, or a departed user once any investigation is closed. The UI asks for explicit
 confirmation in a warning dialog whose default action is Cancel.
 
 The app database role gained `DELETE` on `users`, `auth_sessions`, `refresh_tokens` and
-`password_reset_tokens` for this (migration `0003_user_deletion`). It still has no `DELETE`,
+`password_reset_tokens` for this (migration `0003_user_deletion`; the last table was dropped with the
+email path in `0015`, ADR-0028). It still has no `DELETE`,
 `UPDATE` or `TRUNCATE` on `audit_log`, and the privilege-matrix test pins the full set.
 
 ## Rate limits

@@ -137,7 +137,7 @@ function overview(view: "live" | "simulated", over: Partial<Overview> = {}): Ove
     },
     controls: {
       detection: { status: "measured", summary: "17 HTTP rules and 7 correlation rules active", values: { rules: 24 } },
-      waf: { status: live ? "planned" : "simulated", summary: "AWS WAF arrives in Phase 5", values: {} },
+      waf: { status: live ? "measured" : "simulated", summary: "198 request(s) blocked by AWS WAF in this window", values: {} },
     },
     ...over,
   };
@@ -706,7 +706,42 @@ describe("simulated WAF", () => {
     await waitFor(() => expect(mode).toHaveValue("count"));
     expect(callsTo(calls, "PUT", "/api/v1/simulator/waf-rules/SQLI-001")[0]?.body).toEqual({ mode: "count" });
     expect(screen.getByText("Simulated data.")).toBeInTheDocument();
-    expect(callsTo(calls, "GET", "/api/v1/security-events")[0]?.query.get("view")).toBe("simulated");
+    const views = callsTo(calls, "GET", "/api/v1/security-events").map((c) => c.query.get("view"));
+    expect(views).toContain("simulated");
+  });
+
+  it("shows the real AWS WAF blocks read back from its log", async () => {
+    const calls = await renderAs(
+      "VIEWER",
+      "/waf",
+      routes({
+        "/api/v1/edge/status": () =>
+          jsonResponse({
+            waf_logs_enabled: true,
+            waf_log_group: "aws-waf-logs-sentineledge-dev-edge",
+            certificate_regions: ["us-east-1", "us-east-2"],
+            sync_interval_seconds: 300,
+            last_sync: {
+              started_at: "2026-10-13T16:00:00Z",
+              finished_at: "2026-10-13T16:00:02Z",
+              waf_records_read: 2,
+              waf_events_stored: 2,
+              certificates_checked: 2,
+              certificate_events_stored: 0,
+              errors: [],
+            },
+            waf_blocks_24h: 2,
+            waf_blocks_by_rule: [{ rule: "SQLi_QUERYARGUMENTS", count: 2 }],
+          }),
+      }),
+    );
+    expect(await screen.findByRole("heading", { name: "AWS WAF on CloudFront" })).toBeInTheDocument();
+    expect(await screen.findByText("aws-waf-logs-sentineledge-dev-edge")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "AWS WAF blocks by rule, last 24 hours" })).toHaveTextContent("SQLi_QUERYARGUMENTS");
+    // Viewers read; only leads can sync.
+    expect(screen.queryByRole("button", { name: "Sync now" })).not.toBeInTheDocument();
+    const real = callsTo(calls, "GET", "/api/v1/security-events").find((c) => c.query.get("provenance") === "REAL_AWS");
+    expect(real?.query.get("source")).toBe("waf");
   });
 
   it("shows an analyst the rules read-only", async () => {
@@ -796,5 +831,61 @@ describe("response validators", () => {
       isIncidentDetail({ ...detail, permissions: { ...detail.permissions, moves: [{ to_status: "CLOSED", label: "Close" }] } }),
     ).toBe(false);
     expect(isIncidentDetail({ ...detail, integrity: { verified: true } })).toBe(false);
+  });
+});
+
+// --- Certificates (ADR-0029) ----------------------------------------------------------------------
+
+describe("certificates", () => {
+  const cert = (domain: string, region: string, days: number, condition: string | null, severity: string | null) => ({
+    arn: `arn:aws:acm:${region}:111122223333:certificate/${domain}`,
+    region,
+    domain,
+    alternative_names: [domain],
+    status: "ISSUED",
+    type: "AMAZON_ISSUED",
+    key_algorithm: "EC_prime256v1",
+    issuer: "Amazon",
+    not_before: "2026-10-01T00:00:00Z",
+    not_after: "2027-11-01T00:00:00Z",
+    days_left: days,
+    renewal_eligibility: "ELIGIBLE",
+    renewal_status: null,
+    in_use_by: 1,
+    condition,
+    severity,
+  });
+
+  it("lists ACM certificates and flags the one that needs attention", async () => {
+    await renderAs("ANALYST", "/certificates", {
+      "/api/v1/edge/certificates": () =>
+        jsonResponse({
+          enabled: true,
+          regions: ["us-east-1", "us-east-2"],
+          error: null,
+          items: [
+            cert("origin.sentineledge.example.com", "us-east-2", 10, "expiring", "high"),
+            cert("sentineledge.example.com", "us-east-1", 380, null, null),
+          ],
+        }),
+    });
+    const table = await screen.findByRole("table", { name: "Certificates in AWS Certificate Manager" });
+    expect(within(table).getByText("origin.sentineledge.example.com")).toBeInTheDocument();
+    expect(within(table).getByText("Expiring")).toBeInTheDocument();
+    expect(within(table).getByText("Issued")).toBeInTheDocument();
+    expect(within(table).getByText("380 days left")).toBeInTheDocument();
+    expect(screen.getByText("Need attention").nextSibling).toHaveTextContent("1");
+  });
+
+  it("says there is nothing to read outside AWS", async () => {
+    await renderAs("ADMIN", "/certificates", {
+      "/api/v1/edge/certificates": () => jsonResponse({ enabled: false, regions: [], items: [], error: null }),
+    });
+    expect(await screen.findByText(/This environment has no AWS account connected/)).toBeInTheDocument();
+  });
+
+  it("keeps developers out", async () => {
+    await renderAs("DEVELOPER", "/certificates", {});
+    expect(await screen.findByText(/Certificates are available to administrators/)).toBeInTheDocument();
   });
 });

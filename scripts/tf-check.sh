@@ -39,8 +39,16 @@ for module in "$TF"/modules/*/; do
   name="${module#"$TF"/}"
   data_dir="$(mktemp -d)"
   init_throwaway "$module" "$data_dir"
-  echo "==> terraform validate: $name"
-  TF_DATA_DIR="$data_dir" terraform -chdir="$module" validate -no-color
+  # A module that declares configuration_aliases expects its caller to pass those providers, and
+  # Terraform (unlike OpenTofu) refuses to validate it on its own ("Provider configuration not
+  # present"). It is still validated twice: inside environments/dev above, wired as deployed, and
+  # by its tests below, whose mock providers supply the aliases.
+  if grep -q "configuration_aliases" "$module"/*.tf; then
+    echo "==> terraform validate: $name (through environments/dev and its tests: it takes provider aliases)"
+  else
+    echo "==> terraform validate: $name"
+    TF_DATA_DIR="$data_dir" terraform -chdir="$module" validate -no-color
+  fi
   if [[ -d "$module/tests" ]]; then
     echo "==> terraform test: $name"
     TF_DATA_DIR="$data_dir" terraform -chdir="$module" test -no-color

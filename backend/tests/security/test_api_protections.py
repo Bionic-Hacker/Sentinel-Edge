@@ -28,6 +28,10 @@ APPROVED_SENSITIVE = {
     ("MfaEnrollmentStartResponse", "secret"): "shown once so the user can enroll MFA",
     ("RecoveryCodesResponse", "recovery_codes"): "shown once at enrollment",
     ("UserOut", "must_change_password"): "a yes/no flag, not a password",
+    ("UserOut", "temporary_password_expires_at"): "a timestamp, not a password",
+    ("TemporaryPasswordIssued", "temporary_password"): (
+        "shown once to the administrator who issued it (ADR-0028); stored only as a hash"
+    ),
     ("AuditEntryOut", "prev_hash"): "public integrity value of the audit hash chain",
     ("AuditEntryOut", "record_hash"): "public integrity value of the audit hash chain",
     ("ChainStatus", "head_hash"): "public integrity value of the audit hash chain",
@@ -65,7 +69,7 @@ def _models(annotation: Any) -> Iterator[type[BaseModel]]:
 
 def test_every_request_body_rejects_unknown_fields(app: FastAPI) -> None:
     """Mass assignment: a client cannot set fields the endpoint did not ask for (e.g. "role"
-    on an invite, "is_active" on create, "password_hash" anywhere)."""
+    on a new user, "is_active" on create, "password_hash" anywhere)."""
     checked = 0
     for path, route in _api_routes(app):
         for param in route.dependant.body_params:

@@ -22,3 +22,13 @@ resource "aws_secretsmanager_secret" "this" {
   recovery_window_in_days = var.recovery_window_in_days
 }
 
+
+# The first administrator's one-time password (Phase 5). The admin task writes it; the owner reads
+# it once with the AWS CLI. It is replaced at first sign-in, so the stored value stops working.
+resource "aws_secretsmanager_secret" "admin_otp" {
+  # checkov:skip=CKV2_AWS_57: A one-time password, replaced at first sign-in; there is nothing to rotate.
+  name                    = "${var.name}/admin-one-time-password"
+  description             = "One-time password of an administrator created by the admin task"
+  kms_key_id              = var.kms_key_arn
+  recovery_window_in_days = var.recovery_window_in_days
+}

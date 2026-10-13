@@ -19,6 +19,7 @@ class UserOut(BaseModel):
     is_active: bool
     mfa_enabled: bool
     must_change_password: bool
+    temporary_password_expires_at: datetime | None
     locked: bool
     last_login_at: datetime | None
     created_at: datetime
@@ -26,6 +27,15 @@ class UserOut(BaseModel):
 
 class UserList(BaseModel):
     items: list[UserOut]
+
+
+class TemporaryPasswordIssued(BaseModel):
+    """Returned once, when an administrator creates an account or resets its password
+    (ADR-0028). The password is never stored in plain text and cannot be fetched again."""
+
+    user: UserOut
+    temporary_password: str
+    expires_at: datetime
 
 
 class UserCreate(StrictModel):

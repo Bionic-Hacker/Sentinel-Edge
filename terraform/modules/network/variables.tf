@@ -28,7 +28,7 @@ variable "nat_mode" {
   description = <<-EOT
     How the app subnets reach the internet (AWS APIs, Bedrock, ECR):
     "none" (no egress; the free resting state between deploy windows),
-    "instance" (one t4g.nano NAT instance, about $0.009/hour with its public IPv4 address),
+    "instance" (one t4g.micro NAT instance, about $0.013/hour with its public IPv4 address),
     "gateway" (one managed NAT gateway, about $0.05/hour).
   EOT
   type        = string
@@ -41,9 +41,14 @@ variable "nat_mode" {
 }
 
 variable "nat_instance_type" {
-  description = "Instance type of the NAT instance (Graviton, so the AMI is arm64)."
+  description = "Instance type of the NAT instance (Graviton, so the AMI is arm64). On the Free plan only Free Tier types can be launched: t4g.nano is refused, t4g.micro is the smallest that is not."
   type        = string
-  default     = "t4g.nano"
+  default     = "t4g.micro"
+
+  validation {
+    condition     = startswith(var.nat_instance_type, "t4g.") && var.nat_instance_type != "t4g.nano"
+    error_message = "nat_instance_type must be a Graviton t4g type (the AMI is arm64), and not t4g.nano, which a Free-plan account refuses."
+  }
 }
 
 variable "kms_key_arn" {

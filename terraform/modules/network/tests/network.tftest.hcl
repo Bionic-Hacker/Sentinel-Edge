@@ -169,3 +169,14 @@ run "rejects_a_single_zone" {
 
   expect_failures = [var.availability_zone_ids]
 }
+
+run "rejects_an_instance_type_the_free_plan_refuses" {
+  command = plan
+
+  variables {
+    nat_mode          = "instance"
+    nat_instance_type = "t4g.nano"
+  }
+
+  expect_failures = [var.nat_instance_type]
+}

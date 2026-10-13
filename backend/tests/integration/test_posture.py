@@ -38,10 +38,13 @@ def test_a_fresh_platform_scores_from_coverage_and_says_what_is_planned(
     # Built in Phase 9: every AI control implemented, so the category is measured in full.
     ai = cats["ai"]
     assert (ai["state"], ai["score"], ai["planned"]) == ("measured", 100, 0)
-    # Still to come (Phase 5): a planned category scores 0 and names its controls.
+    # Built in Phase 5: the WAF category is measured in full.
     waf = cats["waf"]
-    assert (waf["state"], waf["score"], waf["implemented"]) == ("planned", 0, 0)
-    assert "C-WAF-01" in waf["factors"][0]["refs"]
+    assert (waf["state"], waf["score"], waf["implemented"]) == ("measured", 100, 4)
+    # A category with a control still to come names it as what would raise its score.
+    network = cats["network"]
+    assert network["planned"] == 1
+    assert network["factors"][0]["refs"] == ["C-IAM-02"]
 
     devsecops = cats["devsecops"]
     assert devsecops["factors"][-1]["label"] == "No scan imported yet"
@@ -51,7 +54,9 @@ def test_a_fresh_platform_scores_from_coverage_and_says_what_is_planned(
     assert body["overall"] == round(sum(scores) / 11)
     measured = [c["score"] for c in body["categories"] if c["state"] == "measured"]
     assert body["built_scope"] == round(sum(measured) / len(measured))
-    assert body["built_scope"] > body["overall"]
+    # Every category has something built, so the built scope is the whole score.
+    assert all(c["state"] == "measured" for c in body["categories"])
+    assert body["built_scope"] == body["overall"]
     assert "past their SLA" in body["method"]
 
     assert len(body["trend"]) == 1  # the day's automatic snapshot

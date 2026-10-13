@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../app/auth-context";
 import { AuthCard } from "../../app/RequireAuth";
 import { Button, Field, FormError } from "../../components/forms";
@@ -116,10 +116,8 @@ export function LoginPage() {
         <Button type="submit" busy={busy} className="w-full">
           Sign in
         </Button>
-        <p className="text-center text-sm">
-          <Link to="/forgot-password" className="text-accent underline-offset-2 hover:underline">
-            Forgot your password?
-          </Link>
+        <p className="text-center text-sm text-ink-muted">
+          Forgot your password? Ask an administrator to reset it.
         </p>
       </form>
     </AuthCard>
