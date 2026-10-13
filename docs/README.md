@@ -7,7 +7,7 @@ system that doesn't exist yet as if it did.
 |---|---|---|
 | [book/](book/) | **The engineering book (PDF):** build plan, blueprint, phases as built, reproduction guide | Rebuilt every release |
 | [architecture.md](architecture.md) | Target and local architecture, components, data model, roles | Phase 1 |
-| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.8 (Phase 3) |
+| [threat-model.md](threat-model.md) | STRIDE per trust boundary, attack paths, residual risk; loaded into the app as SentinelEdge's own model | v0.9.1 (Phase 4) |
 | [security-controls.md](security-controls.md) | Defense-in-depth layers, control catalogue, control matrix | Phase 1; updated every phase |
 | [feature-classification.md](feature-classification.md) | REAL_AWS / LOCAL / SIMULATED / DEMO rules and register | Phase 1 |
 | [security-headers.md](security-headers.md) | Every header and why it is set | Phase 1 |

@@ -43,6 +43,12 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.8.0 (Phase 3) to v0.9.0 (Phase 4)
+
+Phase 4 is the AWS workload ([aws-deploy-window.md](aws-deploy-window.md)); the local stack is
+unchanged: no migration and no new dependency. `db/bootstrap-roles.sh` now also runs as a
+non-superuser (RDS), and behaves exactly as before as a superuser locally.
+
 ## Upgrading from v0.7.0 (Phase 9) to v0.8.0 (Phase 3)
 
 Phase 3 is Terraform for AWS ([aws-setup.md](aws-setup.md)); the local stack is unchanged: no
