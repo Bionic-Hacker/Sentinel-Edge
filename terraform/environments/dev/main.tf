@@ -46,6 +46,18 @@ module "dns_zone" {
   caa_iodef = var.caa_iodef
 }
 
+# Every query for the zone, logged to CloudWatch Logs in us-east-1 (the only Region Route 53
+# writes query logs to). Kept between windows with the zone (Phase 5).
+module "dns_query_logs" {
+  source    = "../../modules/dns-query-logs"
+  count     = var.app_domain == "" ? 0 : 1
+  providers = { aws = aws.us_east_1 }
+
+  zone_id    = module.dns_zone[0].zone_id
+  zone_name  = var.app_domain
+  account_id = var.account_id
+}
+
 # CloudFront only accepts certificates from us-east-1 (Phase 5). It publishes the validation
 # record, which the home-Region certificate shares.
 module "certificate_edge" {
