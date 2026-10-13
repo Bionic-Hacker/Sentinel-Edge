@@ -20,6 +20,7 @@ import { IncidentDetailPage } from "../features/secops/IncidentDetailPage";
 import { IncidentsPage } from "../features/secops/IncidentsPage";
 import { ThreatsPage } from "../features/secops/ThreatsPage";
 import { WafPage } from "../features/secops/WafPage";
+import { CertificatesPage } from "../features/secops/CertificatesPage";
 import { Dashboard } from "../routes/Dashboard";
 import { ModulePage } from "../routes/ModulePage";
 import { NotFound } from "../routes/NotFound";
@@ -37,6 +38,7 @@ const PAGES: Record<string, () => React.JSX.Element> = {
   "/incidents": IncidentsPage,
   "/applications": ApplicationsPage,
   "/waf": WafPage,
+  "/certificates": CertificatesPage,
   "/automation": AutomationPage,
   "/vulnerabilities": VulnerabilitiesPage,
   "/sbom": SbomPage,

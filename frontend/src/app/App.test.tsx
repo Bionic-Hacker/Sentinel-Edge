@@ -12,12 +12,15 @@ const SPEC_NAV = [
   "Audit Logs", "Automation", "Settings",
 ];
 
-async function renderAt(path: string, caps = CAPS) {
+const LOCAL = { environment: "local", deployed: false, region: null };
+
+async function renderAt(path: string, caps = CAPS, environment: object = LOCAL) {
   vi.spyOn(globalThis, "fetch").mockImplementation(
     mockApi({
       "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()),
       "/api/v1/health": () => jsonResponse({ status: "ok", version: "0.1.0" }),
       "/api/v1/platform/capabilities": () => jsonResponse({ items: caps }),
+      "/api/v1/platform/environment": () => jsonResponse(environment),
     }),
   );
   const view = await renderSettled(
@@ -37,9 +40,16 @@ describe("navigation", () => {
     expect(MODULES.map((m) => m.label)).toEqual(SPEC_NAV);
   });
 
-  it("states that no AWS resources are connected", async () => {
+  it("states that no AWS resources are connected, when the API says it runs locally", async () => {
     await renderAt("/");
-    expect(screen.getByText(/No AWS resources are connected/)).toBeInTheDocument();
+    expect(await screen.findByText(/No AWS resources are connected/)).toBeInTheDocument();
+  });
+
+  it("names the AWS environment when the API runs there", async () => {
+    await renderAt("/", CAPS, { environment: "dev", deployed: true, region: "us-east-2" });
+    expect(await screen.findByText("AWS dev environment")).toBeInTheDocument();
+    expect(screen.getByText(/\(us-east-2\)\. Real AWS resources; data is synthetic\./)).toBeInTheDocument();
+    expect(screen.queryByText(/No AWS resources are connected/)).not.toBeInTheDocument();
   });
 });
 

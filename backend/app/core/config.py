@@ -154,12 +154,44 @@ class Settings(BaseSettings):
         default=None, pattern=r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
     )
 
-    @field_validator("trusted_hosts", "public_origins", "trusted_proxy_cidrs", mode="before")
+    # The edge in AWS (Phase 5): where the API reads real WAF blocks and ACM certificates. Both
+    # unset locally, where the WAF and certificate pages say so instead of showing anything.
+    waf_log_group: str | None = Field(
+        default=None, pattern=r"^aws-waf-logs-[A-Za-z0-9_./#-]{1,240}$"
+    )
+    waf_log_region: str = Field(default="us-east-1", pattern=r"^[a-z]{2}-[a-z]+-[0-9]$")
+    certificate_regions: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    # How often the API pulls WAF logs and checks certificates while either is configured.
+    aws_sync_interval_seconds: int = Field(default=300, ge=60, le=3600)
+
+    @field_validator(
+        "trusted_hosts",
+        "public_origins",
+        "trusted_proxy_cidrs",
+        "certificate_regions",
+        mode="before",
+    )
     @classmethod
     def _split_csv(cls, value: object) -> object:
         if isinstance(value, str):
             return [h.strip() for h in value.split(",") if h.strip()]
         return value
+
+    @field_validator("waf_log_group", mode="before")
+    @classmethod
+    def _empty_is_unset(cls, value: object) -> object:
+        return None if value == "" else value
+
+    @field_validator("certificate_regions")
+    @classmethod
+    def _valid_regions(cls, value: list[str]) -> list[str]:
+        if any(not re.fullmatch(r"[a-z]{2}-[a-z]+-[0-9]", r) for r in value):
+            raise ValueError("certificate_regions must be AWS region names")
+        return list(dict.fromkeys(value))
+
+    @property
+    def aws_edge_enabled(self) -> bool:
+        return bool(self.waf_log_group or self.certificate_regions)
 
     @field_validator("trusted_hosts")
     @classmethod

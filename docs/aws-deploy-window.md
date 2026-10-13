@@ -69,7 +69,7 @@ make ecs-task TASK=migrate
 ```
 
 `dbadmin` ends with `SentinelEdge database roles and schema are in place`; `migrate` with
-`Running upgrade 0014 -> 0015`. Each fails loudly on a non-zero exit and prints its log.
+`Running upgrade 0015 -> 0016`. Each fails loudly on a non-zero exit and prints its log.
 
 ## 5. Start the API
 
@@ -86,6 +86,10 @@ make tf-apply STACK=dev
 make spa-push
 make edge-check
 ```
+
+Within five minutes the API reads the blocks `edge-check` caused back from the WAF log (ADR-0029):
+the **WAF** page shows them as Real AWS, the **Threats** page lists them, and **Certificates** shows
+both ACM certificates. Leads can press **Sync now** instead of waiting.
 
 `make edge-check` tests the edge from the internet and must end with `All edge checks passed.`:
 HTTP redirected, TLS 1.2 or later, the SPA's headers identical to the local ones, the API ready,

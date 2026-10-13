@@ -171,6 +171,13 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
     ("POST", "/api/v1/auth/password/change"): EndpointPolicy(
         "Change own password", Risk.HIGH, CREDENTIAL_CHANGE, (A.API2,), "Credentials"
     ),
+    ("GET", "/api/v1/platform/environment"): EndpointPolicy(
+        "Where this API runs (environment, Region), for the page banner",
+        Risk.LOW,
+        READ,
+        (A.API3,),
+        "Environment name and Region",
+    ),
     ("GET", "/api/v1/platform/capabilities"): EndpointPolicy(
         "Capability register (what is real, local, simulated)",
         Risk.LOW,
@@ -240,6 +247,27 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
     ),
     ("GET", "/api/v1/api-security/owasp"): EndpointPolicy(
         "OWASP API Top 10 coverage", Risk.LOW, READ, (A.API5, A.API9), "Control evidence"
+    ),
+    ("GET", "/api/v1/edge/status"): EndpointPolicy(
+        "AWS edge feeds: WAF blocks in the last 24 hours, last sync",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API5),
+        "Rule names and counts; the WAF log group name",
+    ),
+    ("GET", "/api/v1/edge/certificates"): EndpointPolicy(
+        "ACM certificates and their expiry, read live",
+        Risk.LOW,
+        READ,
+        (A.API3, A.API10),
+        "Certificate metadata (domains, ARNs, dates); never keys",
+    ),
+    ("POST", "/api/v1/edge/sync"): EndpointPolicy(
+        "Pull new WAF blocks and check certificates now",
+        Risk.MEDIUM,
+        EXPENSIVE,
+        (A.API4, A.API10),
+        "Read-only calls to CloudWatch Logs and ACM",
     ),
     ("GET", "/api/v1/security-events"): EndpointPolicy(
         "Query security events",

@@ -165,6 +165,9 @@ module "ecs" {
   ai_provider            = var.ai_provider
   audit_anchor_bucket    = module.audit_anchors.bucket
   admin_otp_secret_arn   = module.app_secrets[0].admin_otp_secret_arn
+  # The edge read back (ADR-0029): the WAF log group and both certificates' Regions.
+  waf_log_group       = module.waf[0].log_group
+  certificate_regions = distinct(["us-east-1", var.region])
 
   # The values must be in Secrets Manager before any task reads them.
   depends_on = [module.app_secret_values]

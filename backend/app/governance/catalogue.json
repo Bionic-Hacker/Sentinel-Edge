@@ -863,6 +863,30 @@
    "title": "SPA bucket private, readable only by this distribution through Origin Access Control"
   },
   {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "EDGE",
+   "implementation": "",
+   "layer": null,
+   "phase": 5,
+   "ref": "C-EDGE-05",
+   "status": "planned",
+   "title": "Real AWS WAF blocks read from its log into security events (REAL_AWS, deduplicated, correlated); read-only access to one log group (app/services/aws_edge.py, ADR-0029)"
+  },
+  {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "EDGE",
+   "implementation": "",
+   "layer": null,
+   "phase": 5,
+   "ref": "C-EDGE-06",
+   "status": "planned",
+   "title": "ACM certificates read live and checked every sync: expiry within 30 days, failed renewal or a bad status raises a certificate event (ADR-0029)"
+  },
+  {
    "evidence": [
     {
      "kind": "test_file",
@@ -2039,7 +2063,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "5928790f436ef1af9dbbde303675d9b593b2eb06f0686874829505086e8b36ea",
+ "digest": "3448c647959a743290f03e238123c214a8d4207c68da7db88cb6f0287f8a965f",
  "format": 1,
  "model": {
   "elements": [
@@ -2779,6 +2803,73 @@
     "status_text": "Planned (P5): built, verified in the deploy window",
     "stride": "S",
     "title": "The API reached through the distribution's own *.cloudfront.net name, outside the platform's origin and cookie scope"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-05",
+     "C-SO-02",
+     "C-AI-04"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Stored as bounded, redacted, control-character-free evidence and rendered as text only; the AI receives it as delimited, untrusted data (ADR-0029)",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-09",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5)",
+    "stride": "T/I",
+    "title": "Attacker-written text in WAF log records (paths, query strings, user agents) shown to operators or sent to the AI"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-06"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 3,
+    "likelihood": 1,
+    "mitigation": "ACM renews automatically; the API reads both certificates on every sync and raises a certificate event 30 days before expiry, on a failed renewal or a bad status (ADR-0029)",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-10",
+    "status": "planned",
+    "status_text": "Planned (P5): built, verified in the deploy window",
+    "stride": "D",
+    "title": "An edge or origin certificate expires or fails to renew unnoticed"
+   },
+   {
+    "boundaries": [
+     "TB1"
+    ],
+    "controls": [
+     "C-EDGE-05",
+     "C-EDGE-06",
+     "C-WAF-04"
+    ],
+    "group": "TB1 — Internet → Edge",
+    "impact": 2,
+    "likelihood": 1,
+    "mitigation": "Read-only and narrow: logs:FilterLogEvents on the one WAF log group, ACM list and describe (metadata, never keys); nothing that changes WAF, logs or certificates; tested in modules/ecs",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-EDGE-11",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5)",
+    "stride": "E",
+    "title": "The API's new read access to AWS abused or widened"
    },
    {
     "boundaries": [
@@ -4763,7 +4854,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.11"
+  "version": "0.12"
  },
  "requirements": [
   {

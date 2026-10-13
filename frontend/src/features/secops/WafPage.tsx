@@ -10,8 +10,11 @@ import type { ApiError } from "../../lib/api/client";
 import { listEvents, listWafRules, setWafRuleMode } from "../../lib/api/secops";
 import { WAF_MODES, type Role, type SecurityEventSummary, type WafMode, type WafRuleList } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
+import { AwsWafSection } from "./AwsWafSection";
 
 const VIEWERS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER", "ANALYST"];
+// Real security events are readable by every security operations role, viewers included.
+const READERS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER", "ANALYST", "VIEWER"];
 const OPERATORS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER"];
 const MODULE = MODULES.find((m) => m.path === "/waf");
 const MODE_LABEL: Record<WafMode, string> = { block: "Block", count: "Count only", off: "Off" };
@@ -23,10 +26,12 @@ export function WafPage() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">WAF</h1>
         <p className="mt-1 max-w-prose text-ink-muted">
-          AWS WAF on CloudFront arrives in Phase 5, with rules changed only through reviewed Terraform pull requests. Until
-          then, a simulated WAF runs inside the attack simulator, using SentinelEdge's own detection rules.
+          AWS WAF protects the platform on CloudFront, with rules changed only through reviewed Terraform pull requests;
+          what it blocks is read back here. A simulated WAF runs inside the attack simulator everywhere, using
+          SentinelEdge's own detection rules.
         </p>
       </header>
+      {READERS.includes(user.role) && <AwsWafSection canSync={OPERATORS.includes(user.role)} />}
       {VIEWERS.includes(user.role) ? (
         <SimulatedWaf canChange={OPERATORS.includes(user.role)} />
       ) : (

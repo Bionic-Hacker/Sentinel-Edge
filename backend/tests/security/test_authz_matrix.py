@@ -48,6 +48,7 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("POST", "/api/v1/auth/mfa/enroll/confirm"): SETUP,
     ("POST", "/api/v1/auth/password/change"): SETUP,
     ("GET", "/api/v1/platform/capabilities"): ALL,
+    ("GET", "/api/v1/platform/environment"): ALL,
     ("GET", "/api/v1/users"): ADMIN,
     ("POST", "/api/v1/users"): ADMIN,
     ("GET", "/api/v1/users/{user_id}"): ALL,  # plus an object-level check (own record only)
@@ -59,6 +60,9 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("GET", "/api/v1/audit-logs/verify"): AUDITORS,
     ("GET", "/api/v1/api-security/inventory"): API_SECURITY,
     ("GET", "/api/v1/api-security/owasp"): API_SECURITY,
+    ("GET", "/api/v1/edge/status"): SECOPS_READ,
+    ("GET", "/api/v1/edge/certificates"): SECOPS_READ,
+    ("POST", "/api/v1/edge/sync"): LEADS,
     ("GET", "/api/v1/security-events"): SECOPS_READ,
     ("GET", "/api/v1/security-events/{event_id}"): SECOPS_READ,
     ("GET", "/api/v1/incidents"): SECOPS_READ,

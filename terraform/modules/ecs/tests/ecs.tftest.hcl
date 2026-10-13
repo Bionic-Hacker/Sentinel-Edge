@@ -130,6 +130,41 @@ run "the_api_enforces_deployed_defaults" {
   }
 }
 
+run "the_api_reads_the_edge_only_when_configured" {
+  command = plan
+
+  assert {
+    condition     = length([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e if e.name == "SENTINEL_WAF_LOG_GROUP"]) == 0
+    error_message = "Without a WAF log group the API reads none."
+  }
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_CERTIFICATE_REGIONS"]) == ""
+    error_message = "Without certificate Regions the API checks none."
+  }
+}
+
+run "the_api_reads_waf_blocks_and_certificates_in_aws" {
+  command = plan
+
+  variables {
+    waf_log_group       = "aws-waf-logs-sentineledge-dev-edge"
+    certificate_regions = ["us-east-1", "us-east-2"]
+  }
+
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_WAF_LOG_GROUP"]) == "aws-waf-logs-sentineledge-dev-edge"
+    error_message = "The API is told which WAF log group to read."
+  }
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.api.container_definitions)[0].environment : e.value if e.name == "SENTINEL_CERTIFICATE_REGIONS"]) == "us-east-1,us-east-2"
+    error_message = "The API checks certificates in both Regions."
+  }
+  assert {
+    condition     = length([for e in jsondecode(aws_ecs_task_definition.migrate.container_definitions)[0].environment : e if e.name == "SENTINEL_WAF_LOG_GROUP"]) == 0
+    error_message = "Only the API reads the edge."
+  }
+}
+
 run "every_app_task_starts_as_a_deployed_environment" {
   command = apply
 

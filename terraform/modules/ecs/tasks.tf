@@ -77,6 +77,11 @@ resource "aws_ecs_task_definition" "api" {
       { name = "SENTINEL_AI_MODEL", value = "us.${var.bedrock_model_id}" },
       # Two attempts must fit inside CloudFront's 60-second origin timeout (Phase 5).
       { name = "SENTINEL_AI_TIMEOUT_SECONDS", value = "25" },
+      # The edge read back (ADR-0029): real WAF blocks and ACM certificates, read-only.
+      { name = "SENTINEL_WAF_LOG_REGION", value = var.waf_log_region },
+      { name = "SENTINEL_CERTIFICATE_REGIONS", value = join(",", var.certificate_regions) },
+      ], var.waf_log_group == null ? [] : [
+      { name = "SENTINEL_WAF_LOG_GROUP", value = var.waf_log_group },
     ])
     secrets = [
       { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },

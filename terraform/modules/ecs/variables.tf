@@ -183,3 +183,21 @@ variable "admin_otp_secret_arn" {
   description = "The secret the admin task writes a new administrator's one-time password to."
   type        = string
 }
+
+variable "waf_log_group" {
+  description = "The AWS WAF log group the API reads blocks from (module waf); null to read none."
+  type        = string
+  default     = null
+}
+
+variable "waf_log_region" {
+  description = "Region of the WAF log group (CloudFront-scope WAF logs live in us-east-1)."
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "certificate_regions" {
+  description = "Regions whose ACM certificates the API lists and checks for expiry."
+  type        = list(string)
+  default     = []
+}

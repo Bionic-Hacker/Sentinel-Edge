@@ -1,7 +1,7 @@
 # SentinelEdge threat model
 
-- **Version:** 0.11 (Phase 5: the edge, applied in the deploy window; account recovery through an
-  administrator only, ADR-0028)
+- **Version:** 0.12 (Phase 5: the edge, applied in the deploy window; account recovery through an
+  administrator only, ADR-0028; the edge read back, ADR-0029)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
   this document is loaded into the application as SentinelEdge's own threat model, read-only
@@ -78,6 +78,9 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response; CloudFront's policy is identical to nginx's (`test_edge_headers_match_nginx`) | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03 | **Mitigated (P1, local)**; CloudFront Planned (P5): built, verified in the deploy window |
 | T-EDGE-07 | I | The SPA bucket read directly, around CloudFront and WAF | 1×2 | Private bucket, public access blocked; only this distribution may read it (OAC, `AWS:SourceArn`) | C-EDGE-04 | Planned (P5): built, verified in the deploy window |
 | T-EDGE-08 | S | The API reached through the distribution's own `*.cloudfront.net` name, outside the platform's origin and cookie scope | 1×2 | Host forwarded to the origin: the origin certificate names only the platform, and the ALB forwards only that host (`make edge-check`) | C-LB-01, C-API-07 | Planned (P5): built, verified in the deploy window |
+| T-EDGE-09 | T/I | Attacker-written text in WAF log records (paths, query strings, user agents) shown to operators or sent to the AI | 2×2 | Stored as bounded, redacted, control-character-free evidence and rendered as text only; the AI receives it as delimited, untrusted data (ADR-0029) | C-EDGE-05, C-SO-02, C-AI-04 | **Mitigated (P5)** |
+| T-EDGE-10 | D | An edge or origin certificate expires or fails to renew unnoticed | 1×3 | ACM renews automatically; the API reads both certificates on every sync and raises a certificate event 30 days before expiry, on a failed renewal or a bad status (ADR-0029) | C-EDGE-06 | Planned (P5): built, verified in the deploy window |
+| T-EDGE-11 | E | The API's new read access to AWS abused or widened | 1×2 | Read-only and narrow: `logs:FilterLogEvents` on the one WAF log group, ACM list and describe (metadata, never keys); nothing that changes WAF, logs or certificates; tested in `modules/ecs` | C-EDGE-05, C-EDGE-06, C-WAF-04 | **Mitigated (P5)** |
 
 ### TB2 — Edge → Origin
 

@@ -80,6 +80,8 @@ docker compose logs migrate | grep "Running upgrade"   # 0013 -> 0014
 |---|---|
 | `0014_ai_engine` | AI analyses (insert-only) and proposals (final once decided, by trigger) |
 | `0015_temporary_passwords` | Temporary-password expiry on users; drops the outbox and reset-link tables (ADR-0028) |
+| `0016_edge_ingestion` | A unique dedupe key for events read from AWS (WAF blocks, certificate checks; ADR-0029) |
+| `0016_edge_ingestion` | A unique dedupe key for events read from AWS (WAF blocks, certificate checks; ADR-0029) |
 
 AI stays off until you choose a provider in `.env`:
 

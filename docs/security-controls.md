@@ -213,6 +213,8 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 | C-EDGE-02 | Private origin: CloudFront VPC origin to an internal ALB over HTTPS; the ALB admits only the VPC origin's security group (ADR-0001, ADR-0027) | 4 |
 | C-EDGE-03 | CloudFront response headers policy, identical to the local nginx headers (`test_edge_headers_match_nginx`) | 5 |
 | C-EDGE-04 | SPA bucket private, readable only by this distribution through Origin Access Control | 5 |
+| C-EDGE-05 | Real AWS WAF blocks read from its log into security events (REAL_AWS, deduplicated, correlated); read-only access to one log group (`app/services/aws_edge.py`, ADR-0029) | 5 |
+| C-EDGE-06 | ACM certificates read live and checked every sync: expiry within 30 days, failed renewal or a bad status raises a certificate event (ADR-0029) | 5 |
 | C-WAF-01 | AWS managed rule groups: IP reputation, core rule set, known bad inputs (Log4j), SQL injection (`modules/waf`) | 5 |
 | C-WAF-02 | SentinelEdge's own WAF rules: a 64 KB body cap at the edge; WAF logs with Authorization and Cookie redacted | 5 |
 | C-WAF-03 | Rate-based WAF rules per IP: `/api/v1/auth/*` 100 and `/api/*` 2000 per 5 minutes | 5 |

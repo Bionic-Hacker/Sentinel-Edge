@@ -99,7 +99,7 @@ resource "aws_iam_role_policy" "execution" {
 # the local role has (account stack, ADR-0024). Nothing else.
 resource "aws_iam_role" "api_task" {
   name               = "${var.name}-api-task"
-  description        = "The running API: invoke one Bedrock model through its US profile."
+  description        = "The running API: one Bedrock model; read WAF blocks and certificates."
   assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
 }
 
@@ -124,10 +124,38 @@ data "aws_iam_policy_document" "api_task" {
       values   = [local.inference_profile_arn]
     }
   }
+
+  # The edge read back (ADR-0029): read the WAF log group, list and describe certificates.
+  # Nothing here can change WAF, the logs or a certificate.
+  dynamic "statement" {
+    for_each = var.waf_log_group == null ? [] : [var.waf_log_group]
+    content {
+      sid       = "ReadWafBlocks"
+      actions   = ["logs:FilterLogEvents"]
+      resources = ["arn:aws:logs:${var.waf_log_region}:${var.account_id}:log-group:${statement.value}:*"]
+    }
+  }
+  dynamic "statement" {
+    for_each = length(var.certificate_regions) == 0 ? [] : [1]
+    content {
+      sid = "ListCertificates"
+      # acm:ListCertificates has no resource-level permissions; it returns metadata only.
+      actions   = ["acm:ListCertificates"]
+      resources = ["*"]
+    }
+  }
+  dynamic "statement" {
+    for_each = length(var.certificate_regions) == 0 ? [] : [1]
+    content {
+      sid       = "DescribeCertificates"
+      actions   = ["acm:DescribeCertificate"]
+      resources = [for r in var.certificate_regions : "arn:aws:acm:${r}:${var.account_id}:certificate/*"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "api_task" {
-  name   = "invoke-one-model"
+  name   = "api-runtime"
   role   = aws_iam_role.api_task.id
   policy = data.aws_iam_policy_document.api_task.json
 }
