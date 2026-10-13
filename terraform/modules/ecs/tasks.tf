@@ -11,14 +11,18 @@ locals {
     }
   }
 
+  # Written exactly as ECS returns it (empty lists, hostPort below), or every plan replaces the
+  # task definitions.
   hardening = {
     readonlyRootFilesystem = true
     privileged             = false
     linuxParameters = {
-      capabilities       = { drop = ["ALL"] }
+      capabilities       = { add = [], drop = ["ALL"] }
       initProcessEnabled = false
     }
-    mountPoints = [{ sourceVolume = "tmp", containerPath = "/tmp", readOnly = false }]
+    mountPoints    = [{ sourceVolume = "tmp", containerPath = "/tmp", readOnly = false }]
+    systemControls = []
+    volumesFrom    = []
   }
 
   # Configuration shared by the API and migrations: what backend/app/core/config.py reads.
@@ -55,7 +59,8 @@ resource "aws_ecs_task_definition" "api" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {
@@ -63,7 +68,7 @@ resource "aws_ecs_task_definition" "api" {
     image        = var.api_image
     essential    = true
     user         = "10001:10001"
-    portMappings = [{ containerPort = var.app_port, protocol = "tcp" }]
+    portMappings = [{ containerPort = var.app_port, hostPort = var.app_port, protocol = "tcp" }]
     environment = concat(local.app_environment, [
       # The ALB (and, in Phase 5, CloudFront's VPC origin) connect from the app subnets; the
       # API trusts X-Forwarded-For from those addresses only.
@@ -103,7 +108,8 @@ resource "aws_ecs_task_definition" "migrate" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {
@@ -134,7 +140,8 @@ resource "aws_ecs_task_definition" "dbadmin" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   # libpq reads PG* variables; the script refuses to run as an application role.
@@ -178,7 +185,8 @@ resource "aws_ecs_task_definition" "anchor" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {
@@ -214,7 +222,8 @@ resource "aws_ecs_task_definition" "admin" {
   }
 
   volume {
-    name = "tmp"
+    name                = "tmp"
+    configure_at_launch = false
   }
 
   container_definitions = jsonencode([merge(local.hardening, {

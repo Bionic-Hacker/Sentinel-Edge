@@ -93,6 +93,26 @@ run "every_container_is_hardened" {
   }
 }
 
+# ECS returns these fields even when they are empty; written any other way, every plan replaces all
+# five task definitions (found in the first deploy window).
+run "task_definitions_are_written_as_ecs_returns_them" {
+  command = plan
+
+  assert {
+    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor, aws_ecs_task_definition.admin] :
+      length(jsondecode(td.container_definitions)[0].linuxParameters.capabilities.add) == 0 &&
+      length(jsondecode(td.container_definitions)[0].systemControls) == 0 &&
+      length(jsondecode(td.container_definitions)[0].volumesFrom) == 0 &&
+      one(td.volume).configure_at_launch == false
+    ])
+    error_message = "Every task definition states the empty lists and configure_at_launch that ECS reports."
+  }
+  assert {
+    condition     = jsondecode(aws_ecs_task_definition.api.container_definitions)[0].portMappings[0].hostPort == 8000
+    error_message = "In awsvpc mode ECS sets hostPort to the container port; state it."
+  }
+}
+
 run "the_api_enforces_deployed_defaults" {
   command = apply
 

@@ -18,13 +18,17 @@ resource "aws_db_parameter_group" "this" {
   family      = "postgres${var.engine_major_version}"
   description = "SentinelEdge: TLS required, connections logged"
 
+  # Static parameters: RDS reports them as pending-reboot. They take effect when the instance is
+  # created with this group; saying so stops every plan from rewriting them.
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
   parameter {
-    name  = "ssl_min_protocol_version"
-    value = "TLSv1.2"
+    name         = "ssl_min_protocol_version"
+    value        = "TLSv1.2"
+    apply_method = "pending-reboot"
   }
   parameter {
     name  = "log_connections"
