@@ -27,6 +27,7 @@ from app.schemas.auth import (
     MfaVerifyRequest,
     PasswordChangeRequest,
     RecoveryCodesResponse,
+    ThemeRequest,
     UserProfile,
 )
 from app.security.mfa import MfaService
@@ -82,6 +83,7 @@ def user_profile(user: User) -> UserProfile:
         role=user.role,
         mfa_enabled=user.mfa_enabled,
         pending_steps=sorted(pending_steps(user)),
+        theme=user.theme,
     )
 
 
@@ -167,6 +169,19 @@ def logout(
 
 @router.get("/me", response_model=UserProfile)
 def me(principal: Principal = Depends(authenticated_setup)) -> UserProfile:  # noqa: B008
+    return user_profile(principal.user)
+
+
+@router.put("/me/theme", response_model=UserProfile)
+def set_theme(
+    body: ThemeRequest,
+    principal: Principal = Depends(authenticated_setup),  # noqa: B008
+    db: Session = Depends(get_db),  # noqa: B008
+) -> UserProfile:
+    """Save the signed-in user's colour theme. Their own record only; a display setting, so it
+    is not audited and grants nothing."""
+    principal.user.theme = body.theme
+    db.commit()
     return user_profile(principal.user)
 
 

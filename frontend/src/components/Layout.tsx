@@ -4,6 +4,7 @@ import { MODULES } from "../app/modules";
 import { getEnvironment } from "../lib/api/edge";
 import { useApi } from "../lib/useApi";
 import { ApiStatus } from "./ApiStatus";
+import { ThemeToggle } from "./ThemeToggle";
 
 function UserMenu() {
   const user = useCurrentUser();
@@ -14,6 +15,7 @@ function UserMenu() {
         <span className="block text-ink">{user.display_name}</span>
         <span className="block text-xs text-ink-muted">{user.role.replace("_", " ").toLowerCase()}</span>
       </span>
+      <ThemeToggle />
       <button
         type="button"
         onClick={() => void logout()}

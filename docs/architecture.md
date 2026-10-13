@@ -139,7 +139,8 @@ POST /auth/login ──► password ok? ──no──► 401 (uniform) + failur
 ```
 
 Setup gate: `must_change_password`, or ADMIN/SECURITY_ENGINEER without MFA, restricts the session to
-`/auth/me`, `/auth/logout`, `/auth/password/change` and `/auth/mfa/enroll*` until done.
+`/auth/me` (and saving the user's own theme), `/auth/logout`, `/auth/password/change` and
+`/auth/mfa/enroll*` until done.
 
 ## 8. Roles (RBAC, Phase 2)
 

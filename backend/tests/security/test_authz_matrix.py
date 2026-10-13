@@ -44,6 +44,7 @@ EXPECTED: dict[tuple[str, str], str | frozenset[Role]] = {
     ("POST", "/api/v1/auth/refresh"): PUBLIC,
     ("POST", "/api/v1/auth/logout"): SETUP,
     ("GET", "/api/v1/auth/me"): SETUP,
+    ("PUT", "/api/v1/auth/me/theme"): SETUP,
     ("POST", "/api/v1/auth/mfa/enroll"): SETUP,
     ("POST", "/api/v1/auth/mfa/enroll/confirm"): SETUP,
     ("POST", "/api/v1/auth/password/change"): SETUP,

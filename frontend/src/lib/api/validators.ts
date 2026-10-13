@@ -5,6 +5,7 @@ import {
   ENDPOINT_STATUSES,
   RISKS,
   PENDING_STEPS,
+  THEMES,
   ROLES,
   type AuditEntry,
   type AuditPage,
@@ -37,7 +38,8 @@ export function isUserProfile(v: unknown): v is UserProfile {
     isRole(v.role) &&
     typeof v.mfa_enabled === "boolean" &&
     Array.isArray(v.pending_steps) &&
-    v.pending_steps.every(oneOf(PENDING_STEPS))
+    v.pending_steps.every(oneOf(PENDING_STEPS)) &&
+    oneOf(THEMES)(v.theme)
   );
 }
 

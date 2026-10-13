@@ -22,6 +22,13 @@ from app.db.base import Base
 from app.models._types import StrEnumType, created_at, timestamp, uuid_pk
 
 
+class Theme(StrEnum):
+    """The web app's colour theme, chosen by each user (light is the default)."""
+
+    LIGHT = "light"
+    DARK = "dark"
+
+
 class Role(StrEnum):
     ADMIN = "ADMIN"
     SECURITY_ENGINEER = "SECURITY_ENGINEER"
@@ -42,6 +49,7 @@ class User(Base):
         ),
         CheckConstraint("email = lower(email)", name="email_lowercase"),
         CheckConstraint("failed_login_count >= 0", name="failed_count_nonnegative"),
+        CheckConstraint("theme IN ('light', 'dark')", name="theme_valid"),
     )
 
     id: Mapped[uuid.UUID] = uuid_pk()
@@ -66,6 +74,10 @@ class User(Base):
         DateTime(timezone=True), nullable=False, default=utcnow
     )
     last_login_at: Mapped[datetime | None] = timestamp()
+    # A display preference only: never consulted for any access decision.
+    theme: Mapped[Theme] = mapped_column(
+        StrEnumType(Theme, 8), nullable=False, default=Theme.LIGHT, server_default=Theme.LIGHT.value
+    )
     created_at: Mapped[datetime] = created_at()
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow

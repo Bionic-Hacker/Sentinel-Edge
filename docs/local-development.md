@@ -44,6 +44,17 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.10.0 to v0.10.1 (light and dark themes)
+
+```bash
+make migrate     # 0016 -> 0017
+```
+
+- `0017` adds each user's theme (`light` or `dark`, light by default). Everyone starts on the new
+  light theme; the toggle beside your name in the page header switches to the original dark one,
+  and the choice is saved with your account, so it follows you to any browser.
+- Rebuild the web image (`make dev` does) to get the new styles.
+
 ## Upgrading from v0.9.0 (Phase 4) to v0.10.0 (Phase 5)
 
 ```bash
