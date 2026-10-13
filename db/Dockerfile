@@ -8,6 +8,7 @@
 #
 # The PostgreSQL image is used only for its client; no server runs in this container.
 
+# checkov:skip=CKV_DOCKER_2: a one-off task that runs a script and exits; it serves nothing a health check could probe, and ECS judges it by its exit code
 FROM postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24
 COPY --chown=root:root --chmod=0755 bootstrap-roles.sh /usr/local/bin/bootstrap-roles.sh
 COPY --from=certs --chown=root:root rds-global-bundle.pem /srv/certs/rds-global-bundle.pem
