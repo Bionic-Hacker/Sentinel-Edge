@@ -178,3 +178,8 @@ variable "anchor_schedule" {
   type        = string
   default     = "rate(1 hour)"
 }
+
+variable "admin_otp_secret_arn" {
+  description = "The secret the admin task writes a new administrator's one-time password to."
+  type        = string
+}

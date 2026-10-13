@@ -29,6 +29,15 @@ run "four_secrets_under_the_platform_key" {
   }
 }
 
+run "the_admin_password_has_its_own_secret" {
+  command = plan
+
+  assert {
+    condition     = aws_secretsmanager_secret.admin_otp.name == "sentineledge-dev/admin-one-time-password" && aws_secretsmanager_secret.admin_otp.kms_key_id == var.kms_key_arn
+    error_message = "The one-time password is kept apart from the four application secrets, under the platform key."
+  }
+}
+
 run "deleted_secrets_can_be_recreated_next_window" {
   command = plan
 

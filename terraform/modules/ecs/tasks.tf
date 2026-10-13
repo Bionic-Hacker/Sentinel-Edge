@@ -196,3 +196,39 @@ resource "aws_ecs_task_definition" "anchor" {
     logConfiguration = { logDriver = "awslogs", options = local.log_options["anchor"] }
   })])
 }
+
+# On demand (make ecs-task TASK=create-admin EMAIL=…): create an administrator. The command is
+# replaced at run time with the e-mail address; the default only prints the usage.
+resource "aws_ecs_task_definition" "admin" {
+  family                   = "${var.name}-admin"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.execution["admin"].arn
+  task_role_arn            = aws_iam_role.admin_task.arn
+
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "X86_64"
+  }
+
+  volume {
+    name = "tmp"
+  }
+
+  container_definitions = jsonencode([merge(local.hardening, {
+    name      = "admin"
+    image     = var.api_image
+    essential = true
+    user      = "10001:10001"
+    command   = ["python", "-m", "app.cli", "create-admin", "--help"]
+    environment = concat(local.app_environment, [
+      { name = "SENTINEL_ADMIN_OTP_SECRET", value = var.admin_otp_secret_arn },
+    ])
+    secrets = [
+      { name = "SENTINEL_DB_PASSWORD", valueFrom = var.secret_arns["db_app_password"] },
+    ]
+    logConfiguration = { logDriver = "awslogs", options = local.log_options["admin"] }
+  })])
+}

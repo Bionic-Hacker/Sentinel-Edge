@@ -27,6 +27,10 @@ mock_provider "aws" {
     values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
   }
   override_data {
+    target = data.aws_iam_policy_document.admin_task
+    values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
+  }
+  override_data {
     target = data.aws_iam_policy_document.anchor_task
     values = { json = "{\"Version\":\"2012-10-17\",\"Statement\":[]}" }
   }
@@ -58,6 +62,7 @@ variables {
   db_name                = "sentineledge"
   master_secret_arn      = "arn:aws:secretsmanager:us-east-2:123456789012:secret:rds!db-0000-AbCdEf"
   audit_anchor_bucket    = "sentineledge-dev-audit-anchors-0001"
+  admin_otp_secret_arn   = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/admin-one-time-password-AbCdEf"
   secret_arns = {
     db_app_password      = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/db-app-password-AbCdEf"
     db_migrator_password = "arn:aws:secretsmanager:us-east-2:123456789012:secret:sentineledge-dev/db-migrator-password-AbCdEf"
@@ -70,7 +75,7 @@ run "every_container_is_hardened" {
   command = apply
 
   assert {
-    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor] :
+    condition = alltrue([for td in [aws_ecs_task_definition.api, aws_ecs_task_definition.migrate, aws_ecs_task_definition.dbadmin, aws_ecs_task_definition.anchor, aws_ecs_task_definition.admin] :
       jsondecode(td.container_definitions)[0].readonlyRootFilesystem == true &&
       jsondecode(td.container_definitions)[0].privileged == false &&
       jsondecode(td.container_definitions)[0].linuxParameters.capabilities.drop == ["ALL"] &&
@@ -130,6 +135,19 @@ run "the_anchor_task_runs_hourly_and_cannot_delete" {
   assert {
     condition     = toset([for s in jsondecode(aws_ecs_task_definition.anchor.container_definitions)[0].secrets : s.name]) == toset(["SENTINEL_DB_PASSWORD"])
     error_message = "The anchor task needs only the app role's password."
+  }
+}
+
+run "the_admin_task_can_only_write_the_one_time_password" {
+  command = apply
+
+  assert {
+    condition     = toset(flatten([for st in data.aws_iam_policy_document.admin_task.statement : st.actions])) == toset(["secretsmanager:PutSecretValue", "kms:GenerateDataKey", "kms:Encrypt"])
+    error_message = "The admin task writes the one-time password and nothing else; it cannot read it back."
+  }
+  assert {
+    condition     = one([for e in jsondecode(aws_ecs_task_definition.admin.container_definitions)[0].environment : e.value if e.name == "SENTINEL_ADMIN_OTP_SECRET"]) == var.admin_otp_secret_arn
+    error_message = "The admin task must know where to store the password, or the app refuses to create the account."
   }
 }
 

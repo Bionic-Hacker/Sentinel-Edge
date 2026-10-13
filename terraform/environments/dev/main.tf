@@ -164,6 +164,7 @@ module "ecs" {
   use_spot               = var.use_spot
   ai_provider            = var.ai_provider
   audit_anchor_bucket    = module.audit_anchors.bucket
+  admin_otp_secret_arn   = module.app_secrets[0].admin_otp_secret_arn
 
   # The values must be in Secrets Manager before any task reads them.
   depends_on = [module.app_secret_values]

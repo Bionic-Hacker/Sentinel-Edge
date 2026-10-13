@@ -141,6 +141,13 @@ class Settings(BaseSettings):
     ai_tokens_per_day: int = Field(default=200_000, ge=1_000, le=10_000_000)
     ai_timeout_seconds: int = Field(default=30, ge=5, le=120)
 
+    # Where `create-admin` stores the one-time password in AWS (a Secrets Manager secret ARN), so
+    # it never reaches a terminal or a log. A deployed environment refuses to print it (Phase 5).
+    admin_otp_secret: str | None = Field(
+        default=None,
+        pattern=r"^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:[A-Za-z0-9/_+=.@-]+$",
+    )
+
     # Off-host anchors of the audit chain's head (ADR-0005, Phase 4): an S3 bucket with Object
     # Lock. Unset locally; `audit-anchor` then refuses to run.
     audit_anchor_bucket: str | None = Field(

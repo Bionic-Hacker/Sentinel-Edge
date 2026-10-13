@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Run one of the one-off ECS tasks and wait for it
-# (make ecs-task TASK=dbadmin|migrate|anchor|anchor-check; Phase 4, ADR-0026).
+# (make ecs-task TASK=dbadmin|migrate|anchor|anchor-check|create-admin; Phases 4 and 5).
 #
 #   dbadmin       create the application's database roles and schema (once per deploy window)
 #   migrate       apply database migrations (after each new API image)
 #   anchor        anchor the audit chain's head now (it also runs every hour on a schedule)
 #   anchor-check  check the database against the newest anchor (ADR-0005)
+#   create-admin  create an administrator (EMAIL=…); the one-time password goes to Secrets
+#                 Manager, never to this terminal or the task's log
 #
 # The task runs in the app subnets with the app security group, like the API. This prints its
 # exit code and its log, and fails if the container did not exit 0.
@@ -14,12 +16,22 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TASK="${1:-}"
 die() { printf 'ecs-task: %s\n' "$*" >&2; exit 1; }
-case "$TASK" in dbadmin | migrate | anchor | anchor-check) ;; *) die "usage: scripts/ecs-task.sh dbadmin|migrate|anchor|anchor-check" ;; esac
-# anchor-check is the anchor task definition with its command replaced.
+case "$TASK" in
+  dbadmin | migrate | anchor | anchor-check | create-admin) ;;
+  *) die "usage: scripts/ecs-task.sh dbadmin|migrate|anchor|anchor-check|create-admin" ;;
+esac
+# anchor-check and create-admin are task definitions with their command replaced.
 FAMILY_KEY="${TASK%-check}"
 OVERRIDES='{}'
 if [[ "$TASK" == anchor-check ]]; then
   OVERRIDES='{"containerOverrides":[{"name":"anchor","command":["python","-m","app.cli","audit-anchor","check"]}]}'
+elif [[ "$TASK" == create-admin ]]; then
+  FAMILY_KEY=admin
+  EMAIL="${EMAIL:-}"
+  # The address goes into a JSON override and a command line: only plain addresses are accepted.
+  [[ "$EMAIL" =~ ^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}\.[A-Za-z]{2,24}$ ]] \
+    || die "set EMAIL to the administrator's e-mail address (make ecs-task TASK=create-admin EMAIL=you@example.com)"
+  OVERRIDES="{\"containerOverrides\":[{\"name\":\"admin\",\"command\":[\"python\",\"-m\",\"app.cli\",\"create-admin\",\"--email\",\"$EMAIL\"]}]}"
 fi
 
 outputs="$("$ROOT/scripts/tf.sh" dev output-json)"
@@ -53,3 +65,8 @@ aws logs get-log-events --region "$region" --log-group-name "$log_group" \
 
 [[ "$code" == "0" ]] || die "$TASK exited with ${code} (${reason})"
 printf 'ecs-task: %s finished (exit 0)\n' "$TASK"
+if [[ "$TASK" == create-admin ]]; then
+  secret="$(printf '%s' "$outputs" | python3 -c 'import json,sys; print(json.load(sys.stdin)["workload"]["value"]["admin_otp_secret"])')"
+  printf '\necs-task: read the one-time password once, then sign in and replace it:\n'
+  printf '  aws secretsmanager get-secret-value --region %s --secret-id %s --query SecretString --output text\n' "$region" "$secret"
+fi

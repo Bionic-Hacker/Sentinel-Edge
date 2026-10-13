@@ -30,12 +30,14 @@ locals {
     migrate = [var.secret_arns["db_migrator_password"]]
     dbadmin = [var.master_secret_arn, var.secret_arns["db_app_password"], var.secret_arns["db_migrator_password"]]
     anchor  = [var.secret_arns["db_app_password"]]
+    admin   = [var.secret_arns["db_app_password"]]
   }
   family_repository = {
     api     = var.api_repository_arn
     migrate = var.api_repository_arn
     dbadmin = var.dbadmin_repository_arn
     anchor  = var.api_repository_arn
+    admin   = var.api_repository_arn
   }
 }
 
@@ -173,4 +175,37 @@ resource "aws_iam_role_policy" "anchor_task" {
   name   = "anchor-audit-chain"
   role   = aws_iam_role.anchor_task.id
   policy = data.aws_iam_policy_document.anchor_task.json
+}
+
+# The admin task: write a new administrator's one-time password into its one secret. It cannot
+# read the secret back, nor touch any other.
+resource "aws_iam_role" "admin_task" {
+  name               = "${var.name}-admin-task"
+  description        = "Create an administrator: write the one-time password to its secret, nothing else."
+  assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume.json
+}
+
+data "aws_iam_policy_document" "admin_task" {
+  statement {
+    sid       = "WriteTheOneTimePassword"
+    actions   = ["secretsmanager:PutSecretValue"]
+    resources = [var.admin_otp_secret_arn]
+  }
+  statement {
+    sid       = "EncryptItWithThePlatformKey"
+    actions   = ["kms:GenerateDataKey", "kms:Encrypt"]
+    resources = [var.kms_key_arn]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["secretsmanager.${var.region}.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "admin_task" {
+  name   = "write-admin-one-time-password"
+  role   = aws_iam_role.admin_task.id
+  policy = data.aws_iam_policy_document.admin_task.json
 }
