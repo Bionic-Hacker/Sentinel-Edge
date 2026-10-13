@@ -117,12 +117,13 @@ CAPABILITIES: tuple[Capability, ...] = (
     ),
     _c(
         "identity.user_admin",
-        "User administration and invitations",
+        "User administration and temporary passwords",
         "Identity",
         L,
         DONE,
         2,
-        "Admins invite users by one-time link; they never see or set passwords.",
+        "Admins create users and reset passwords with a generated temporary password shown once; "
+        "no email path (ADR-0028).",
     ),
     _c(
         "audit.log",
@@ -141,15 +142,6 @@ CAPABILITIES: tuple[Capability, ...] = (
         DONE,
         2,
         "Separate migrator and runtime roles; grants verified against a privilege matrix.",
-    ),
-    _c(
-        "platform.local_outbox",
-        "Local email outbox",
-        "Platform",
-        L,
-        DONE,
-        2,
-        "Invitation and reset emails are stored, not sent. Real delivery would need SES.",
     ),
     # --- Planned: local functionality --------------------------------------------------
     # --- Phase 6: implemented locally ---------------------------------------------------

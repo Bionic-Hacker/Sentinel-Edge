@@ -135,6 +135,6 @@ export const MODULES: readonly ModuleDef[] = [
     label: "Settings",
     purpose: "Users, roles, multi-factor authentication, and session policy.",
     phase: 2,
-    capabilityKeys: ["identity.auth", "identity.rbac", "identity.user_admin", "platform.local_outbox"],
+    capabilityKeys: ["identity.auth", "identity.rbac", "identity.user_admin"],
   },
 ];

@@ -124,22 +124,33 @@ def main() -> None:
         client.get("/api/v1/platform/capabilities", headers=bearer(token)).status_code == 200,
     )
 
-    print("\nInvitation")
+    print("\nNew user (temporary password, ADR-0028)")
     response = client.post(
         "/api/v1/users",
         headers=bearer(token),
         json={"email": analyst_email, "display_name": "Smoke Analyst", "role": "ANALYST"},
     )
+    temporary = response.json().get("temporary_password", "") if response.is_success else ""
     check(
-        "admin invites an analyst; response holds no secret",
-        response.status_code == 201 and "token" not in response.text,
+        "admin creates an analyst and is shown a temporary password once",
+        response.status_code == 201 and bool(temporary),
     )
-    links = re.findall(r"#token=([A-Za-z0-9_-]+)", cli("outbox", "--limit", "50"))
+    response = client.post(
+        "/api/v1/auth/login", json={"email": analyst_email, "password": temporary}
+    )
+    first = response.json().get("access_token", "")
+    me = client.get("/api/v1/auth/me", headers=bearer(first))
+    check(
+        "the temporary password signs in only to the password change",
+        response.status_code == 200 and me.json().get("pending_steps") == ["password_change"],
+    )
     analyst_password = f"violet canyon river {run}"
     response = client.post(
-        "/api/v1/auth/password/reset", json={"token": links[-1], "new_password": analyst_password}
+        "/api/v1/auth/password/change",
+        headers=bearer(first),
+        json={"current_password": temporary, "new_password": analyst_password},
     )
-    check("analyst sets their own password from the outbox link", response.status_code == 204)
+    check("analyst replaces it with their own password", response.status_code == 204)
     response = client.post(
         "/api/v1/auth/login", json={"email": analyst_email, "password": analyst_password}
     )
@@ -394,22 +405,27 @@ def vulnerability_management(client: httpx.Client, token: str, run: str) -> dict
     the smoke test never imports scans, so it leaves the local findings untouched."""
     auth = bearer(token)
     print("\nVulnerability management (Phase 8)")
-    # The earlier analyst is locked out on purpose (Sessions); invite a read-only viewer.
+    # The earlier analyst is locked out on purpose (Sessions); create a read-only viewer.
     viewer_email = f"smoke-viewer-{run}@example.com"
-    client.post(
+    created = client.post(
         "/api/v1/users",
         headers=auth,
         json={"email": viewer_email, "display_name": "Smoke Viewer", "role": "VIEWER"},
     )
-    links = re.findall(r"#token=([A-Za-z0-9_-]+)", cli("outbox", "--limit", "50"))
+    temporary = created.json().get("temporary_password", "") if created.is_success else ""
+    first = client.post(
+        "/api/v1/auth/login", json={"email": viewer_email, "password": temporary}
+    ).json()
     viewer_password = f"amber meadow lantern {run}"
     client.post(
-        "/api/v1/auth/password/reset", json={"token": links[-1], "new_password": viewer_password}
+        "/api/v1/auth/password/change",
+        headers=bearer(first.get("access_token", "")),
+        json={"current_password": temporary, "new_password": viewer_password},
     )
     response = client.post(
         "/api/v1/auth/login", json={"email": viewer_email, "password": viewer_password}
     )
-    check("a viewer is invited and signs in for these checks", response.status_code == 200)
+    check("a viewer is created and signs in for these checks", response.status_code == 200)
     viewer = bearer(response.json().get("access_token", ""))
     overview = client.get("/api/v1/vulnerabilities/overview", headers=auth)
     check(

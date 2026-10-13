@@ -24,13 +24,14 @@ make precommit  # install git hooks (Gitleaks, Ruff, Bandit, ESLint)
 ```
 
 There are no default credentials. The first sign-in forces a new password and, for the admin
-role, two-factor enrollment with an authenticator app. Other users are invited from
-Settings → Users; their invitation (and any password-reset email) lands in the local outbox:
+role, two-factor enrollment with an authenticator app. Other users are created from
+Settings → Users: you are shown a temporary password once, to hand over, and they replace it at
+first sign-in. A forgotten password is reset the same way (**Reset password**); nothing is
+emailed (ADR-0028).
 
 ```bash
-make outbox         # show recent "emails" with their one-time links
 make verify-audit   # check the audit log hash chain
-make smoke          # 69-check end-to-end test of the running stack
+make smoke          # 70-check end-to-end test of the running stack
 ```
 
 `make smoke` creates its own uniquely named synthetic users and locks one of them on purpose. It
@@ -78,6 +79,7 @@ docker compose logs migrate | grep "Running upgrade"   # 0013 -> 0014
 | Migration | Adds |
 |---|---|
 | `0014_ai_engine` | AI analyses (insert-only) and proposals (final once decided, by trigger) |
+| `0015_temporary_passwords` | Temporary-password expiry on users; drops the outbox and reset-link tables (ADR-0028) |
 
 AI stays off until you choose a provider in `.env`:
 
@@ -88,7 +90,7 @@ make ai-check                  # one synthetic analysis through the provider and
 ```
 
 Then use **Analyze with AI** on an event, incident, finding or threat model, and decide its
-proposals on the **AI Security** page. `make smoke` now runs 69 checks; with `offline` it also
+proposals on the **AI Security** page. `make smoke` now runs 69 checks (70 since ADR-0028); with `offline` it also
 analyses an injection event and rejects whatever it proposes. It never calls Bedrock.
 
 ## Upgrading from v0.5.0 (Phase 8) to v0.6.0 (Phase 10)
@@ -108,7 +110,7 @@ docker compose logs migrate | grep "Running upgrade"   # 0009 -> 0010 ... 0012 -
 | `0013_threat_model_deletion` | Lets the app role delete application threat models, their elements and threats (permanent deletion, leads only) |
 
 Then open **Threat Modeling** and **Compliance**. Approving anything needs a second lead account,
-because whoever asks cannot approve: invite a second ADMIN or SECURITY_ENGINEER from the Users
+because whoever asks cannot approve: create a second ADMIN or SECURITY_ENGINEER from the Users
 page. After deciding a scan-finding exception, regenerate the gate's register:
 
 ```bash

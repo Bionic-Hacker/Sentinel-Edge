@@ -8,9 +8,7 @@ import { ApiSecurityPage } from "../features/api-security/ApiSecurityPage";
 import { SbomPage } from "../features/appsec/SbomPage";
 import { VulnerabilitiesPage } from "../features/appsec/VulnerabilitiesPage";
 import { VulnerabilityDetailPage } from "../features/appsec/VulnerabilityDetailPage";
-import { ForgotPasswordPage } from "../features/auth/ForgotPasswordPage";
 import { LoginPage } from "../features/auth/LoginPage";
-import { ResetPasswordPage } from "../features/auth/ResetPasswordPage";
 import { SetupPage } from "../features/auth/SetupPage";
 import { CompliancePage } from "../features/governance/CompliancePage";
 import { ChangeDetailPage, ExceptionDetailPage } from "../features/governance/GovernanceDetailPages";
@@ -52,8 +50,6 @@ export function AppRoutes() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
-        <Route path="/forgot-password" element={<PublicOnly><ForgotPasswordPage /></PublicOnly>} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/setup" element={<RequireAuth allowPending><SetupPage /></RequireAuth>} />
         <Route
           element={

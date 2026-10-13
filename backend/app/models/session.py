@@ -1,6 +1,6 @@
-"""Login sessions, refresh tokens, MFA recovery codes and password-reset tokens.
+"""Login sessions, refresh tokens and MFA recovery codes.
 
-Opaque tokens (refresh, reset, recovery) are stored only as SHA-256 hashes: they are long random
+Opaque tokens (refresh, recovery) are stored only as SHA-256 hashes: they are long random
 values, so a fast hash is sufficient, and a database leak does not yield usable tokens.
 """
 
@@ -63,15 +63,3 @@ class MfaRecoveryCode(Base):
     code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = created_at()
     used_at: Mapped[datetime | None] = timestamp()
-
-
-class PasswordResetToken(Base):
-    __tablename__ = "password_reset_tokens"
-
-    id: Mapped[uuid.UUID] = uuid_pk()
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(User.id), nullable=False, index=True)
-    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    created_at: Mapped[datetime] = created_at()
-    expires_at: Mapped[datetime] = timestamp(nullable=False)
-    used_at: Mapped[datetime | None] = timestamp()
-    requested_ip: Mapped[str | None] = mapped_column(String(45))

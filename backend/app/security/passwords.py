@@ -7,6 +7,8 @@ predictable patterns without adding real strength.
 
 from __future__ import annotations
 
+import secrets
+
 from argon2 import PasswordHasher as _Argon2
 from argon2 import Type
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
@@ -68,6 +70,25 @@ _COMMON = frozenset(
 
 class PasswordPolicyError(ValueError):
     """Raised with a message that is safe to show the user."""
+
+
+# Temporary passwords (ADR-0028): no characters that are easy to misread when copied by hand.
+_TEMPORARY_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789"
+_TEMPORARY_GROUPS = 4
+_TEMPORARY_GROUP_LENGTH = 5
+
+
+def generate_temporary_password() -> str:
+    """A random password an administrator hands over once, e.g. ``k7m2x-p9qra-4tz8h-cw3ny``.
+
+    20 characters from a 31-symbol alphabet: about 99 bits, far beyond guessing within its
+    lifetime even without the login rate limits and lockout.
+    """
+    groups = (
+        "".join(secrets.choice(_TEMPORARY_ALPHABET) for _ in range(_TEMPORARY_GROUP_LENGTH))
+        for _ in range(_TEMPORARY_GROUPS)
+    )
+    return "-".join(groups)
 
 
 def check_password_policy(password: str, *, email: str) -> None:

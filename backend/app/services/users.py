@@ -5,16 +5,18 @@ Safety rules enforced here, not just in the UI:
 - The last active ADMIN cannot be demoted or deactivated (the platform always has an owner).
 - Changing someone's role or deactivating them ends all their sessions immediately.
 - Deleting a user removes the account and its credentials (sessions, refresh tokens, recovery
-  codes, reset links). The audit log keeps their history: it records the actor's ID and email
+  codes). The audit log keeps their history: it records the actor's ID and email
   as plain values, not a link to the account, so deletion never breaks the hash chain.
-- Admins never see or set another user's password: new users get a one-time setup link.
+- There is no email path (ADR-0028). A new account, or a forgotten password, gets a generated
+  temporary password that the administrator is shown once and hands over. It is stored only as
+  a hash, never logged or audited, stops working after temporary_password_ttl_seconds, and must
+  be replaced at first sign-in. Admins never choose another user's password.
 """
 
 from __future__ import annotations
 
-import secrets
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
@@ -24,17 +26,10 @@ from app.core.clock import utcnow
 from app.core.config import Settings
 from app.core.errors import ApiError
 from app.models.audit import AuditResult
-from app.models.outbox import OutboxMessage
-from app.models.session import (
-    AuthSession,
-    MfaRecoveryCode,
-    PasswordResetToken,
-    RefreshToken,
-)
+from app.models.session import AuthSession, MfaRecoveryCode, RefreshToken
 from app.models.user import Role, User
-from app.schemas.users import UserCreate, UserOut, UserUpdate
-from app.security.passwords import PasswordHasher
-from app.security.tokens import hash_opaque_token, new_opaque_token
+from app.schemas.users import TemporaryPasswordIssued, UserCreate, UserOut, UserUpdate
+from app.security.passwords import PasswordHasher, generate_temporary_password
 from app.services import audit
 from app.services.audit import AuditAction, RequestContext
 
@@ -52,6 +47,7 @@ def to_out(user: User) -> UserOut:
         is_active=user.is_active,
         mfa_enabled=user.mfa_enabled,
         must_change_password=user.must_change_password,
+        temporary_password_expires_at=user.temporary_password_expires_at,
         locked=user.locked_until is not None and user.locked_until > utcnow(),
         last_login_at=user.last_login_at,
         created_at=user.created_at,
@@ -127,44 +123,61 @@ class UserService:
 
     # --- writes ---------------------------------------------------------------------------
 
-    def create_user(self, principal: Principal, body: UserCreate) -> UserOut:
+    def _issue_temporary_password(self, user: User) -> tuple[str, datetime]:
+        """Give the account a new temporary password. Returned once; only its hash is kept."""
+        password = generate_temporary_password()
+        expires_at = utcnow() + timedelta(seconds=self.settings.temporary_password_ttl_seconds)
+        user.password_hash = self.hasher.hash(password)
+        user.password_changed_at = utcnow()
+        user.must_change_password = True
+        user.temporary_password_expires_at = expires_at
+        user.failed_login_count = 0
+        user.locked_until = None
+        return password, expires_at
+
+    def create_user(self, principal: Principal, body: UserCreate) -> TemporaryPasswordIssued:
         email = str(body.email).strip().lower()
         if self.db.scalar(select(User.id).where(User.email == email)) is not None:
             raise ApiError(409, "email_in_use", "A user with this email already exists.")
-        user = User(
-            email=email,
-            display_name=body.display_name,
-            role=body.role,
-            # Unusable until the invitee sets their own: nobody, including the admin, knows it.
-            password_hash=self.hasher.hash(secrets.token_urlsafe(32)),
-        )
+        user = User(email=email, display_name=body.display_name, role=body.role)
+        password, expires_at = self._issue_temporary_password(user)
         self.db.add(user)
         self.db.flush()
-
-        raw = new_opaque_token()
-        self.db.add(
-            PasswordResetToken(
-                user_id=user.id,
-                token_hash=hash_opaque_token(raw),
-                expires_at=utcnow() + timedelta(seconds=self.settings.invite_ttl_seconds),
-                requested_ip=self.ctx.source_ip,
-            )
+        # The password itself is never audited: only that one was issued, and until when.
+        self._audit(
+            AuditAction.USER_CREATED,
+            principal.user,
+            user,
+            email=email,
+            role=body.role,
+            temporary_password_expires_at=expires_at.isoformat(),
         )
-        hours = self.settings.invite_ttl_seconds // 3600
-        self.db.add(
-            OutboxMessage(
-                recipient=email,
-                subject="You've been invited to SentinelEdge",
-                body=(
-                    f"{principal.user.display_name} added you to SentinelEdge as "
-                    f"{body.role.value}.\n\nSet your password within {hours} hours:\n"
-                    f"{self.settings.canonical_origin}/reset-password#token={raw}\n"
-                ),
-            )
-        )
-        self._audit(AuditAction.USER_CREATED, principal.user, user, email=email, role=body.role)
         self.db.commit()
-        return to_out(user)
+        return TemporaryPasswordIssued(
+            user=to_out(user), temporary_password=password, expires_at=expires_at
+        )
+
+    def reset_password(self, principal: Principal, user_id: uuid.UUID) -> TemporaryPasswordIssued:
+        """For a user who forgot their password: a new temporary one, and every session ends."""
+        if user_id == principal.user.id:
+            raise ApiError(
+                409, "self_password_reset", "Change your own password in Settings instead."
+            )
+        user = self.db.get(User, user_id, with_for_update=True)
+        if user is None:
+            raise not_found()
+        password, expires_at = self._issue_temporary_password(user)
+        self._revoke_sessions(user, "password_reset")
+        self._audit(
+            AuditAction.USER_PASSWORD_RESET,
+            principal.user,
+            user,
+            temporary_password_expires_at=expires_at.isoformat(),
+        )
+        self.db.commit()
+        return TemporaryPasswordIssued(
+            user=to_out(user), temporary_password=password, expires_at=expires_at
+        )
 
     def update_user(self, principal: Principal, user_id: uuid.UUID, body: UserUpdate) -> UserOut:
         user = self.db.get(User, user_id, with_for_update=True)
@@ -222,7 +235,7 @@ class UserService:
         """Permanently remove an account and every credential tied to it.
 
         Deactivation is the reversible option; deletion is for accounts that should not exist
-        (a mistaken invite, a departed user after review). The audit trail is kept.
+        (one created by mistake, a departed user after review). The audit trail is kept.
         """
         if user_id == principal.user.id:
             raise ApiError(409, "self_delete", "You can't delete your own account.")
@@ -238,7 +251,6 @@ class UserService:
         self.db.execute(delete(RefreshToken).where(RefreshToken.session_id.in_(sessions)))
         self.db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
         self.db.execute(delete(MfaRecoveryCode).where(MfaRecoveryCode.user_id == user.id))
-        self.db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
         self.db.delete(user)
         self._audit(AuditAction.USER_DELETED, principal.user, user_id, **snapshot)
         self.db.commit()

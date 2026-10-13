@@ -69,7 +69,7 @@ make ecs-task TASK=migrate
 ```
 
 `dbadmin` ends with `SentinelEdge database roles and schema are in place`; `migrate` with
-`Running upgrade 0013 -> 0014`. Each fails loudly on a non-zero exit and prints its log.
+`Running upgrade 0014 -> 0015`. Each fails loudly on a non-zero exit and prints its log.
 
 ## 5. Start the API
 
@@ -101,6 +101,9 @@ make ecs-task TASK=create-admin EMAIL=you@example.com
 It prints the AWS command that reads the one-time password, once, from Secrets Manager; the
 password is never printed by the task or kept in its log. Sign in at
 `https://sentineledge.bionichacker.dev`, set a new password and enroll MFA.
+
+Everyone else is created from Settings → Users, which shows a temporary password once; a
+forgotten password is reset there too. Nothing is emailed (ADR-0028).
 
 ## 8. Anchor the audit chain
 

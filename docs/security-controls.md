@@ -65,7 +65,7 @@ or read.
 | C-ID-04 | TOTP MFA (encrypted secrets, no replay, ±1 step), hashed single-use recovery codes; mandatory for ADMIN and SECURITY_ENGINEER | `app/security/mfa.py` | `test_auth_mfa.py` |
 | C-ID-05 | Lockout after repeated failures (password and MFA share the counter), uniform errors, constant-work dummy hash | `AuthService.login` | `test_auth_login.py` |
 | C-ID-06 | CSRF: Origin allow-list plus custom header on cookie-bearing endpoints | `require_same_origin` | `test_cross_site_requests_rejected` |
-| C-ID-07 | Password reset: single-use hashed token in URL fragment, 30-minute expiry, rate-limited, revokes sessions | `request_password_reset`, `reset_password`; SPA strips the fragment | `test_auth_password_reset.py`, `auth-flows.test.tsx` |
+| C-ID-07 | Account recovery through an administrator only: generated temporary password shown once, hashed, 72-hour expiry, replaced at first sign-in, sessions revoked; no email path | `UserService.create_user`, `UserService.reset_password`, expiry check in `AuthService.login` | `test_temporary_passwords.py`, `auth-flows.test.tsx` |
 | C-ID-08 | No default credentials; forced password change and MFA enrollment gate all other access | `app/cli.py`, `pending_steps` | `test_cli.py`, `test_users_mid_setup_are_held_at_setup` |
 | C-ID-09 | Browser session: token in memory only, cross-tab refresh lock | `frontend/src/lib/auth/session.ts` | `session.test.ts`; Chromium check: empty web storage, cookie invisible to JS |
 | C-API-01 | Object-level authorization on user records (404, audited) | `UserService.get_user` | `test_users_can_read_only_their_own_record` |

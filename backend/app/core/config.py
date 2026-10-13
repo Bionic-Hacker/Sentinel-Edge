@@ -101,8 +101,8 @@ class Settings(BaseSettings):
     refresh_token_ttl_seconds: int = Field(default=8 * 3600, ge=300, le=7 * 24 * 3600)
     session_max_age_seconds: int = Field(default=24 * 3600, ge=300, le=30 * 24 * 3600)
     mfa_challenge_ttl_seconds: int = Field(default=300, ge=60, le=900)
-    password_reset_ttl_seconds: int = Field(default=1800, ge=300, le=86400)
-    invite_ttl_seconds: int = Field(default=72 * 3600, ge=3600, le=7 * 24 * 3600)
+    # How long an administrator-issued temporary password signs in before it must be reissued.
+    temporary_password_ttl_seconds: int = Field(default=72 * 3600, ge=3600, le=7 * 24 * 3600)
     max_failed_logins: int = Field(default=5, ge=3, le=20)
     lockout_seconds: int = Field(default=900, ge=60, le=86400)
     # Argon2id cost. Defaults follow RFC 9106's second recommended profile (64 MiB, t=3, p=4).

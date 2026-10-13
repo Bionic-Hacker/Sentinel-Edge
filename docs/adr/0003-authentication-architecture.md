@@ -23,6 +23,7 @@ approval) that attackers would value. Sessions must resist token theft, replay, 
 - **Lockout:** progressive delay and temporary lockout per account, plus per-IP limits, with
   generic error messages that do not reveal whether an account exists.
 - **Password reset:** single-use, hashed, short-lived tokens; all sessions revoked on reset.
+  *Superseded by ADR-0028: no email path; an administrator issues a temporary password.*
 
 ## Security impact
 Addresses T-ID-01..05 (credential stuffing, token theft, session fixation, CSRF, enumeration).
@@ -52,6 +53,8 @@ Implemented as decided, with these refinements:
 - **TOTP replay protection.** The last accepted time-step is stored; a code is accepted once.
 - **Admins never handle passwords.** New users are invited with a one-time link (72-hour expiry);
   the first admin comes from `make create-admin`, which prints a one-time password.
+  *Superseded by ADR-0028: administrators create users and reset passwords with a generated
+  temporary password, shown once and replaced at first sign-in; they never choose it.*
 - **Browser session (frontend).** The access token is held in memory. Refresh is single-flight in
   a tab and serialized across tabs with the Web Locks API; without that, two tabs refreshing at
   once would present the same refresh token twice and trip reuse detection.

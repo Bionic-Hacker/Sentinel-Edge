@@ -1,8 +1,7 @@
-"""Operator command line, run inside the API container (`make create-admin`, `make outbox`,
+"""Operator command line, run inside the API container (`make create-admin`,
 `make verify-audit`). It uses the same database role and settings as the API: no extra privilege.
 
     python -m app.cli create-admin --email admin@example.com
-    python -m app.cli outbox [--limit 5]
     python -m app.cli verify-audit
     python -m app.cli import-scan --application sentineledge < bundle.json   (make scan-import)
     python -m app.cli dast-session issue|revoke                              (make dast)
@@ -35,11 +34,10 @@ from app.db.session import build_engine, build_session_factory
 from app.models.ai import ProposalType, SubjectType
 from app.models.audit import AuditResult
 from app.models.governance import Control
-from app.models.outbox import OutboxMessage
 from app.models.user import Role, User
 from app.models.vulnerability import ScanSource
 from app.schemas.vulnerabilities import ScanReport
-from app.security.passwords import PasswordHasher
+from app.security.passwords import PasswordHasher, generate_temporary_password
 from app.security.rate_limit import RateLimiter
 from app.services import audit
 from app.services.audit import SYSTEM_CONTEXT, AuditAction, verify_chain
@@ -80,7 +78,9 @@ def create_admin(
 
     # No default credentials: a random one-time password the admin must replace at first login,
     # followed by mandatory MFA enrollment (ADMIN requires MFA).
-    password = secrets.token_urlsafe(18)
+    # No expiry, unlike temporary passwords issued in the app (ADR-0028): a first administrator
+    # whose password lapsed could not be recreated under the same address.
+    password = generate_temporary_password()
     user = User(
         email=normalized,
         display_name=name,
@@ -118,19 +118,6 @@ def create_admin(
         "two-factor authentication.",
         file=out,
     )
-    return 0
-
-
-def show_outbox(db: Session, limit: int, out: TextIO) -> int:
-    messages = db.scalars(
-        select(OutboxMessage).order_by(OutboxMessage.created_at.desc()).limit(limit)
-    ).all()
-    if not messages:
-        print("The local outbox is empty.", file=out)
-        return 0
-    for message in reversed(messages):
-        print(f"--- {message.created_at:%Y-%m-%d %H:%M:%S %Z}  to: {message.recipient}", file=out)
-        print(f"Subject: {message.subject}\n\n{message.body}\n", file=out)
     return 0
 
 
@@ -468,8 +455,6 @@ def build_parser() -> argparse.ArgumentParser:
     admin = commands.add_parser("create-admin", help="create an ADMIN with a one-time password")
     admin.add_argument("--email", required=True)
     admin.add_argument("--name", default="Administrator")
-    box = commands.add_parser("outbox", help="show recent local outbox messages")
-    box.add_argument("--limit", type=int, default=5)
     commands.add_parser("verify-audit", help="verify the audit log hash chain")
     commands.add_parser("prune-rate-limits", help="delete rate-limit buckets idle for a day")
     scan = commands.add_parser("import-scan", help="import scan results and SBOMs from stdin")
@@ -514,8 +499,6 @@ def main(
                 return create_admin(
                     db, settings, args.email, args.name, out, secretsmanager=secretsmanager
                 )
-            if args.command == "outbox":
-                return show_outbox(db, max(1, min(args.limit, 50)), out)
             if args.command == "import-scan":
                 return import_scan_bundle(
                     db,

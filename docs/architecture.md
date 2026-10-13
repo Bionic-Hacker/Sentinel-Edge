@@ -58,11 +58,11 @@ browser ──► web (nginx :8080, 127.0.0.1 only) ──/api/*──► api (F
 
 | Component | Technology | Status |
 |---|---|---|
-| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, password reset, user admin, audit log viewer, API Security Center, security dashboard, Threats, Incidents, Applications, simulated WAF, attack simulator |
+| SPA | React 19, TypeScript (strict), Vite, Tailwind CSS | Implemented (local): sign-in with MFA, setup flow, user admin with temporary passwords (ADR-0028), audit log viewer, API Security Center, security dashboard, Threats, Incidents, Applications, simulated WAF, attack simulator |
 | API | FastAPI, Pydantic v2 | Implemented (local): health/readiness, authentication, MFA, RBAC, user admin, audit log, rate limiting, API inventory, security events, HTTP attack analysis, correlation, incidents, dashboard overview, applications, attack simulator (45 endpoints) |
 | Worker | same image, separate entrypoint | Not needed yet: correlation runs synchronously in the request (ADR-0018). Revisited with WAF log ingestion (Phase 5) and AI analysis (Phase 9) |
 | Database | PostgreSQL 17, SQLAlchemy 2, Alembic | Implemented (local): `sentinel` schema, migrator/app roles (ADR-0015), migrations 0001–0008 |
-| Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `outbox`, `verify-audit` |
+| Operator CLI | `python -m app.cli` in the API container | Implemented: `create-admin`, `verify-audit` |
 | AI engine | Amazon Bedrock (ADR-0006, ADR-0024) | Built (Phase 9): `offline` analyser locally, Bedrock on demand when enabled; task role in Phase 4 |
 
 ## 5. Backend structure (ADR-0012)
@@ -110,7 +110,7 @@ not enumerable. Timestamps are UTC.
 
 | Domain | Entities | Phase |
 |---|---|---|
-| Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed), password_reset_tokens (hashed), outbox_messages | **2 ✓** |
+| Identity | users (MFA secret encrypted in-row), auth_sessions, refresh_tokens (hashed), mfa_recovery_codes (hashed); reset tokens and the outbox dropped in 0015 (ADR-0028) | **2 ✓** |
 | Audit | audit_log (hash-chained, append-only by grant and trigger) | **2 ✓** |
 | Inventory | applications **7 ✓**; API endpoints come from the route table and the policy registry, with hourly api_endpoint_stats **6 ✓** | 6, 7 |
 | Rate limiting | rate_limit_buckets | **6 ✓** |

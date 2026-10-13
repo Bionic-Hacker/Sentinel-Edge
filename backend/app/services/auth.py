@@ -19,8 +19,7 @@ from app.core.clock import utcnow
 from app.core.config import Settings
 from app.core.errors import ApiError
 from app.models.audit import AuditResult
-from app.models.outbox import OutboxMessage
-from app.models.session import AuthSession, MfaRecoveryCode, PasswordResetToken, RefreshToken
+from app.models.session import AuthSession, MfaRecoveryCode, RefreshToken
 from app.models.user import User
 from app.security.mfa import (
     TOTP_PATTERN,
@@ -54,11 +53,15 @@ def session_expired() -> ApiError:
     return ApiError(401, "session_expired", "Your session has ended. Sign in again.")
 
 
-def invalid_reset() -> ApiError:
-    return ApiError(400, "invalid_reset_token", "This reset link is invalid or has expired.")
+def temporary_password_expired() -> ApiError:
+    # Only reachable with the right password, so naming the reason reveals nothing new.
+    return ApiError(
+        401,
+        "temporary_password_expired",
+        "This temporary password has expired. Ask an administrator for a new one.",
+    )
 
 
-RESET_RATE_LIMIT = timedelta(seconds=60)
 _MAX_OPAQUE_TOKEN_LENGTH = 128
 
 
@@ -190,6 +193,7 @@ class AuthService:
         user.password_hash = self.hasher.hash(new_password)
         user.password_changed_at = utcnow()
         user.must_change_password = False
+        user.temporary_password_expires_at = None
         user.failed_login_count = 0
         user.locked_until = None
 
@@ -221,6 +225,18 @@ class AuthService:
             self._register_failure(user, AuditAction.LOGIN, "bad_password")
             self.db.commit()
             raise invalid_credentials()
+
+        expires_at = user.temporary_password_expires_at
+        if expires_at is not None and expires_at <= utcnow():
+            # Not a failed guess, so not counted towards lockout; an administrator reissues it.
+            self._audit(
+                AuditAction.LOGIN,
+                AuditResult.DENIED,
+                user,
+                reason="temporary_password_expired",
+            )
+            self.db.commit()
+            raise temporary_password_expired()
 
         user.failed_login_count = 0
         user.locked_until = None
@@ -410,88 +426,4 @@ class AuthService:
         self._set_password(user, new)
         self._revoke_sessions(user, "password_changed", keep=principal.session.id)
         self._audit(AuditAction.PASSWORD_CHANGED, AuditResult.SUCCESS, user)
-        self.db.commit()
-
-    def request_password_reset(self, email: str) -> None:
-        """Always succeeds from the caller's point of view (no account enumeration)."""
-        email_n = normalize_email(email)
-        user = self.db.scalar(select(User).where(User.email == email_n))
-        if user is None or not user.is_active:
-            self._audit(
-                AuditAction.PASSWORD_RESET_REQUESTED,
-                AuditResult.FAILURE,
-                user if user is not None else email_n,
-                reason="unknown_account" if user is None else "inactive",
-            )
-            self.db.commit()
-            return
-
-        now = utcnow()
-        recent = self.db.scalar(
-            select(PasswordResetToken.id).where(
-                PasswordResetToken.user_id == user.id,
-                PasswordResetToken.created_at > now - RESET_RATE_LIMIT,
-            )
-        )
-        if recent is not None:
-            self._audit(
-                AuditAction.PASSWORD_RESET_REQUESTED,
-                AuditResult.DENIED,
-                user,
-                reason="rate_limited",
-            )
-            self.db.commit()
-            return
-
-        raw = new_opaque_token()
-        self.db.add(
-            PasswordResetToken(
-                user_id=user.id,
-                token_hash=hash_opaque_token(raw),
-                expires_at=now + timedelta(seconds=self.settings.password_reset_ttl_seconds),
-                requested_ip=self.ctx.source_ip,
-            )
-        )
-        minutes = self.settings.password_reset_ttl_seconds // 60
-        # The token travels in the URL fragment: browsers never send fragments to servers, so it
-        # stays out of access logs, proxies and Referer headers.
-        link = f"{self.settings.canonical_origin}/reset-password#token={raw}"
-        self.db.add(
-            OutboxMessage(
-                recipient=user.email,
-                subject="Reset your SentinelEdge password",
-                body=(
-                    f"Someone asked to reset the password for {user.email}.\n\n"
-                    f"Reset it here within {minutes} minutes:\n{link}\n\n"
-                    "If this wasn't you, ignore this message: your password is unchanged."
-                ),
-            )
-        )
-        self._audit(AuditAction.PASSWORD_RESET_REQUESTED, AuditResult.SUCCESS, user)
-        self.db.commit()
-
-    def reset_password(self, raw_token: str, new_password: str) -> None:
-        if not raw_token or len(raw_token) > _MAX_OPAQUE_TOKEN_LENGTH:
-            raise invalid_reset()
-        token = self.db.scalar(
-            select(PasswordResetToken)
-            .where(PasswordResetToken.token_hash == hash_opaque_token(raw_token))
-            .with_for_update()
-        )
-        now = utcnow()
-        if token is None or token.used_at is not None or token.expires_at <= now:
-            raise invalid_reset()
-        user = self.db.get(User, token.user_id, with_for_update=True)
-        if user is None or not user.is_active:
-            raise invalid_reset()
-
-        self._set_password(user, new_password)
-        # Every outstanding reset link for this account dies with this one.
-        self.db.execute(
-            update(PasswordResetToken)
-            .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
-            .values(used_at=now)
-        )
-        self._revoke_sessions(user, "password_reset")
-        self._audit(AuditAction.PASSWORD_RESET, AuditResult.SUCCESS, user)
         self.db.commit()

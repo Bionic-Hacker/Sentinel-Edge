@@ -13,7 +13,13 @@ from app.core.deps import app_settings, password_hasher
 from app.core.request_context import request_context
 from app.db.session import get_db
 from app.models.user import Role
-from app.schemas.users import UserCreate, UserList, UserOut, UserUpdate
+from app.schemas.users import (
+    TemporaryPasswordIssued,
+    UserCreate,
+    UserList,
+    UserOut,
+    UserUpdate,
+)
 from app.security.passwords import PasswordHasher
 from app.services.users import UserService
 
@@ -38,12 +44,12 @@ def list_users(
     return UserList(items=service.list_users())
 
 
-@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=TemporaryPasswordIssued, status_code=status.HTTP_201_CREATED)
 def create_user(
     body: UserCreate,
     principal: Principal = Depends(admin_only),  # noqa: B008
     service: UserService = Depends(get_user_service),  # noqa: B008
-) -> UserOut:
+) -> TemporaryPasswordIssued:
     return service.create_user(principal, body)
 
 
@@ -73,6 +79,15 @@ def reset_user_mfa(
     service: UserService = Depends(get_user_service),  # noqa: B008
 ) -> UserOut:
     return service.reset_mfa(principal, user_id)
+
+
+@router.post("/{user_id}/password/reset", response_model=TemporaryPasswordIssued)
+def reset_user_password(
+    user_id: uuid.UUID,
+    principal: Principal = Depends(admin_only),  # noqa: B008
+    service: UserService = Depends(get_user_service),  # noqa: B008
+) -> TemporaryPasswordIssued:
+    return service.reset_password(principal, user_id)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

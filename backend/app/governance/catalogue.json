@@ -1319,22 +1319,22 @@
    "evidence": [
     {
      "kind": "test_file",
-     "ref": "test_auth_password_reset.py"
+     "ref": "test_temporary_passwords.py"
     },
     {
      "kind": "frontend_test",
      "ref": "auth-flows.test.tsx"
     }
    ],
-   "evidence_text": "test_auth_password_reset.py, auth-flows.test.tsx",
+   "evidence_text": "test_temporary_passwords.py, auth-flows.test.tsx",
    "extensions": [],
    "family": "ID",
-   "implementation": "request_password_reset, reset_password; SPA strips the fragment",
+   "implementation": "UserService.create_user, UserService.reset_password, expiry check in AuthService.login",
    "layer": "Authentication",
    "phase": 2,
    "ref": "C-ID-07",
    "status": "implemented",
-   "title": "Password reset: single-use hashed token in URL fragment, 30-minute expiry, rate-limited, revokes sessions"
+   "title": "Account recovery through an administrator only: generated temporary password shown once, hashed, 72-hour expiry, replaced at first sign-in, sessions revoked; no email path"
   },
   {
    "evidence": [
@@ -2039,7 +2039,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "6278ded818c17df1b148eff6af9f53d04334536dcb3c84f3887ba6acfe882719",
+ "digest": "5928790f436ef1af9dbbde303675d9b593b2eb06f0686874829505086e8b36ea",
  "format": 1,
  "model": {
   "elements": [
@@ -2441,10 +2441,19 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 3)"
     },
+    "description": "Account recovery needs an administrator (ADR-0028): a user who forgets their password waits for one, and the temporary password is only as private as the channel it is handed over in (T-ID-12). Accepted: it expires in 72 hours and must be replaced at first sign-in.",
+    "kind": "residual_risk",
+    "name": "Account recovery needs an administrator (ADR-0028): a user who forgets their password waits for one, and the temporary password is only as private as the channel it is handed over in (T-ID-12)",
+    "ref": "RR-9"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 3)"
+    },
     "description": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.",
     "kind": "residual_risk",
     "name": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout",
-    "ref": "RR-9"
+    "ref": "RR-10"
    },
    {
     "attributes": {
@@ -2453,7 +2462,7 @@
     "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.",
     "kind": "residual_risk",
     "name": "Rate-limit and metrics writes add database load per request (ADR-0017)",
-    "ref": "RR-10"
+    "ref": "RR-11"
    },
    {
     "attributes": {
@@ -2462,7 +2471,7 @@
     "description": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
     "kind": "residual_risk",
     "name": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
-    "ref": "RR-11"
+    "ref": "RR-12"
    },
    {
     "attributes": {
@@ -2471,7 +2480,7 @@
     "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.",
     "kind": "residual_risk",
     "name": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after ",
-    "ref": "RR-12"
+    "ref": "RR-13"
    },
    {
     "attributes": {
@@ -2480,7 +2489,7 @@
     "description": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
     "kind": "residual_risk",
     "name": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
-    "ref": "RR-13"
+    "ref": "RR-14"
    },
    {
     "attributes": {
@@ -2489,7 +2498,7 @@
     "description": "HTTP analysis is detect-only. Until AWS WAF (Phase 5), nothing blocks an injection payload at the edge; parameterised queries and validation remain the protection, and detection records it.",
     "kind": "residual_risk",
     "name": "HTTP analysis is detect-only",
-    "ref": "RR-14"
+    "ref": "RR-15"
    },
    {
     "attributes": {
@@ -2498,7 +2507,7 @@
     "description": "On one machine every request comes from one address, so local detections group into a single incident. Expected; not a weakness of the deployed design.",
     "kind": "residual_risk",
     "name": "On one machine every request comes from one address, so local detections group into a single incident",
-    "ref": "RR-15"
+    "ref": "RR-16"
    },
    {
     "attributes": {
@@ -2507,7 +2516,7 @@
     "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) is planned with Phase 12 hardening.",
     "kind": "residual_risk",
     "name": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8)",
-    "ref": "RR-16"
+    "ref": "RR-17"
    },
    {
     "attributes": {
@@ -2516,7 +2525,7 @@
     "description": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks). Between a decision and the next generation the gate uses the previous file; run it after every scan-finding decision. Finding-level risk acceptances (Phase 8) and exceptions remain two records with different scopes.",
     "kind": "residual_risk",
     "name": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks)",
-    "ref": "RR-17"
+    "ref": "RR-18"
    },
    {
     "attributes": {
@@ -2525,7 +2534,7 @@
     "description": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model. Archive is offered first.",
     "kind": "residual_risk",
     "name": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model",
-    "ref": "RR-18"
+    "ref": "RR-19"
    },
    {
     "attributes": {
@@ -2534,7 +2543,7 @@
     "description": "Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded. It is a signal for the reviewer, not a defence; the defences are delimiting, the verbatim evidence contract and tighten-only proposals with human approval.",
     "kind": "residual_risk",
     "name": "Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded",
-    "ref": "RR-19"
+    "ref": "RR-20"
    },
    {
     "attributes": {
@@ -2543,7 +2552,7 @@
     "description": "A model can still be wrong within the contract: a correct quote with a misleading inference. Inference is labelled, the platform's own verdict is never changed, and nothing runs without a lead's approval.",
     "kind": "residual_risk",
     "name": "A model can still be wrong within the contract: a correct quote with a misleading inference",
-    "ref": "RR-20"
+    "ref": "RR-21"
    },
    {
     "attributes": {
@@ -2552,7 +2561,7 @@
     "description": "The offline analyser is deterministic and not a model; it proves the engine, not the quality of a real model's answers. Bedrock answers vary between runs (temperature 0 narrows, not removes).",
     "kind": "residual_risk",
     "name": "The offline analyser is deterministic and not a model; it proves the engine, not the quality of a real model's answers",
-    "ref": "RR-21"
+    "ref": "RR-22"
    },
    {
     "attributes": {
@@ -2561,7 +2570,7 @@
     "description": "Limits are per day and counted from stored analyses; a burst within the limit is allowed. Bedrock spend is also bounded by the AWS budget alert the setup asks for.",
     "kind": "residual_risk",
     "name": "Limits are per day and counted from stored analyses; a burst within the limit is allowed",
-    "ref": "RR-22"
+    "ref": "RR-23"
    },
    {
     "attributes": {
@@ -2570,7 +2579,7 @@
     "description": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
     "kind": "residual_risk",
     "name": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
-    "ref": "RR-23"
+    "ref": "RR-24"
    },
    {
     "attributes": {
@@ -2579,7 +2588,7 @@
     "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
     "kind": "residual_risk",
     "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
-    "ref": "RR-24"
+    "ref": "RR-25"
    },
    {
     "attributes": {
@@ -2588,7 +2597,7 @@
     "description": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
     "kind": "residual_risk",
     "name": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
-    "ref": "RR-25"
+    "ref": "RR-26"
    }
   ],
   "method": "stride",
@@ -2947,7 +2956,7 @@
     ],
     "ref": "T-ID-05",
     "status": "mitigated",
-    "status_text": "Mitigated (P2): identical responses, dummy hash for unknown accounts, generic reset response",
+    "status_text": "Mitigated (P2): identical responses, dummy hash for unknown accounts; no public reset or invitation endpoint (ADR-0028)",
     "stride": "I",
     "title": "Account enumeration"
    },
@@ -3304,19 +3313,21 @@
      "TB3"
     ],
     "controls": [
-     "C-ID-08"
+     "C-ID-08",
+     "C-ID-07"
     ],
     "group": "Identity threats added in Phase 2",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "No defaults: create-admin one-time password; admins invite, never set passwords",
+    "mitigation": "No defaults: create-admin one-time password; administrators issue generated temporary passwords, never choose them",
     "owasp": "",
     "phases": [
-     2
+     2,
+     5
     ],
     "ref": "T-ID-09",
     "status": "mitigated",
-    "status_text": "Mitigated (P2)",
+    "status_text": "Mitigated (P2, P5)",
     "stride": "E",
     "title": "Default or shared bootstrap credentials"
    },
@@ -3342,6 +3353,49 @@
     "status_text": "Accepted (interim) until P5/P6",
     "stride": "D",
     "title": "Attacker locks out a known account by failing logins"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-07"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 3,
+    "likelihood": 2,
+    "mitigation": "No email path at all: accounts and forgotten passwords go through an administrator, who must be contacted (ADR-0028)",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-ID-11",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5)",
+    "stride": "S",
+    "title": "Account recovery hijacked: a reset or invitation link read from a compromised mailbox, or a self-service reset abused"
+   },
+   {
+    "boundaries": [
+     "TB3"
+    ],
+    "controls": [
+     "C-ID-07",
+     "C-ID-08"
+    ],
+    "group": "Identity threats added in Phase 2",
+    "impact": 2,
+    "likelihood": 2,
+    "mitigation": "Generated, shown once and never stored in plain text, logged or audited; expires after 72 hours; replaced at first sign-in; MFA still required for privileged roles",
+    "owasp": "",
+    "phases": [
+     5
+    ],
+    "ref": "T-ID-12",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5); the hand-over channel is the owner's choice (residual risk)",
+    "stride": "I",
+    "title": "A temporary password seen or kept while it is handed over"
    },
    {
     "boundaries": [
@@ -4709,7 +4763,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.10"
+  "version": "0.11"
  },
  "requirements": [
   {

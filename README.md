@@ -149,7 +149,8 @@ acceptance ([ADR-0020](docs/adr/0020-application-security-scan-gate.md),
   rotating refresh tokens in a `__Host-` HttpOnly cookie with theft detection, TOTP MFA with
   recovery codes (mandatory for privileged roles), lockout, and enumeration-resistant errors.
 - **No default credentials:** the first admin gets a one-time password from the CLI; everyone
-  else is invited by one-time link. Admins never see or set anyone's password.
+  else gets a generated temporary password from an administrator, shown once and replaced at first
+  sign-in. No email path: a forgotten password is reset by an administrator (ADR-0028).
 - **Authorization:** five roles; every route declares its access and a test sweeps every route as
   every role ([docs/authorization.md](docs/authorization.md)). Object-level checks on user records.
 - **Audit log:** hash-chained and append-only by grant *and* trigger; tampering is detected at the
@@ -183,7 +184,7 @@ make env                                  # .env with random local secrets (mode
 make dev                                  # web on http://localhost:8080
 make create-admin EMAIL=you@example.com   # one-time password; you'll set your own + MFA
 make check                                # lint, types, tests, SAST, SCA — the CI gates
-make smoke                                # end-to-end test of the running stack (69 checks)
+make smoke                                # end-to-end test of the running stack (70 checks)
 ```
 
 More in [docs/local-development.md](docs/local-development.md).

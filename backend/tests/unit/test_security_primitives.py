@@ -21,6 +21,7 @@ from app.security.passwords import (
     PasswordHasher,
     PasswordPolicyError,
     check_password_policy,
+    generate_temporary_password,
 )
 from app.security.tokens import (
     InvalidTokenError,
@@ -55,6 +56,18 @@ def test_policy_rejects(password: str) -> None:
 )
 def test_policy_accepts_long_varied_passphrases(password: str) -> None:
     check_password_policy(password, email="alice.smith@example.com")
+
+
+def test_temporary_passwords_are_long_random_and_easy_to_copy() -> None:
+    passwords = {generate_temporary_password() for _ in range(200)}
+    assert len(passwords) == 200
+    for password in passwords:
+        groups = password.split("-")
+        assert [len(g) for g in groups] == [5, 5, 5, 5]
+        # No characters that are easy to misread: 0/o, 1/l/i.
+        assert not set(password) & set("01ilo")
+        # A temporary password would pass the policy a user's own password must meet.
+        check_password_policy(password, email="new.user@example.com")
 
 
 def test_policy_has_no_composition_rules() -> None:

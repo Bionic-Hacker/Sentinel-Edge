@@ -5,7 +5,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
 
 .PHONY: book prune-rate-limits help env env-check dev down logs clean install test test-backend test-frontend lint \
         typecheck security secrets-scan lock-backend precommit check verify-hardening \
-        create-admin outbox verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
+        create-admin verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
         governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear \
         tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock rds-ca images-push ecs-task \
         spa-push edge-check
@@ -45,9 +45,6 @@ verify-hardening: ## Check container, network and HTTP hardening of the running 
 create-admin: ## Create an ADMIN with a one-time password: make create-admin EMAIL=you@example.com
 	@test -n "$(EMAIL)" || { echo "Usage: make create-admin EMAIL=you@example.com"; exit 2; }
 	docker compose exec api python -m app.cli create-admin --email "$(EMAIL)"
-
-outbox: ## Show the local email outbox (password-reset links)
-	docker compose exec api python -m app.cli outbox
 
 verify-audit: ## Verify the audit log hash chain
 	docker compose exec api python -m app.cli verify-audit

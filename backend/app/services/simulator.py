@@ -244,7 +244,6 @@ class Target:
 
 TARGETS = (
     Target("POST", "/api/v1/auth/login", "email", True, 422),
-    Target("POST", "/api/v1/auth/password/forgot", "email", True, 422),
     Target("GET", "/api/v1/audit-logs", "actor", False, 401),
     Target("GET", "/api/v1/security-events", "source_ip", False, 401),
     Target("GET", "/api/v1/api-security/inventory", "callback", False, 401),

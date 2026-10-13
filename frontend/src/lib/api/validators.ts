@@ -17,6 +17,7 @@ import {
   type OwaspCoverage,
   type ManagedUser,
   type MfaRequiredResponse,
+  type TemporaryPasswordIssued,
   type UserProfile,
 } from "../types";
 import { isRecord } from "./client";
@@ -73,11 +74,15 @@ export function isManagedUser(v: unknown): v is ManagedUser {
     typeof v.is_active === "boolean" &&
     typeof v.mfa_enabled === "boolean" &&
     typeof v.must_change_password === "boolean" &&
+    isNullableString(v.temporary_password_expires_at) &&
     typeof v.locked === "boolean" &&
     isNullableString(v.last_login_at) &&
     isString(v.created_at)
   );
 }
+
+export const isTemporaryPasswordIssued = (v: unknown): v is TemporaryPasswordIssued =>
+  isRecord(v) && isManagedUser(v.user) && isString(v.temporary_password) && isString(v.expires_at);
 
 export const isUserList = (v: unknown): v is { items: ManagedUser[] } =>
   isRecord(v) && Array.isArray(v.items) && v.items.every(isManagedUser);

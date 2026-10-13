@@ -86,7 +86,6 @@ PROBE = RateLimitPolicy("probe", 120, 60, LimitScope.IP)
 LOGIN = RateLimitPolicy("login", 20, 120, LimitScope.IP)
 MFA_VERIFY = RateLimitPolicy("mfa_verify", 20, 120, LimitScope.IP)
 TOKEN_REFRESH = RateLimitPolicy("token_refresh", 30, 60, LimitScope.IP)
-ACCOUNT_RECOVERY = RateLimitPolicy("account_recovery", 5, 900, LimitScope.IP)
 SESSION = RateLimitPolicy("session", 60, 60, LimitScope.USER)
 CREDENTIAL_CHANGE = RateLimitPolicy("credential_change", 10, 300, LimitScope.USER)
 READ = RateLimitPolicy("read", 120, 60, LimitScope.USER)
@@ -106,7 +105,6 @@ ALL_POLICIES: tuple[RateLimitPolicy, ...] = (
     LOGIN,
     MFA_VERIFY,
     TOKEN_REFRESH,
-    ACCOUNT_RECOVERY,
     SESSION,
     CREDENTIAL_CHANGE,
     READ,
@@ -154,20 +152,6 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         (A.API2,),
         "Session tokens",
     ),
-    ("POST", "/api/v1/auth/password/forgot"): EndpointPolicy(
-        "Request a password-reset link",
-        Risk.HIGH,
-        ACCOUNT_RECOVERY,
-        (A.API2, A.API4, A.API6),
-        "Email address",
-    ),
-    ("POST", "/api/v1/auth/password/reset"): EndpointPolicy(
-        "Set a password from a reset or invite link",
-        Risk.CRITICAL,
-        ACCOUNT_RECOVERY,
-        (A.API2, A.API6),
-        "Credentials, one-time tokens",
-    ),
     ("POST", "/api/v1/auth/logout"): EndpointPolicy(
         "End the current session", Risk.LOW, SESSION, (A.API2,), "Session tokens"
     ),
@@ -198,7 +182,11 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         "List users", Risk.MEDIUM, READ, (A.API3, A.API5), "User directory (PII: email)"
     ),
     ("POST", "/api/v1/users"): EndpointPolicy(
-        "Invite a user", Risk.HIGH, ADMIN_WRITE, (A.API3, A.API5, A.API6), "PII, role grants"
+        "Create a user with a temporary password",
+        Risk.HIGH,
+        ADMIN_WRITE,
+        (A.API3, A.API5, A.API6),
+        "PII, role grants, temporary password (returned once)",
     ),
     ("GET", "/api/v1/users/{user_id}"): EndpointPolicy(
         "Read one user (own record unless admin)",
@@ -223,6 +211,14 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
         (A.API1, A.API5),
         "MFA state",
         object_rule="Cannot reset your own MFA (use a recovery code)",
+    ),
+    ("POST", "/api/v1/users/{user_id}/password/reset"): EndpointPolicy(
+        "Issue a user a new temporary password",
+        Risk.CRITICAL,
+        ADMIN_WRITE,
+        (A.API1, A.API5),
+        "Credentials: temporary password (returned once)",
+        object_rule="Cannot reset your own password (change it in Settings)",
     ),
     ("DELETE", "/api/v1/users/{user_id}"): EndpointPolicy(
         "Permanently delete a user",

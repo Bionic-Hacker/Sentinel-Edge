@@ -1,4 +1,4 @@
-"""Operator CLI: first admin with no default credentials, outbox, audit verification."""
+"""Operator CLI: first admin with no default credentials, audit verification."""
 
 from __future__ import annotations
 
@@ -60,16 +60,6 @@ def test_create_admin_refuses_duplicates_and_bad_email(db_app: FastAPI) -> None:
     create_user(db_app, "admin@example.com")
     assert _run("create-admin", "--email", "admin@example.com")[0] == 1
     assert _run("create-admin", "--email", "not-an-email")[0] == 2
-
-
-def test_outbox_shows_reset_messages(db_app: FastAPI, db_client: TestClient) -> None:
-    assert "empty" in _run("outbox")[1]
-    create_user(db_app, "analyst@example.com")
-    db_client.post("/api/v1/auth/password/forgot", json={"email": "analyst@example.com"})
-    code, output = _run("outbox")
-    assert code == 0
-    assert "Reset your SentinelEdge password" in output
-    assert "/reset-password#token=" in output
 
 
 def test_verify_audit_reports_intact_and_broken(

@@ -58,9 +58,18 @@ export interface ManagedUser {
   is_active: boolean;
   mfa_enabled: boolean;
   must_change_password: boolean;
+  /** Set while the account has a temporary password an administrator issued (ADR-0028). */
+  temporary_password_expires_at: string | null;
   locked: boolean;
   last_login_at: string | null;
   created_at: string;
+}
+
+/** Returned once when an administrator creates a user or resets their password. */
+export interface TemporaryPasswordIssued {
+  user: ManagedUser;
+  temporary_password: string;
+  expires_at: string;
 }
 
 export const AUDIT_RESULTS = ["success", "failure", "denied"] as const;

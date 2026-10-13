@@ -51,6 +51,9 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Set while the password is a temporary one an administrator issued (ADR-0028): after this
+    # time it no longer signs in. Cleared when the user sets their own.
+    temporary_password_expires_at: Mapped[datetime | None] = timestamp()
     # TOTP secrets are encrypted at rest with a key the database never sees (Fernet tokens).
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     mfa_secret: Mapped[bytes | None] = mapped_column(LargeBinary)

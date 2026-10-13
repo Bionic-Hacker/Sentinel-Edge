@@ -29,7 +29,7 @@ export function RequireAuth({ children, allowPending = false }: { children: Reac
   return <>{children}</>;
 }
 
-/** For /login and /forgot-password: signed-in users go straight to the app. */
+/** For /login: signed-in users go straight to the app. */
 export function PublicOnly({ children }: { children: ReactNode }) {
   const { state } = useAuth();
   if (state.status === "loading") return null;

@@ -1,6 +1,7 @@
 # SentinelEdge threat model
 
-- **Version:** 0.10 (Phase 5: the edge, built; Phases 4 and 5 applied together in the deploy window)
+- **Version:** 0.11 (Phase 5: the edge, applied in the deploy window; account recovery through an
+  administrator only, ADR-0028)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
   this document is loaded into the application as SentinelEdge's own threat model, read-only
@@ -94,7 +95,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-ID-02 | S | Access-token theft via XSS | A03 | 2×3 | Memory-only token, strict CSP, React escaping, ESLint bans | C-ID-09, C-WEB-02, C-WEB-03 | **Mitigated (P2)**: token in memory only, refresh cookie HttpOnly (verified in Chromium) |
 | T-ID-03 | S | Refresh-token replay | API2 | 2×3 | Rotation with family revocation (ADR-0003) | C-ID-03 | **Mitigated (P2)**: reuse revokes the session and is audited; opens a token-theft incident (P7) |
 | T-ID-04 | T | CSRF on cookie-authenticated refresh | A01 | 2×2 | SameSite=Strict, Origin check, custom header | C-ID-03, C-ID-06 | **Mitigated (P2)** |
-| T-ID-05 | I | Account enumeration | API2 | 3×1 | Generic auth errors, uniform timing | C-ID-05 | **Mitigated (P2)**: identical responses, dummy hash for unknown accounts, generic reset response |
+| T-ID-05 | I | Account enumeration | API2 | 3×1 | Generic auth errors, uniform timing | C-ID-05 | **Mitigated (P2)**: identical responses, dummy hash for unknown accounts; no public reset or invitation endpoint (ADR-0028) |
 | T-API-01 | E | BOLA (object-level authorization) | API1 | 3×3 | Service-level ownership checks, UUID IDs | C-API-01 | **Mitigated (P2, P7)**: user records; applications (developers see only their own, others 404 and audited); repeated denials raise COR-004 |
 | T-API-02 | E | BFLA (function-level authorization) | API5 | 2×3 | Role dependencies on every route; route-table test | C-API-02 | **Mitigated (P2)**: declared matrix + enforcement sweep |
 | T-API-03 | T | Mass assignment | API3 | 2×3 | `extra="forbid"` request models | C-API-04, C-API-11 | **Mitigated (P2)**: all request models; tested on login and user admin |
@@ -116,8 +117,10 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-ID-06 | D | Two browser tabs refresh at once, tripping reuse detection (self-inflicted logout) | 2×1 | Web Locks serialize refresh across tabs | C-ID-09 | **Mitigated (P2)** |
 | T-ID-07 | S | TOTP code replayed within its validity window | 2×3 | Last accepted step stored; strictly increasing | C-ID-04 | **Mitigated (P2)** |
 | T-ID-08 | I | Database dump yields working second factors | 1×3 | TOTP secrets Fernet-encrypted with a key outside the DB; recovery codes hashed | C-ID-04 | **Mitigated (P2)** |
-| T-ID-09 | E | Default or shared bootstrap credentials | 2×3 | No defaults: `create-admin` one-time password; admins invite, never set passwords | C-ID-08 | **Mitigated (P2)** |
+| T-ID-09 | E | Default or shared bootstrap credentials | 2×3 | No defaults: `create-admin` one-time password; administrators issue generated temporary passwords, never choose them | C-ID-08, C-ID-07 | **Mitigated (P2, P5)** |
 | T-ID-10 | D | Attacker locks out a known account by failing logins | 2×1 | Lockout is temporary; WAF/IP limits will throttle the attacker | C-ID-05, C-API-03 | **Accepted (interim)** until P5/P6 |
+| T-ID-11 | S | Account recovery hijacked: a reset or invitation link read from a compromised mailbox, or a self-service reset abused | 2×3 | No email path at all: accounts and forgotten passwords go through an administrator, who must be contacted (ADR-0028) | C-ID-07 | **Mitigated (P5)** |
+| T-ID-12 | I | A temporary password seen or kept while it is handed over | 2×2 | Generated, shown once and never stored in plain text, logged or audited; expires after 72 hours; replaced at first sign-in; MFA still required for privileged roles | C-ID-07, C-ID-08 | **Mitigated (P5)**; the hand-over channel is the owner's choice (residual risk) |
 | T-INP-01 | D | Non-ASCII digits pass `\d` validation and crash a comparison (500) | 2×1 | ASCII-only `[0-9]`; regression test | C-API-04 | **Mitigated (P2)** — found by the test suite |
 | T-AZ-01 | E | Role compared by identity (`is`) against a string from the DB, silently failing open or closed | 2×3 | Enum-typed column; `==` comparisons; authorization sweep | C-API-02 | **Mitigated (P2)** — found by the test suite |
 
@@ -243,6 +246,9 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   being written, that is during a deploy window (hourly, S3 Object Lock, ADR-0026). Locally the
   verify output's head hash is the only anchor.
 - One HS256 signing key without `kid`: rotation signs everyone out (ADR-0003 addendum).
+- Account recovery needs an administrator (ADR-0028): a user who forgets their password waits
+  for one, and the temporary password is only as private as the channel it is handed over in
+  (T-ID-12). Accepted: it expires in 72 hours and must be replaced at first sign-in.
 - Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per
   2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot
   controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.
