@@ -92,5 +92,6 @@ is encouraged; it can never touch a real record.
 ## Planned
 
 AI-assisted analysis that separates observed evidence from inference, with human approval for
-any proposed action (Phase 9); real AWS WAF logs as a live event source (Phase 5); a retention
+any proposed action (Phase 9); real AWS WAF blocks and certificate checks as live event sources
+(Phase 5, ADR-0029); a retention
 policy and export for closed incidents (Phase 12).

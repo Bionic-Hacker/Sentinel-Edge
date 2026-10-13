@@ -104,7 +104,7 @@ function SimulatedWaf({ canChange }: { canChange: boolean }) {
       </h2>
       <SimulatedBanner>
         {rules?.note ??
-          "Changing a rule here affects simulations only. Real AWS WAF rules change through Terraform (ADR-0008, Phase 5)."}
+          "Changing a rule here affects simulations only. Real AWS WAF rules change through Terraform (ADR-0008)."}
       </SimulatedBanner>
       {error && <FormError error={error} />}
       {rules && (

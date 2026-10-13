@@ -1,6 +1,6 @@
 # ADR-0027: The edge as built: CloudFront, a VPC origin, WAF, and the same headers as locally
 
-- **Status:** Accepted (built and tested without AWS; applied in the Phase 4–5 deploy window)
+- **Status:** Accepted (applied and verified in the Phase 4–5 deploy window, 12–13 October 2026)
 - **Date:** 2026-10-12
 - **Phase:** 5
 - **Decided by:** Bionic-Hacker (project owner)

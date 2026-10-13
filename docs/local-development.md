@@ -44,6 +44,20 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.9.0 (Phase 4) to v0.10.0 (Phase 5)
+
+```bash
+make migrate     # 0014 -> 0015 -> 0016
+```
+
+- `0015` drops the outbox and the reset-link tokens (ADR-0028): there is no email path any more.
+  Create users from Settings → Users, which shows a temporary password once; a forgotten password
+  is reset there too (**Reset password**). Anyone holding an unused invitation link needs a reset.
+  `make outbox` is gone.
+- `0016` adds a unique index for events read from AWS (ADR-0029). Locally there is no AWS edge:
+  the WAF page shows the simulated WAF, the Certificates page says there is nothing to read, and
+  the banner says the environment is local.
+
 ## Upgrading from v0.8.0 (Phase 3) to v0.9.0 (Phase 4)
 
 Phase 4 is the AWS workload ([aws-deploy-window.md](aws-deploy-window.md)); the local stack is

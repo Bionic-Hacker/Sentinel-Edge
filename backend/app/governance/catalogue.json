@@ -821,75 +821,129 @@
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "dns-query-logs.tftest.hcl",
+   "extensions": [],
+   "family": "DNS",
+   "implementation": "terraform/modules/dns-query-logs",
+   "layer": null,
+   "phase": 5,
+   "ref": "C-DNS-02",
+   "status": "implemented",
+   "title": "Route 53 query logging: every query for the platform's zone, kept a year in us-east-1; only this zone may write (aws:SourceArn)"
+  },
+  {
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make edge-check"
+    }
+   ],
+   "evidence_text": "edge.tftest.hcl; make edge-check (redirect, TLS 1.2 or later)",
    "extensions": [],
    "family": "EDGE",
-   "implementation": "",
+   "implementation": "terraform/modules/edge",
    "layer": "CDN / edge",
    "phase": 5,
    "ref": "C-EDGE-01",
-   "status": "planned",
-   "title": "CloudFront TLS policy TLSv1.2_2021, HTTP redirected (refused for /api/*), HSTS at the edge (modules/edge)"
+   "status": "implemented",
+   "title": "CloudFront TLS policy TLSv1.2_2021, HTTP redirected (refused for /api/*), HSTS at the edge; HTTP/2 and HTTP/3"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make edge-check"
+    }
+   ],
+   "evidence_text": "make edge-check (the ALB resolves only to private addresses and cannot be reached; no API under the distribution's own name)",
    "extensions": [],
    "family": "EDGE",
-   "implementation": "",
+   "implementation": "terraform/modules/edge, aws_vpc_security_group_ingress_rule.alb_from_cloudfront",
    "layer": "CDN / edge",
-   "phase": 4,
+   "phase": 5,
    "ref": "C-EDGE-02",
-   "status": "planned",
-   "title": "Private origin: CloudFront VPC origin to an internal ALB over HTTPS; the ALB admits only the VPC origin's security group (ADR-0001, ADR-0027)"
+   "status": "implemented",
+   "title": "Private origin: a CloudFront VPC origin to the internal ALB over HTTPS; the ALB admits only the VPC origin's security group (ADR-0001, ADR-0027)"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test",
+     "ref": "test_edge_headers_match_nginx"
+    },
+    {
+     "kind": "command",
+     "ref": "make edge-check"
+    }
+   ],
+   "evidence_text": "test_edge_headers_match_nginx; make edge-check (all nine headers identical)",
    "extensions": [],
    "family": "EDGE",
-   "implementation": "",
+   "implementation": "terraform/modules/edge, frontend/security-headers.conf",
    "layer": "CDN / edge",
    "phase": 5,
    "ref": "C-EDGE-03",
-   "status": "planned",
-   "title": "CloudFront response headers policy, identical to the local nginx headers (test_edge_headers_match_nginx)"
+   "status": "implemented",
+   "title": "CloudFront response-headers policy generated from the same headers as the local nginx; the API keeps its own stricter headers"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make spa-push"
+    }
+   ],
+   "evidence_text": "edge.tftest.hcl; make spa-push",
    "extensions": [],
    "family": "EDGE",
-   "implementation": "",
+   "implementation": "terraform/modules/edge, scripts/spa-push.sh",
    "layer": null,
    "phase": 5,
    "ref": "C-EDGE-04",
-   "status": "planned",
-   "title": "SPA bucket private, readable only by this distribution through Origin Access Control"
+   "status": "implemented",
+   "title": "SPA bucket private in the home Region, readable only by this distribution through Origin Access Control; published from a committed tree"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_aws_edge.py"
+    },
+    {
+     "kind": "frontend_test",
+     "ref": "secops.test.tsx"
+    }
+   ],
+   "evidence_text": "test_aws_edge.py, secops.test.tsx; 198 real blocks read in the window",
    "extensions": [],
    "family": "EDGE",
-   "implementation": "",
+   "implementation": "app/services/aws_edge.py, app/api/v1/edge.py, modules/ecs/iam.tf",
    "layer": null,
    "phase": 5,
    "ref": "C-EDGE-05",
-   "status": "planned",
-   "title": "Real AWS WAF blocks read from its log into security events (REAL_AWS, deduplicated, correlated); read-only access to one log group (app/services/aws_edge.py, ADR-0029)"
+   "status": "implemented",
+   "title": "Real AWS WAF blocks read from its log into security events every five minutes (REAL_AWS, deduplicated, correlated); read-only access to one log group"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_aws_edge.py"
+    },
+    {
+     "kind": "frontend_test",
+     "ref": "secops.test.tsx"
+    }
+   ],
+   "evidence_text": "test_aws_edge.py, secops.test.tsx; both certificates read in the window",
    "extensions": [],
    "family": "EDGE",
-   "implementation": "",
+   "implementation": "app/services/aws_edge.py, CertificatesPage.tsx",
    "layer": null,
    "phase": 5,
    "ref": "C-EDGE-06",
-   "status": "planned",
-   "title": "ACM certificates read live and checked every sync: expiry within 30 days, failed renewal or a bad status raises a certificate event (ADR-0029)"
+   "status": "implemented",
+   "title": "ACM certificates read live in both Regions and checked every sync: expiry within 30 days, failed renewal or a bad status raises a certificate event"
   },
   {
    "evidence": [
@@ -1967,52 +2021,57 @@
    "title": "SBOMs stored per scan and artifact with SHA-256; components searchable; CycloneDX download as an attachment"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make edge-check"
+    }
+   ],
+   "evidence_text": "waf.tftest.hcl; make edge-check (SQL injection and Log4j probes blocked)",
    "extensions": [],
    "family": "WAF",
-   "implementation": "",
+   "implementation": "terraform/modules/waf",
    "layer": "WAF",
    "phase": 5,
    "ref": "C-WAF-01",
-   "status": "planned",
-   "title": "AWS managed rule groups: IP reputation, core rule set, known bad inputs (Log4j), SQL injection (modules/waf)"
+   "status": "implemented",
+   "title": "AWS managed rule groups: IP reputation, core rule set, known bad inputs (Log4j), SQL injection"
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "waf.tftest.hcl",
    "extensions": [],
    "family": "WAF",
-   "implementation": "",
+   "implementation": "terraform/modules/waf",
    "layer": "WAF",
    "phase": 5,
    "ref": "C-WAF-02",
-   "status": "planned",
-   "title": "SentinelEdge's own WAF rules: a 64 KB body cap at the edge; WAF logs with Authorization and Cookie redacted"
+   "status": "implemented",
+   "title": "SentinelEdge's own WAF rules: a 64 KB body cap at the edge; WAF logs kept 30 days with Authorization and Cookie redacted"
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "waf.tftest.hcl",
    "extensions": [],
    "family": "WAF",
-   "implementation": "",
+   "implementation": "terraform/modules/waf",
    "layer": "WAF",
    "phase": 5,
    "ref": "C-WAF-03",
-   "status": "planned",
+   "status": "implemented",
    "title": "Rate-based WAF rules per IP: /api/v1/auth/* 100 and /api/* 2000 per 5 minutes"
   },
   {
    "evidence": [],
-   "evidence_text": "",
+   "evidence_text": "ecs.tftest.hcl (the_api_reads_waf_blocks_and_certificates_in_aws)",
    "extensions": [],
    "family": "WAF",
-   "implementation": "",
+   "implementation": "terraform/modules/waf, modules/ecs/iam.tf",
    "layer": "WAF",
    "phase": 5,
    "ref": "C-WAF-04",
-   "status": "planned",
-   "title": "WAF changes only through reviewed Terraform; the application has no WAF permissions at all (ADR-0008)"
+   "status": "implemented",
+   "title": "WAF changes only through reviewed Terraform; the application can read the WAF log and nothing else of WAF (ADR-0008, ADR-0029)"
   },
   {
    "evidence": [
@@ -2073,7 +2132,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "4798a585491c44ecfa4a8a3d74092648fab9a2490266338a167d77dc717131b6",
+ "digest": "78145b171530dff7f3fcf27531cc6b7ad84418128d9d9126b94213f585a71591",
  "format": 1,
  "model": {
   "elements": [
@@ -2401,7 +2460,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Single-maintainer project: separation of duties is enforced by role checks and a database CHECK, so it needs two lead accounts, but both belong to the same person. Accepted for a portfolio.",
     "kind": "residual_risk",
@@ -2410,16 +2469,16 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not be exposed. Closed in Phase 5.",
+    "description": "The edge exists only during a deploy window: between windows nothing is served, and the local stack is bound to 127.0.0.1 and must not be exposed.",
     "kind": "residual_risk",
-    "name": "No edge protection yet (WAF, TLS at the edge): the local stack is bound to 127.0.0.1 and must not be exposed",
+    "name": "The edge exists only during a deploy window: between windows nothing is served, and the local stack is bound to 127.0.0.1 and must not be exposed.",
     "ref": "RR-2"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "The AWS account's guardrail policies (SCPs) are written by AWS and cannot be read or changed here. They deny IAM Access Analyzer and OIDC identity providers; anything else they deny is found when a plan is applied. Accepted: it is the price of a spend-capped, root-less account.",
     "kind": "residual_risk",
@@ -2428,7 +2487,7 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "No keyless route from GitHub Actions into the account (OIDC denied): deployments run from the owner's machine with a 12-hour aws login session. Phase 11 decides how CI deploys.",
     "kind": "residual_risk",
@@ -2437,201 +2496,192 @@
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
-    },
-    "description": "The platform has no domain yet: both free subdomain services tried in Phase 3 (is-a.dev, deSEC's dedyn.io) suspended new names. The domain is chosen before Phase 5; until then no certificate is requested and nothing is served.",
-    "kind": "residual_risk",
-    "name": "The platform has no domain yet: both free subdomain services tried in Phase 3 (is-a.dev, deSEC's dedyn.io) suspended new names",
-    "ref": "RR-5"
-   },
-   {
-    "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "One NAT for both zones in dev: a zone outage takes egress with it. Accepted for a demo.",
     "kind": "residual_risk",
     "name": "One NAT for both zones in dev: a zone outage takes egress with it",
-    "ref": "RR-6"
+    "ref": "RR-5"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Audit-log tail deletion by someone with table-owner rights is detectable only while anchors are being written, that is during a deploy window (hourly, S3 Object Lock, ADR-0026). Locally the verify output's head hash is the only anchor.",
     "kind": "residual_risk",
     "name": "Audit-log tail deletion by someone with table-owner rights is detectable only while anchors are being written, that is during a deploy window (hourly, S3 Object Lock, ADR-0026)",
-    "ref": "RR-7"
+    "ref": "RR-6"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "One HS256 signing key without kid: rotation signs everyone out (ADR-0003 addendum).",
     "kind": "residual_risk",
     "name": "One HS256 signing key without kid: rotation signs everyone out (ADR-0003 addendum).",
-    "ref": "RR-8"
+    "ref": "RR-7"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Account recovery needs an administrator (ADR-0028): a user who forgets their password waits for one, and the temporary password is only as private as the channel it is handed over in (T-ID-12). Accepted: it expires in 72 hours and must be replaced at first sign-in.",
     "kind": "residual_risk",
     "name": "Account recovery needs an administrator (ADR-0028): a user who forgets their password waits for one, and the temporary password is only as private as the channel it is handed over in (T-ID-12)",
+    "ref": "RR-8"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 5)"
+    },
+    "description": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes) and at the edge (100 sign-in requests per 5 minutes), but a distributed attacker can still trigger the per-account lockout. WAF Bot Control ($10 a month plus requests) is not adopted. Accepted: lockout expires after 15 minutes.",
+    "kind": "residual_risk",
+    "name": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes) and at the edge (100 sign-in requests per 5 minutes), but a distributed attacker can still tri",
     "ref": "RR-9"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
-    },
-    "description": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout. Edge bot controls (Phase 5) reduce it further. Accepted: lockout expires after 15 minutes.",
-    "kind": "residual_risk",
-    "name": "Deliberate lockout of a known account (T-ID-10) is now bounded per IP (20 sign-in attempts per 2 minutes), but a distributed attacker can still trigger the per-account lockout",
-    "ref": "RR-10"
-   },
-   {
-    "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.",
     "kind": "residual_risk",
     "name": "Rate-limit and metrics writes add database load per request (ADR-0017)",
-    "ref": "RR-11"
+    "ref": "RR-10"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
     "kind": "residual_risk",
     "name": "Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).",
-    "ref": "RR-12"
+    "ref": "RR-11"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.",
     "kind": "residual_risk",
     "name": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after ",
-    "ref": "RR-13"
+    "ref": "RR-12"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
     "kind": "residual_risk",
     "name": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
+    "ref": "RR-13"
+   },
+   {
+    "attributes": {
+     "heading": "5. Residual risk (after Phase 5)"
+    },
+    "description": "HTTP analysis is detect-only. In AWS, WAF blocks known injection payloads at the edge; locally and between windows, parameterised queries and validation are the protection, and detection records it.",
+    "kind": "residual_risk",
+    "name": "HTTP analysis is detect-only",
     "ref": "RR-14"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
-    },
-    "description": "HTTP analysis is detect-only. Until AWS WAF (Phase 5), nothing blocks an injection payload at the edge; parameterised queries and validation remain the protection, and detection records it.",
-    "kind": "residual_risk",
-    "name": "HTTP analysis is detect-only",
-    "ref": "RR-15"
-   },
-   {
-    "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "On one machine every request comes from one address, so local detections group into a single incident. Expected; not a weakness of the deployed design.",
     "kind": "residual_risk",
     "name": "On one machine every request comes from one address, so local detections group into a single incident",
-    "ref": "RR-16"
+    "ref": "RR-15"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) is planned with Phase 12 hardening.",
     "kind": "residual_risk",
     "name": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8)",
-    "ref": "RR-17"
+    "ref": "RR-16"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks). Between a decision and the next generation the gate uses the previous file; run it after every scan-finding decision. Finding-level risk acceptances (Phase 8) and exceptions remain two records with different scopes.",
     "kind": "residual_risk",
     "name": "The scan gate reads a committed file (scanning/accepted-findings.toml) generated from the approved exceptions (make accepted-risks)",
-    "ref": "RR-18"
+    "ref": "RR-17"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model. Archive is offered first.",
     "kind": "residual_risk",
     "name": "Permanently deleting an application threat model removes its rows; the audit log keeps a summary (counts and the first 50 threats), not the whole model",
-    "ref": "RR-19"
+    "ref": "RR-18"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded. It is a signal for the reviewer, not a defence; the defences are delimiting, the verbatim evidence contract and tighten-only proposals with human approval.",
     "kind": "residual_risk",
     "name": "Prompt-risk scoring is a set of patterns: it names likely injection attempts but can be evaded",
-    "ref": "RR-20"
+    "ref": "RR-19"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "A model can still be wrong within the contract: a correct quote with a misleading inference. Inference is labelled, the platform's own verdict is never changed, and nothing runs without a lead's approval.",
     "kind": "residual_risk",
     "name": "A model can still be wrong within the contract: a correct quote with a misleading inference",
-    "ref": "RR-21"
+    "ref": "RR-20"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "The offline analyser is deterministic and not a model; it proves the engine, not the quality of a real model's answers. Bedrock answers vary between runs (temperature 0 narrows, not removes).",
     "kind": "residual_risk",
     "name": "The offline analyser is deterministic and not a model; it proves the engine, not the quality of a real model's answers",
-    "ref": "RR-22"
+    "ref": "RR-21"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Limits are per day and counted from stored analyses; a burst within the limit is allowed. Bedrock spend is also bounded by the AWS budget alert the setup asks for.",
     "kind": "residual_risk",
     "name": "Limits are per day and counted from stored analyses; a burst within the limit is allowed",
-    "ref": "RR-23"
+    "ref": "RR-22"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
     "kind": "residual_risk",
     "name": "The posture score is computed on request and snapshotted once a day on the first read; with no scheduler, a day nobody opens it has no snapshot.",
-    "ref": "RR-24"
+    "ref": "RR-23"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
     "description": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
     "kind": "residual_risk",
     "name": "Scans are imported by an operator (make scan-import); CI results reach SentinelEdge only when someone imports the CI artifact, until a deployed API can receive them (Phase 11).",
-    "ref": "RR-25"
+    "ref": "RR-24"
    },
    {
     "attributes": {
-     "heading": "5. Residual risk (after Phase 3)"
+     "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
+    "description": "DAST covers the local stack only. The deployed edge was proven with make edge-check; a ZAP scan of it moves to the Phase 12 deploy window.",
     "kind": "residual_risk",
-    "name": "DAST covers the local stack only: edge behaviour (WAF, TLS) is scanned once it exists (Phase 5).",
-    "ref": "RR-26"
+    "name": "DAST covers the local stack only",
+    "ref": "RR-25"
    }
   ],
   "method": "stride",
@@ -2653,8 +2703,8 @@
      5
     ],
     "ref": "T-EDGE-01",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): Shield Standard, WAF rate rules and the app limiter; verified in the deploy window (make edge-check)",
     "stride": "D",
     "title": "Volumetric / L7 flood"
    },
@@ -2672,11 +2722,12 @@
     "mitigation": "TLSv1.2_2021 viewer policy, HTTP redirected (refused for the API), HSTS two years; .dev is HSTS-preloaded",
     "owasp": "",
     "phases": [
+     1,
      5
     ],
     "ref": "T-EDGE-02",
-    "status": "partly_mitigated",
-    "status_text": "HSTS mitigated (app); edge Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, P5): HSTS in the app; TLSv1.2_2021 and redirects at the edge, verified in the deploy window (make edge-check)",
     "stride": "T/I",
     "title": "TLS downgrade or weak ciphers"
    },
@@ -2693,11 +2744,12 @@
     "mitigation": "Internal ALB with no public address; its only ingress is CloudFront's VPC-origin security group (ADR-0001, ADR-0026, ADR-0027); make edge-check proves it unreachable",
     "owasp": "",
     "phases": [
+     4,
      5
     ],
     "ref": "T-EDGE-03",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P4, P5): the ALB resolves only to private addresses and is unreachable from the internet, verified in the deploy window (make edge-check)",
     "stride": "E",
     "title": "Origin bypass around CloudFront/WAF"
    },
@@ -2720,8 +2772,8 @@
      5
     ],
     "ref": "T-EDGE-04",
-    "status": "partly_mitigated",
-    "status_text": "Partly mitigated (P1 headers + Host); edge Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P1, P5): /api/* never cached, Host allow-list, hashed assets only long-cached; verified in the deploy window (make edge-check)",
     "stride": "T",
     "title": "Cache poisoning / cache deception"
    },
@@ -2767,7 +2819,7 @@
     ],
     "ref": "T-EDGE-06",
     "status": "mitigated",
-    "status_text": "Mitigated (P1, local); CloudFront Planned (P5): built, verified in the deploy window",
+    "status_text": "Mitigated (P1, P5): CloudFront's headers identical to nginx's, verified in the deploy window (make edge-check)",
     "stride": "T",
     "title": "Clickjacking, MIME sniffing, XSS via missing headers"
    },
@@ -2787,8 +2839,8 @@
      5
     ],
     "ref": "T-EDGE-07",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): OAC, public access blocked; verified in the deploy window",
     "stride": "I",
     "title": "The SPA bucket read directly, around CloudFront and WAF"
    },
@@ -2809,8 +2861,8 @@
      5
     ],
     "ref": "T-EDGE-08",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): no API under the distribution's own name, verified in the deploy window (make edge-check)",
     "stride": "S",
     "title": "The API reached through the distribution's own *.cloudfront.net name, outside the platform's origin and cookie scope"
    },
@@ -2853,8 +2905,8 @@
      5
     ],
     "ref": "T-EDGE-10",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): both certificates read and checked in the deploy window",
     "stride": "D",
     "title": "An edge or origin certificate expires or fails to renew unnoticed"
    },
@@ -2970,7 +3022,7 @@
     ],
     "ref": "T-ID-01",
     "status": "mitigated",
-    "status_text": "Mitigated (P2, P6) and detected (P7): lockout, MFA, uniform errors, per-IP sign-in limits; COR-001, COR-002 and COR-007 open incidents; WAF rate rule P5",
+    "status_text": "Mitigated (P2, P5, P6) and detected (P7): lockout, MFA, uniform errors, per-IP sign-in limits, the WAF sign-in rate rule; COR-001, COR-002 and COR-007 open incidents",
     "stride": "S",
     "title": "Credential stuffing / brute force"
    },
@@ -3145,8 +3197,8 @@
      6
     ],
     "ref": "T-API-04",
-    "status": "partly_mitigated",
-    "status_text": "Mitigated in app (P6): token buckets per IP and account, page caps, body limit, statement timeout; WAF rate rules P5",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5, P6): token buckets per IP and account, page caps, body limit, statement timeout; WAF rate rules at the edge",
     "stride": "D",
     "title": "Unrestricted resource consumption"
    },
@@ -3213,8 +3265,8 @@
      7
     ],
     "ref": "T-API-07",
-    "status": "partly_mitigated",
-    "status_text": "Mitigated in app (P2), detected (P7): ORM only, validated query params; 17 detect-only HTTP rules and COR-003; WAF P5 (simulated WAF in P7)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P2, P5), detected (P7): ORM only, validated query params; AWS WAF's SQL injection rules block at the edge (verified); 17 detect-only HTTP rules and COR-003 behind it",
     "stride": "T",
     "title": "Injection (SQL, command)"
    },
@@ -3452,7 +3504,7 @@
     ],
     "ref": "T-ID-10",
     "status": "accepted",
-    "status_text": "Accepted (interim) until P5/P6",
+    "status_text": "Accepted: per-IP sign-in limits (P6) and the WAF sign-in rate rule (P5) bound it; a distributed attacker can still trigger the 15-minute lockout. WAF Bot Control not adopted (cost, ADR-0027)",
     "stride": "D",
     "title": "Attacker locks out a known account by failing logins"
    },
@@ -4079,7 +4131,7 @@
     ],
     "ref": "T-GOV-08",
     "status": "mitigated",
-    "status_text": "Mitigated (P10): simulated WAF only; real WAF P5",
+    "status_text": "Mitigated (P5, P10): the simulated WAF changes simulations only; the real one only through reviewed Terraform",
     "stride": "E",
     "title": "A change request used to change the real WAF outside Terraform"
    },
@@ -4526,8 +4578,8 @@
      5
     ],
     "ref": "T-SEC-03",
-    "status": "planned",
-    "status_text": "Planned (P5): built and tested, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): the administrator's one-time password read once from Secrets Manager in the deploy window, never in a log",
     "stride": "I",
     "title": "A new administrator's one-time password left in a task's log (kept a year)"
    },
@@ -4750,7 +4802,8 @@
      "TB8"
     ],
     "controls": [
-     "C-DNS-01"
+     "C-DNS-01",
+     "C-DNS-02"
     ],
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
@@ -4758,11 +4811,12 @@
     "mitigation": "CAA allows only Amazon and no wildcards; exact-name certificates; a domain held by the owner; the zone is prevent_destroy and the teardown removes the delegation first",
     "owasp": "",
     "phases": [
-     3
+     3,
+     5
     ],
     "ref": "T-DNS-01",
     "status": "mitigated",
-    "status_text": "Mitigated (P3)",
+    "status_text": "Mitigated (P3, P5): CAA and records as code; every query logged (P5)",
     "stride": "S",
     "title": "A certificate issued for the platform's name by someone else, or the name taken over (including through a delegation left pointing at a deleted Route 53 zone)"
    },
@@ -4786,8 +4840,8 @@
      5
     ],
     "ref": "T-WAF-01",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): Terraform-only, from reviewed plans; verified in the deploy window",
     "stride": "T",
     "title": "WAF rule disabled without review"
    },
@@ -4810,8 +4864,8 @@
      5
     ],
     "ref": "T-WAF-02",
-    "status": "planned",
-    "status_text": "Planned (P5): built, verified in the deploy window",
+    "status": "mitigated",
+    "status_text": "Mitigated (P5): the task role reads the WAF log and nothing else of WAF (ADR-0029)",
     "stride": "E",
     "title": "Compromised app used to weaken WAF"
    },
@@ -4865,7 +4919,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.12"
+  "version": "0.13"
  },
  "requirements": [
   {

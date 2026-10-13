@@ -18,6 +18,7 @@ from sqlalchemy import and_, case, func, select
 from sqlalchemy.orm import Session
 
 from app.core.clock import utcnow
+from app.core.provenance import Provenance
 from app.models.api_metrics import UNMATCHED_ROUTE, ApiEndpointStat
 from app.models.incident import (
     OPEN_STATUSES,
@@ -354,7 +355,15 @@ class OverviewService:
             requests=requests,
             allowed=requests - client - server,
             rejected=rejected,
-            blocked_at_edge=0,
+            # Real AWS WAF blocks never reach the API's counters; they come from the WAF log.
+            blocked_at_edge=self.db.scalar(
+                select(func.count()).where(
+                    E.source == EventSource.WAF,
+                    E.provenance == Provenance.REAL_AWS,
+                    E.occurred_at >= since,
+                )
+            )
+            or 0,
             errors=server,
             unknown_paths=unknown,
             by_method=dict(by_method),
@@ -444,6 +453,50 @@ class OverviewService:
             values={**values, "fixable_critical_high": blocking},
         )
 
+    def _aws_waf_control(self, in_view: Any) -> Control:
+        """Real AWS WAF blocks read back from its log (ADR-0029); only in a deploy window."""
+        settings = self.app.state.settings
+        if not settings.waf_log_group:
+            return Control(
+                status="not_connected",
+                summary="AWS WAF runs only in a deploy window; a simulated WAF runs everywhere",
+                values={},
+            )
+        blocked = sum(
+            self._count(
+                in_view, E.source == EventSource.WAF, E.provenance == Provenance.REAL_AWS
+            ).values()
+        )
+        return Control(
+            status="measured",
+            summary=f"{blocked} request(s) blocked by AWS WAF in this window",
+            values={"blocked": blocked},
+        )
+
+    def _certificate_control(self, in_view: Any) -> Control:
+        settings = self.app.state.settings
+        if not settings.certificate_regions:
+            return Control(
+                status="not_connected",
+                summary="ACM certificates are read only in a deploy window",
+                values={},
+            )
+        alerts = sum(
+            self._count(
+                in_view,
+                E.source == EventSource.CERTIFICATE,
+                E.provenance == Provenance.REAL_AWS,
+            ).values()
+        )
+        return Control(
+            status="measured",
+            summary=(
+                f"Checked every sync in {', '.join(settings.certificate_regions)}; "
+                f"{alerts} certificate event(s) in this window"
+            ),
+            values={"events": alerts},
+        )
+
     def _count(self, *where: Any) -> dict[str, int]:
         rows = self.db.execute(
             select(E.severity, func.count()).where(*where).group_by(E.severity)
@@ -476,16 +529,8 @@ class OverviewService:
                         "throttled": inventory.throttled,
                     },
                 ),
-                "waf": Control(
-                    status="planned",
-                    summary="AWS WAF arrives in Phase 5; a simulated WAF runs in the simulator",
-                    values={},
-                ),
-                "certificates": Control(
-                    status="planned",
-                    summary="ACM certificate monitoring arrives in Phase 5",
-                    values={},
-                ),
+                "waf": self._aws_waf_control(in_view),
+                "certificates": self._certificate_control(in_view),
                 "vulnerabilities": self._vulnerability_control(),
             }
         modes = waf_modes(self.db)

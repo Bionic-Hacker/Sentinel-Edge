@@ -73,13 +73,31 @@ describe("dashboard", () => {
     expect(screen.getByText(/Phase 9, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 3, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 4, complete/)).toBeInTheDocument();
-    expect(screen.getByText(/Phase 5, next/).closest("li")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/Phase 5, complete/)).toBeInTheDocument();
+    expect(screen.getByText(/Phase 11, next/).closest("li")).toHaveAttribute("aria-current", "step");
+  });
+});
+
+describe("module pages once built", () => {
+  it("say where a built module's data lives instead of promising it", async () => {
+    const built = ["aws.edge", "aws.network", "platform.security_headers", "platform.client_ip"].map((key) => ({
+      key,
+      name: key,
+      area: "Edge",
+      provenance: key.startsWith("aws.") ? "REAL_AWS" : "LOCAL",
+      status: "implemented",
+      phase: 5,
+      note: "Built.",
+    })) as unknown as typeof CAPS;
+    await renderAt("/edge", built);
+    expect(await screen.findByText(/runs in AWS only during a deploy window/)).toBeInTheDocument();
+    expect(screen.queryByText(/shows no data until then/)).not.toBeInTheDocument();
   });
 });
 
 describe("module pages", () => {
   it("show only the module's own capabilities and no fabricated data", async () => {
-    // Edge Security is still a placeholder (Phase 5); WAF, Threats and the rest now have pages.
+    // A module whose capabilities are not all built says so; WAF, Threats and the rest have pages.
     const edge = {
       key: "aws.edge",
       name: "CloudFront edge",

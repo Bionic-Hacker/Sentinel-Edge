@@ -9,6 +9,8 @@ export interface ModuleDef {
   purpose: string;
   phase: number;
   capabilityKeys: readonly string[];
+  /** Once the module's phase has shipped and it has no page of its own: where its data lives. */
+  builtNote?: string;
 }
 
 export const MODULES: readonly ModuleDef[] = [
@@ -59,6 +61,8 @@ export const MODULES: readonly ModuleDef[] = [
     purpose: "CloudFront distribution, origin protection, TLS policy, and security headers.",
     phase: 5,
     capabilityKeys: ["aws.edge", "aws.network", "platform.security_headers", "platform.client_ip"],
+    builtNote:
+      "The edge runs in AWS only during a deploy window. What it blocks is on the WAF and Threats pages, its certificates on the Certificates page, and an edge check proves it from the internet (make edge-check).",
   },
   {
     path: "/threats",

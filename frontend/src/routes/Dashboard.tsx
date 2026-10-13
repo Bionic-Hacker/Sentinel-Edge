@@ -326,8 +326,8 @@ function TrafficPanel({ data }: { data: Overview }) {
         />
         <StatTile
           label="Blocked at the edge"
-          value={live ? "–" : t.blocked_at_edge.toLocaleString()}
-          note={live ? "AWS WAF arrives in Phase 5" : "By the simulated WAF"}
+          value={t.blocked_at_edge.toLocaleString()}
+          note={live ? "By AWS WAF (deploy window only)" : "By the simulated WAF"}
         />
         <StatTile
           label={live ? "Unknown-path requests" : "Server errors"}
@@ -443,7 +443,7 @@ const PHASE_NAMES: Record<number, string> = {
 // Local-first order (ADR-0016): everything that runs locally is built first; the AWS phases are
 // grouped near the end so cloud resources exist for as short a time as possible.
 const BUILD_ORDER = [1, 2, 6, 7, 8, 10, 9, 3, 4, 5, 11, 12];
-const COMPLETE = new Set([1, 2, 3, 4, 6, 7, 8, 9, 10]);
+const COMPLETE = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 const NEXT = BUILD_ORDER.find((n) => !COMPLETE.has(n));
 
 function PlatformStatus() {

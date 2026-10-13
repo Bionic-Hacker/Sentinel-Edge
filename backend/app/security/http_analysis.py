@@ -4,7 +4,7 @@ This is a DETECTION control, not a blocking one. It inspects the parts of a requ
 controls (path, query string, JSON body, User-Agent, Referer) for signatures of SQL injection,
 XSS, path traversal, command injection, SSRF, known scanners and reconnaissance, and reports
 what it found. Requests are still stopped by the controls that already exist (strict request
-models, parameterized queries, output encoding, authorization) and, from Phase 5, by AWS WAF at
+models, parameterized queries, output encoding, authorization) and, in AWS, by AWS WAF at
 the edge. Detection tells the security team that someone tried.
 
 Design rules:

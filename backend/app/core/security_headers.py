@@ -1,7 +1,7 @@
 """HTTP security headers applied to every API response.
 
 These mirror — and are intentionally duplicated by — the CloudFront response-headers policy
-planned for Phase 5 (ADR-0011). Duplication is deliberate defense in depth: the API stays
+in Phase 5 (ADR-0011). Duplication is deliberate defense in depth: the API stays
 safe if it is ever reached without the edge (local dev, misrouted traffic, origin bypass).
 
 The API serves JSON only, so its CSP is the most restrictive possible. The SPA's CSP is set

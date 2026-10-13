@@ -1,6 +1,6 @@
 # ADR-0026: The AWS workload as built: one switch, secrets outside state, least privilege per task
 
-- **Status:** Accepted (built and tested without AWS; applied in the Phase 4–5 deploy window)
+- **Status:** Accepted (applied and verified in the Phase 4–5 deploy window, 12–13 October 2026)
 - **Date:** 2026-10-12
 - **Phase:** 4
 - **Decided by:** Bionic-Hacker (project owner)

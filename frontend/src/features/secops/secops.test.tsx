@@ -137,7 +137,7 @@ function overview(view: "live" | "simulated", over: Partial<Overview> = {}): Ove
     },
     controls: {
       detection: { status: "measured", summary: "17 HTTP rules and 7 correlation rules active", values: { rules: 24 } },
-      waf: { status: live ? "planned" : "simulated", summary: "AWS WAF arrives in Phase 5", values: {} },
+      waf: { status: live ? "measured" : "simulated", summary: "198 request(s) blocked by AWS WAF in this window", values: {} },
     },
     ...over,
   };

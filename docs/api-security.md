@@ -53,11 +53,11 @@ days are pruned.
 | API1 Broken Object Level Authorization | Mitigated | Service-layer ownership checks (users, applications, incidents); others' records return 404; denials audited; repeated denials detected (COR-004) |
 | API2 Broken Authentication | Mitigated | Argon2id, MFA, short-lived tokens checked per request, refresh-token reuse detection, lockout, per-IP sign-in limits; stuffing detected (COR-001, COR-007) |
 | API3 Broken Object Property Level Authorization | Mitigated | Response models allow-list fields; request models forbid unknown fields; route-table sweeps enforce both |
-| API4 Unrestricted Resource Consumption | Partial | Token buckets per IP and account, page-size caps, 1 MB body limit, 15 s statement timeout. WAF rate rules in Phase 5 |
+| API4 Unrestricted Resource Consumption | Mitigated | AWS WAF rate rules per IP at the edge (sign-in 100, API 2000 per 5 minutes); token buckets per IP and account, page-size caps, 1 MB body limit, 15 s statement timeout |
 | API5 Broken Function Level Authorization | Mitigated | Roles declared on every route; sweep as every role |
-| API6 Unrestricted Access to Sensitive Business Flows | Partial | Sign-in, MFA, recovery and invitations rate limited; no account enumeration. WAF Bot Control in Phase 5 |
+| API6 Unrestricted Access to Sensitive Business Flows | Partial | Sign-in and MFA rate limited in the app and at the edge; no account enumeration; no self-service recovery or invitations (ADR-0028). WAF Bot Control not adopted (cost) |
 | API7 Server Side Request Forgery | Not exposed | No endpoint fetches user URLs; outbound guard ready for Phase 9 |
-| API8 Security Misconfiguration | Partial | Headers and CSP everywhere, Host allow-list, generic errors, docs off when deployed, hardened containers. Edge TLS in Phase 5 |
+| API8 Security Misconfiguration | Mitigated | TLS 1.2+ and HSTS at CloudFront; headers and CSP everywhere, identical at the edge; Host allow-list, generic errors, docs off when deployed, hardened containers |
 | API9 Improper Inventory Management | Mitigated | Inventory generated from the route table; registry must match; probes counted |
 | API10 Unsafe Consumption of APIs | Not exposed | No third-party APIs consumed; Bedrock output contract in Phase 9 (ADR-0007) |
 

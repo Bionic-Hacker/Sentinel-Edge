@@ -98,8 +98,9 @@ COVERAGE: tuple[Coverage, ...] = (
     ),
     Coverage(
         OwaspApi.API4,
-        CoverageStatus.PARTIAL,
+        CoverageStatus.MITIGATED,
         (
+            "AWS WAF rate-based rules per IP at the edge in AWS: sign-in 100, API 2000 per 5 min",
             "Token-bucket rate limits on every endpoint, per IP and per account",
             "Page-size caps on list endpoints; 1 MB request body limit at the proxy",
             "15-second database statement timeout for the API role",
@@ -111,7 +112,6 @@ COVERAGE: tuple[Coverage, ...] = (
             f"{T_RL}::test_user_limit_follows_the_account_across_ip_addresses",
             f"{T_USERS}::test_audit_query_parameters_validated",
         ),
-        planned="AWS WAF rate-based rules absorb volume at the edge (Phase 5)",
     ),
     Coverage(
         OwaspApi.API5,
@@ -131,15 +131,16 @@ COVERAGE: tuple[Coverage, ...] = (
         OwaspApi.API6,
         CoverageStatus.PARTIAL,
         (
-            "Sign-in, MFA, password recovery and invitations are rate limited per IP or account",
-            "Recovery never reveals whether an account exists",
+            "Sign-in and MFA are rate limited per IP and account, and at the edge by AWS WAF",
+            "No self-service recovery or invitation flow: an administrator issues temporary "
+            "passwords (ADR-0028), so no public endpoint takes an email address but sign-in",
             "Throttled sign-ins are rejected before any password check",
         ),
         (
             f"{T_RL}::test_throttled_logins_do_no_password_work",
             f"{T_RL}::test_a_flood_is_audited_once_not_per_request",
         ),
-        planned="AWS WAF Bot Control and CAPTCHA challenges at the edge (Phase 5)",
+        planned="AWS WAF Bot Control and CAPTCHA were considered and not adopted (cost)",
     ),
     Coverage(
         OwaspApi.API7,
@@ -157,8 +158,9 @@ COVERAGE: tuple[Coverage, ...] = (
     ),
     Coverage(
         OwaspApi.API8,
-        CoverageStatus.PARTIAL,
+        CoverageStatus.MITIGATED,
         (
+            "TLS 1.2+ and HSTS at CloudFront with ACM certificates; headers identical at the edge",
             "Strict security headers and CSP on every response, including errors",
             "Host-header allow-list; generic errors with correlation IDs, no stack traces",
             "API docs disabled outside local; insecure settings refused when deployed",
@@ -169,7 +171,6 @@ COVERAGE: tuple[Coverage, ...] = (
             "tests/security/test_trusted_host.py::test_unexpected_host_rejected",
             "tests/security/test_error_handling.py::test_unhandled_exception_returns_generic_envelope",
         ),
-        planned="TLS 1.2+ policy and HSTS at CloudFront with ACM certificates (Phase 5)",
     ),
     Coverage(
         OwaspApi.API9,
