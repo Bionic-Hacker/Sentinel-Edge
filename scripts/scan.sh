@@ -189,7 +189,9 @@ gate() {
   [[ " ${steps[*]} " == *" dast "* ]] && expect+=(zap-baseline zap-api)
   local flags=()
   for name in "${expect[@]}"; do flags+=(--expect "$name.json"); done
+  # SCAN_BLOCK_AT: critical, high (default) or medium; the gate prints any non-default threshold.
   (cd backend && "$py" -m app.scanning.gate "$OUT" --root "$ROOT" "${flags[@]}" \
+     --block-at "${SCAN_BLOCK_AT:-high}" \
      --accepted "$ROOT/scanning/accepted-findings.toml" --json "$OUT/findings.json")
 }
 

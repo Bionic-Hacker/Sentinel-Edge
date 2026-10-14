@@ -6,9 +6,8 @@ import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-# Most to least severe. The gate blocks on the first two.
+# Most to least severe. By default the gate blocks on the first two (configurable, gate.py).
 SEVERITIES: tuple[str, ...] = ("critical", "high", "medium", "low", "info")
-BLOCKING_SEVERITIES = frozenset({"critical", "high"})
 
 # What kind of scan found it (spec §19).
 CATEGORIES: tuple[str, ...] = ("sast", "sca", "secret", "container", "iac", "dast")

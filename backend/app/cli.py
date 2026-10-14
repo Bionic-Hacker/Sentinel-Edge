@@ -25,6 +25,7 @@ from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import reports
 from app.ai import contract, guardrails
 from app.ai.contract import ContractError
 from app.ai.guardrails import AnalysisInput
@@ -479,6 +480,10 @@ def build_parser() -> argparse.ArgumentParser:
         "audit-anchor", help="anchor the audit chain's head in S3 Object Lock, or check it"
     )
     anchor.add_argument("action", choices=["export", "check"])
+    report = commands.add_parser("report", help="print a security report (read-only)")
+    report.add_argument("kind", choices=reports.KINDS)
+    report.add_argument("--hours", type=int, default=24, choices=range(1, 169), metavar="1..168")
+    report.add_argument("--format", choices=["text", "json"], default="text")
     return parser
 
 
@@ -521,6 +526,10 @@ def main(
             if args.command == "export-accepted-risks":
                 out.write(accepted_risks_toml(db))
                 db.commit()  # expiries found on the way are recorded
+                return 0
+            if args.command == "report":
+                reports.emit(reports.build(args.kind, db, settings, args.hours), args.format, out)
+                db.commit()  # posture may take the day's automatic snapshot
                 return 0
             if args.command == "prune-rate-limits":
                 removed = RateLimiter(build_session_factory(engine)).prune()

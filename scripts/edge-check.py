@@ -22,17 +22,47 @@ from __future__ import annotations
 import argparse
 import http.client
 import ipaddress
+import json
 import re
 import socket
 import ssl
 import sys
 from pathlib import Path
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
+from urllib.request import urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 HEADERS_FILE = ROOT / "frontend" / "security-headers.conf"
 UA = "SentinelEdge-edge-check/1"
 failures = 0
+
+
+DOH = "https://dns.google/resolve"
+
+
+def resolve(name: str) -> tuple[set[str], str]:
+    """The name's addresses, and how they were found.
+
+    Many home routers and filtering resolvers drop DNS answers that point at private addresses
+    (DNS rebinding protection), so an internal ALB can look as if it does not exist. When the
+    local resolver returns nothing, ask Google's DNS-over-HTTPS service instead: the question is
+    what the public DNS says, not what this network lets through.
+    """
+    try:
+        found = {i[4][0] for i in socket.getaddrinfo(name, 443, proto=socket.IPPROTO_TCP)}
+    except socket.gaierror:
+        found = set()
+    if found:
+        return found, "local resolver"
+    url = f"{DOH}?{urlencode({'name': name, 'type': 'A'})}"
+    try:
+        # A fixed https:// URL built above; no caller-supplied scheme can reach urlopen.
+        with urlopen(url, timeout=10) as response:  # noqa: S310
+            answers = json.load(response).get("Answer", [])
+    except (OSError, ValueError):
+        return set(), "no answer (local resolver and DNS-over-HTTPS)"
+    found = {a["data"] for a in answers if a.get("type") == 1}
+    return found, "DNS-over-HTTPS (the local resolver hid it)"
 
 
 def check(label: str, ok: bool, detail: str = "") -> None:
@@ -133,16 +163,11 @@ def main() -> int:
     check("a Log4j (JNDI) probe is blocked at the edge", status == 403, f"HTTP {status}")
 
     print("Private origin")
-    try:
-        addresses = {
-            info[4][0] for info in socket.getaddrinfo(args.alb, 443, proto=socket.IPPROTO_TCP)
-        }
-    except socket.gaierror:
-        addresses = set()
+    addresses, source = resolve(args.alb)
     check(
         "the ALB resolves only to private addresses",
         bool(addresses) and all(ipaddress.ip_address(a).is_private for a in addresses),
-        ", ".join(sorted(addresses)),
+        f"{', '.join(sorted(addresses)) or 'none'} via {source}",
     )
     reachable = False
     for address in addresses:
@@ -151,7 +176,8 @@ def main() -> int:
                 reachable = True
         except OSError:
             pass
-    check("the ALB cannot be reached from the internet", not reachable)
+    # With no addresses there is nothing to test, so this cannot pass on an empty lookup.
+    check("the ALB cannot be reached from the internet", bool(addresses) and not reachable)
     # CloudFront forwards the Host header: under any other name the origin's certificate does not
     # match (502 from CloudFront) or the ALB's host rule refuses it (404). Either way, no API.
     status, _, body, _ = request(args.cloudfront, "/api/v1/health")

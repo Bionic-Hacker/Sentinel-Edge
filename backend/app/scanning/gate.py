@@ -9,6 +9,8 @@ Policy (ADR-0020):
 * An accepted-risk record must name who accepted it, why, the compensating control and an
   expiry date. Once it expires it no longer covers anything, so the finding blocks again.
 * Medium, low and info findings never block; they are recorded and reported.
+* The threshold is configurable (`--block-at`, `SCAN_BLOCK_AT` in scripts/scan.sh): `high` is the
+  default, `medium` is stricter, and `critical` is looser and says so on every run (Phase 11).
 
 Accepted risks live in scanning/accepted-findings.toml, reviewed like code.
 
@@ -29,9 +31,11 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any, TextIO
 
-from app.scanning.findings import BLOCKING_SEVERITIES, SEVERITIES, Finding, severity_rank
+from app.scanning.findings import SEVERITIES, Finding, severity_rank
 from app.scanning.parsers import load_reports
 
+DEFAULT_BLOCK_AT = "high"
+BLOCK_AT_CHOICES = ("critical", "high", "medium")
 REQUIRED = ("id", "justification", "compensating_control", "approver", "expires")
 
 
@@ -113,7 +117,14 @@ class Decision:
         return not self.blocking
 
 
-def evaluate(findings: list[Finding], acceptances: list[Acceptance], today: date) -> Decision:
+def evaluate(
+    findings: list[Finding],
+    acceptances: list[Acceptance],
+    today: date,
+    block_at: str = DEFAULT_BLOCK_AT,
+) -> Decision:
+    """Findings at `block_at` or more severe block, unless accepted or awaiting a fix."""
+    floor = severity_rank(block_at)
     decision = Decision()
     active = [a for a in acceptances if not a.expired(today)]
     decision.expired = [a for a in acceptances if a.expired(today)]
@@ -121,7 +132,7 @@ def evaluate(findings: list[Finding], acceptances: list[Acceptance], today: date
     for f in sorted(
         findings, key=lambda x: (severity_rank(x.severity), x.tool, x.rule_id, x.location)
     ):
-        if f.severity not in BLOCKING_SEVERITIES:
+        if severity_rank(f.severity) > floor:
             decision.other.append(f)
             continue
         cover = next((a for a in active if a.matches(f)), None)
@@ -187,6 +198,12 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
         metavar="REPORT",
         help="a report file that must be present (repeatable); a missing one fails the gate",
     )
+    parser.add_argument(
+        "--block-at",
+        choices=BLOCK_AT_CHOICES,
+        default=DEFAULT_BLOCK_AT,
+        help="the least severe finding that blocks (default: high)",
+    )
     args = parser.parse_args(argv)
 
     if not args.reports.is_dir():
@@ -207,7 +224,7 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
         print(f"scan-gate: missing reports: {', '.join(missing)}; run `make scan`", file=out)
         return 2
     today = args.today or datetime.now(UTC).date()
-    decision = evaluate(findings, acceptances, today)
+    decision = evaluate(findings, acceptances, today, args.block_at)
     if args.json:
         payload: dict[str, Any] = {
             "generated_at": datetime.now(UTC).isoformat(),
@@ -216,6 +233,14 @@ def main(argv: list[str] | None = None, out: TextIO = sys.stdout) -> int:
             "findings": [f.to_dict() for f in findings],
         }
         args.json.write_text(json.dumps(payload, indent=2) + "\n")
+    if args.block_at != DEFAULT_BLOCK_AT:
+        looser = severity_rank(args.block_at) < severity_rank(DEFAULT_BLOCK_AT)
+        note = (
+            "looser than the default (high): high findings do not block"
+            if looser
+            else "stricter than the default (high)"
+        )
+        print(f"Threshold: {args.block_at} and above block ({note})", file=out)
     report(decision, findings, read, out)
     return 0 if decision.passed else 1
 
