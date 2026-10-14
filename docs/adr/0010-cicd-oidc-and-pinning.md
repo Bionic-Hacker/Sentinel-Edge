@@ -1,6 +1,6 @@
 # ADR-0010: CI/CD identity via GitHub OIDC; pinned third-party actions
 
-- **Status:** Accepted (pinning and read-only token in Phase 1; OIDC in Phase 11)
+- **Status:** Accepted; OIDC superseded by ADR-0030 (the account denies it): CI holds no AWS access at all
 - **Date:** 2026-10-06
 - **Phase:** 1, 11
 

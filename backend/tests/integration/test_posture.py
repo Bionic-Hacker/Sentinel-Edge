@@ -41,12 +41,12 @@ def test_a_fresh_platform_scores_from_coverage_and_says_what_is_planned(
     # Built in Phase 5: the WAF category is measured in full.
     waf = cats["waf"]
     assert (waf["state"], waf["score"], waf["implemented"]) == ("measured", 100, 4)
+    # Built in Phase 11: no cloud credential in CI (C-IAM-02), so the network category is complete.
+    assert cats["network"]["planned"] == 0
     # A category with a control still to come names it as what would raise its score.
-    network = cats["network"]
-    assert network["planned"] == 1
-    assert network["factors"][0]["refs"] == ["C-IAM-02"]
-
     devsecops = cats["devsecops"]
+    assert devsecops["planned"] == 1
+    assert devsecops["factors"][0]["refs"] == ["C-CICD-12"]
     assert devsecops["factors"][-1]["label"] == "No scan imported yet"
     assert devsecops["score"] == devsecops["factors"][0]["points"] - 5
 

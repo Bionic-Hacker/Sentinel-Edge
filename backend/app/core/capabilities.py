@@ -322,9 +322,10 @@ CAPABILITIES: tuple[Capability, ...] = (
         "Security automation CLI tools",
         "Automation",
         L,
-        PLAN,
+        DONE,
         11,
-        "Reports, certificate inventory, API inventory, posture calculation.",
+        "make report: security, WAF, vulnerabilities, API inventory, posture, certificates "
+        "(text or JSON); make deploy: the gated pipeline (ADR-0030).",
     ),
     # --- Planned: real AWS integrations --------------------------------------------------
     _c(

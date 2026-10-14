@@ -19,7 +19,7 @@ system that doesn't exist yet as if it did.
 | [bedrock-setup.md](bedrock-setup.md) | Using Amazon Bedrock for the AI engine: a one-model role, short-lived credentials, cost bounds | Phase 9; Phase 3 (this account) |
 | [aws-setup.md](aws-setup.md) | The AWS account and its constraints, signing in, the Terraform stacks, the domain, standing costs, teardown | Phase 3 |
 | [../terraform/README.md](../terraform/README.md) | Terraform stacks, state, guards, layout, how it is tested and scanned | Phase 3 |
-| [adr/](adr/) | Architecture decision records 0001–0029 | Phase 1–10, 3, 4, 5 |
+| [adr/](adr/) | Architecture decision records 0001–0030 | Phase 1–10, 3, 4, 5, 11 |
 | [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); AI prompt injection (Phase 9); governance (Phase 10); AWS cost runaway (Phase 3) | Phase 2, 3, 7–10 |
 | [aws-deploy-window.md](aws-deploy-window.md) | Switching the workload on in AWS, roles and migrations, checks, switching it off; its IAM roles, secrets and logging are in ADR-0026 | Phase 4 |
 | [cost.md](cost.md) | What runs when, what it costs, and the destroy checklist | Phase 4–5 |
@@ -29,6 +29,6 @@ system that doesn't exist yet as if it did.
 | [incident-response.md](incident-response.md) | Detection to incident, lifecycle, roles, evidence handling | Phase 7 |
 | vulnerability-management.md | Sources, severity, SLAs, statuses | Phase 8 |
 | sbom.md | Generation, storage, use | Phase 8 |
-| devsecops.md | Pipeline stages and gates | Phase 8, 11 |
+| [devsecops.md](devsecops.md) | Pipeline stages and gates, thresholds, deploy, reports | Phase 8, 11 |
 | [ai-security.md](ai-security.md) | The AI engine: what it sends, providers, limits, roles, safeguards, endpoints | Phase 9 |
 | disaster-recovery.md | Backups, restore, RTO/RPO | Phase 12 |

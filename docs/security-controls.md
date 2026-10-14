@@ -207,6 +207,14 @@ Applied and verified in the Phases 4–5 deploy window of 12–13 October 2026 (
 | C-WAF-04 | WAF changes only through reviewed Terraform; the application can read the WAF log and nothing else of WAF (ADR-0008, ADR-0029) | `terraform/modules/waf`, `modules/ecs/iam.tf` | `ecs.tftest.hcl` (`the_api_reads_waf_blocks_and_certificates_in_aws`) |
 | C-DNS-02 | Route 53 query logging: every query for the platform's zone, kept a year in us-east-1; only this zone may write (`aws:SourceArn`) | `terraform/modules/dns-query-logs` | `dns-query-logs.tftest.hcl` |
 
+## 2j. Controls implemented in Phase 11
+
+CI holds no AWS credential; deployment is a gated command on the owner's machine (ADR-0030).
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-IAM-02 | No cloud credential of any kind in CI; AWS is reached only from the owner's signed-in machine, through a deploy that requires main, a clean tree equal to `origin/main` and every CI check green (ADR-0030) | `scripts/deploy.sh`, `scripts/ci-status.py`, `make deploy-check` | `test_deploy_gate.py` (`test_missing_pending_or_failed_checks_refuse`) |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
@@ -243,4 +251,4 @@ implements it. When a phase implements one, its row moves to that phase's sectio
 
 | ID | Control | Phase |
 |---|---|---|
-| C-IAM-02 | No static cloud keys for CI. GitHub OIDC (ADR-0010) is denied by this account's SCPs, so Phase 11 redesigns it | 11 |
+| C-CICD-12 | A ZAP scan of the live edge in the deploy window (moved from Phase 5); `make edge-check` is the live evidence until then | 12 |

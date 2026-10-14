@@ -5,7 +5,7 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1–10 complete (v0.10.1): the platform runs in AWS behind its own edge.**
+> **Current status: Phases 1–11 complete (v0.11.0): the platform runs in AWS behind its own edge, deployed through a gated pipeline.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
 > an API Security Center, attack detection and incidents, a labelled attack simulator, scanning
 > behind a fail-closed gate, vulnerability management, threat modeling and governance, and an AI
@@ -256,7 +256,7 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 3 | Terraform AWS foundation: state, guardrails, CloudTrail, VPC, security groups, ECR, certificates | **Complete** (v0.8.0) |
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | **Complete** (v0.9.0) |
 | 5 | CloudFront, AWS WAF, ACM/TLS, DNS and CAA, edge headers | **Complete** (v0.10.0) |
-| 11 | Automation and full DevSecOps pipeline | Next |
+| 11 | Automation and full DevSecOps pipeline | **Complete** (v0.11.0) |
 | 12 | Hardening, final assessment, interview demo | Planned |
 
 AWS cost so far: a few dollars of sign-up credits. Between windows about $2.50 a month remains (keys, DNS zone);

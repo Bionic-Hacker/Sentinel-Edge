@@ -68,14 +68,26 @@ check_identity() {
   export_credentials
 }
 
-# `aws login` keeps its session in the CLI's own cache, which not every SDK reads. Hand Terraform
-# the same short-lived credentials through this process's environment only: they are never
-# printed or written to disk, and they end with the session.
+# `aws login` keeps its session in the CLI's own cache, which not every SDK reads, and the
+# credentials it hands out last only about 15 minutes (the CLI renews them itself). Exporting them
+# once let a long apply outlive them ("ExpiredToken" while waiting for CloudFront, second deploy
+# window). Instead Terraform gets a temporary AWS config whose one profile asks the CLI for fresh
+# credentials whenever the old ones expire (credential_process). Nothing is printed or stored: the
+# file holds only the command, and it is deleted when this script exits.
 export_credentials() {
-  local creds
-  creds="$(aws configure export-credentials --format env)" \
+  if [[ -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
+    return # credentials already in the environment (not from aws login): use them as they are
+  fi
+  aws configure export-credentials --format process >/dev/null \
     || die "could not read the AWS session: run aws login again (docs/aws-setup.md)"
-  eval "$creds"
+  local real_config="${AWS_CONFIG_FILE:-$HOME/.aws/config}" profile="${AWS_PROFILE:-default}"
+  TF_AWS_CONFIG="$(mktemp)"
+  trap 'rm -f "$TF_AWS_CONFIG"' EXIT
+  printf '[profile sentineledge-terraform]\ncredential_process = %s\n' \
+    "$(printf '%q ' env "AWS_CONFIG_FILE=$real_config" aws configure export-credentials \
+      --profile "$profile" --format process)" >"$TF_AWS_CONFIG"
+  export AWS_CONFIG_FILE="$TF_AWS_CONFIG" AWS_PROFILE=sentineledge-terraform
+  unset AWS_CREDENTIAL_EXPIRATION
 }
 
 write_backend_config() {

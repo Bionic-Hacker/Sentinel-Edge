@@ -278,11 +278,11 @@ def test_a_lead_builds_a_stride_model(
     planned_only = db_client.post(
         f"{url}/threats",
         json={
-            "title": "Long-lived CI credentials",
+            "title": "Edge misconfiguration not caught before release",
             "stride": "E",
             "likelihood": 2,
             "impact": 2,
-            "controls": ["C-IAM-02"],
+            "controls": ["C-CICD-12"],
         },
         headers=h,
     ).json()

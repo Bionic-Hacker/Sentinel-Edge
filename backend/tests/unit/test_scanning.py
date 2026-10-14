@@ -221,6 +221,33 @@ def test_policy_blocks_fixable_critical_and_high_only() -> None:
     assert not decision.passed
 
 
+def test_the_threshold_is_configurable() -> None:
+    findings = all_findings()
+    default = evaluate(findings, [], TODAY)
+    stricter = evaluate(findings, [], TODAY, block_at="medium")
+    looser = evaluate(findings, [], TODAY, block_at="critical")
+    # Stricter: medium findings join the blocking list; looser: only critical ones block.
+    assert {f.rule_id for f in default.blocking} < {f.rule_id for f in stricter.blocking}
+    assert any(f.severity == "medium" for f in stricter.blocking)
+    assert looser.blocking
+    assert all(f.severity == "critical" for f in looser.blocking)
+    assert "B602" in {f.rule_id for f in looser.other}  # a fixable high no longer blocks
+
+
+@pytest.mark.parametrize(
+    ("block_at", "note"),
+    [("critical", "looser than the default"), ("medium", "stricter than the default")],
+)
+def test_a_non_default_threshold_is_announced(block_at: str, note: str) -> None:
+    _, text = run([str(REPORTS), "--today", "2026-10-08", "--block-at", block_at])
+    assert f"Threshold: {block_at} and above block ({note}" in text
+
+
+def test_an_unknown_threshold_is_refused() -> None:
+    with pytest.raises(SystemExit):
+        run([str(REPORTS), "--block-at", "info"])
+
+
 def accept(**overrides: object) -> Acceptance:
     values: dict = {
         "id": "ACC-9001",

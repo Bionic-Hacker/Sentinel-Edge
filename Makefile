@@ -8,7 +8,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
         create-admin verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
         governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear \
         tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock rds-ca images-push ecs-task \
-        spa-push edge-check
+        spa-push edge-check report deploy-check deploy deploy-finish deploy-verify
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -48,6 +48,10 @@ create-admin: ## Create an ADMIN with a one-time password: make create-admin EMA
 
 verify-audit: ## Verify the audit log hash chain
 	docker compose exec api python -m app.cli verify-audit
+
+report: ## Security report: make report KIND=security|posture|api-inventory|vulnerabilities|waf|certificates [FORMAT=json] [HOURS=24]
+	@test -n "$(KIND)" || { echo "Usage: make report KIND=security|posture|api-inventory|vulnerabilities|waf|certificates [FORMAT=json] [HOURS=24]"; exit 2; }
+	@docker compose exec -T api python -m app.cli report "$(KIND)" --format "$(or $(FORMAT),text)" --hours "$(or $(HOURS),24)"
 
 prune-rate-limits: ## Delete rate-limit buckets idle for over a day
 	docker compose exec api python -m app.cli prune-rate-limits
@@ -186,6 +190,18 @@ spa-push: ## Build the SPA from this commit and publish it to the edge (deploy w
 
 edge-check: ## Check the deployed edge from the internet: TLS, headers, WAF, private origin
 	./scripts/edge-check.sh
+
+deploy-check: ## Pipeline preflight: main, clean, and every CI check green on GitHub (changes nothing)
+	./scripts/deploy.sh preflight
+
+deploy: ## Pipeline: preflight, push this commit's images, save the dev plan for review
+	./scripts/deploy.sh plan
+
+deploy-finish: ## Pipeline: apply the reviewed plan, migrate, publish the SPA, verify the edge and audit anchor
+	./scripts/deploy.sh finish
+
+deploy-verify: ## Post-deployment checks only: edge-check, then anchor the audit chain and check it
+	./scripts/deploy.sh verify
 
 precommit: ## Install git pre-commit hooks
 	pre-commit install

@@ -8,6 +8,20 @@ bucket and two KMS keys (about $2.50 a month).
 Everything here runs from your machine, signed in with `aws login` (docs/aws-setup.md), and every
 Terraform change is applied only from a plan you read first.
 
+## Deploying a new release into an open window (Phase 11)
+
+Once the window is open (steps 1 to 8 below), later releases go through the gated pipeline
+([devsecops.md](devsecops.md), ADR-0030): from `main` with every CI check green,
+
+```fish
+make deploy-check     # preflight only: main, clean, origin/main, CI green
+make deploy           # images by digest, then the saved plan: read it
+make deploy-finish    # apply it, migrate, publish the SPA, edge-check, anchor and check
+```
+
+`scripts/tf.sh` renews the `aws login` credentials Terraform uses during a long apply, so an
+apply that waits on CloudFront no longer fails with `ExpiredToken`.
+
 ## Cost
 
 | While the window is open | Per hour |
