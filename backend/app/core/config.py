@@ -96,6 +96,9 @@ class Settings(BaseSettings):
     # Authentication (ADR-0003). Keys have no defaults: the API refuses to start without them
     # (see require_auth_secrets), so a forgotten secret can never fall back to a known value.
     jwt_signing_key: SecretStr | None = None
+    # Key rotation (Phase 12): the previous signing key, accepted for verification only, so tokens
+    # signed before a rotation stay valid until they expire (15 minutes). Remove it after that.
+    jwt_previous_signing_key: SecretStr | None = None
     mfa_encryption_key: SecretStr | None = None  # Fernet key: encrypts TOTP secrets at rest
     access_token_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     refresh_token_ttl_seconds: int = Field(default=8 * 3600, ge=300, le=7 * 24 * 3600)
@@ -225,12 +228,12 @@ class Settings(BaseSettings):
                 raise ValueError("trusting every address as a proxy is not permitted")
         return value
 
-    @field_validator("jwt_signing_key")
+    @field_validator("jwt_signing_key", "jwt_previous_signing_key")
     @classmethod
     def _strong_signing_key(cls, value: SecretStr | None) -> SecretStr | None:
         # HS256 keys must carry at least 256 bits; anything shorter is brute-forceable offline.
         if value is not None and len(value.get_secret_value().encode()) < 32:
-            raise ValueError("jwt_signing_key must be at least 32 bytes")
+            raise ValueError("JWT signing keys must be at least 32 bytes")
         return value
 
     @field_validator("mfa_encryption_key")

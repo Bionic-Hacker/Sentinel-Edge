@@ -20,7 +20,7 @@ system that doesn't exist yet as if it did.
 | [aws-setup.md](aws-setup.md) | The AWS account and its constraints, signing in, the Terraform stacks, the domain, standing costs, teardown | Phase 3 |
 | [../terraform/README.md](../terraform/README.md) | Terraform stacks, state, guards, layout, how it is tested and scanned | Phase 3 |
 | [adr/](adr/) | Architecture decision records 0001–0030 | Phase 1–10, 3, 4, 5, 11 |
-| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); AI prompt injection (Phase 9); governance (Phase 10); AWS cost runaway (Phase 3) | Phase 2, 3, 7–10 |
+| [runbooks/](runbooks/) | Operational runbooks: compromised credential (Phase 2); credential stuffing, SQL injection, API abuse, bot traffic (Phase 7); vulnerability remediation (Phase 8); AI prompt injection (Phase 9); governance (Phase 10); AWS cost runaway (Phase 3); application outage, origin connectivity, TLS failure, certificate expiration, WAF false positive (Phase 12) | Phase 2, 3, 7–10, 12 |
 | [aws-deploy-window.md](aws-deploy-window.md) | Switching the workload on in AWS, roles and migrations, checks, switching it off; its IAM roles, secrets and logging are in ADR-0026 | Phase 4 |
 | [cost.md](cost.md) | What runs when, what it costs, and the destroy checklist | Phase 4–5 |
 | [waf.md](waf.md) | Rule groups, rate rules, logging and read-back, change workflow, false positives | Phase 5 |
@@ -31,4 +31,5 @@ system that doesn't exist yet as if it did.
 | sbom.md | Generation, storage, use | Phase 8 |
 | [devsecops.md](devsecops.md) | Pipeline stages and gates, thresholds, deploy, reports | Phase 8, 11 |
 | [ai-security.md](ai-security.md) | The AI engine: what it sends, providers, limits, roles, safeguards, endpoints | Phase 9 |
-| disaster-recovery.md | Backups, restore, RTO/RPO | Phase 12 |
+| [disaster-recovery.md](disaster-recovery.md) | Backups, restore, RTO/RPO, what each deploy window exercises | Phase 12 |
+| [../SECURITY_ASSESSMENT.md](../SECURITY_ASSESSMENT.md), [../INTERVIEW_DEMO.md](../INTERVIEW_DEMO.md), [../LESSONS_LEARNED.md](../LESSONS_LEARNED.md) | The final assessment, the interview demo, lessons learned | Phase 12 |

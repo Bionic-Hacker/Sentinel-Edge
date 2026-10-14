@@ -51,6 +51,13 @@ class TokenService:
     def __init__(self, settings: Settings) -> None:
         signing_key, _ = settings.require_auth_secrets()
         self._key = signing_key.get_secret_value()
+        self._kid = key_id(self._key)
+        # Keys that may verify a token, by key ID: the current one, and during a rotation the
+        # previous one (verification only; nothing new is ever signed with it).
+        self._verifiers = {self._kid: self._key}
+        previous = settings.jwt_previous_signing_key
+        if previous is not None and previous.get_secret_value() != self._key:
+            self._verifiers[key_id(previous.get_secret_value())] = previous.get_secret_value()
         self._access_ttl = timedelta(seconds=settings.access_token_ttl_seconds)
         self._challenge_ttl = timedelta(seconds=settings.mfa_challenge_ttl_seconds)
 
@@ -84,13 +91,19 @@ class TokenService:
             "exp": now + ttl,
             **extra,
         }
-        return jwt.encode(claims, self._key, algorithm=ALGORITHM)
+        return jwt.encode(claims, self._key, algorithm=ALGORITHM, headers={"kid": self._kid})
 
     def decode(self, token: str, expected_type: TokenType) -> TokenClaims:
         try:
+            # The key ID picks the key; a token without one (signed before key IDs existed)
+            # can only be verified by the current key. An unknown key ID is refused outright.
+            kid = jwt.get_unverified_header(token).get("kid", self._kid)
+            key = self._verifiers.get(kid) if isinstance(kid, str) else None
+            if key is None:
+                raise InvalidTokenError("unknown signing key")
             claims = jwt.decode(
                 token,
-                self._key,
+                key,
                 algorithms=[ALGORITHM],
                 audience=AUDIENCE,
                 issuer=ISSUER,
@@ -112,6 +125,11 @@ class TokenService:
             )
         except (jwt.PyJWTError, ValueError, KeyError, TypeError) as exc:
             raise InvalidTokenError(str(exc)) from exc
+
+
+def key_id(key: str) -> str:
+    """A key's public identifier: the start of its SHA-256, which reveals nothing of the key."""
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
 
 
 def new_opaque_token() -> str:
