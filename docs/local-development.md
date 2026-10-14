@@ -44,6 +44,12 @@ missing a secret the current phase needs, and tells you how to regenerate it.
 Start-up order: `db` initialises and runs `db/bootstrap-roles.sh` on first start → `migrate` applies
 Alembic migrations as `sentinel_migrator` and exits → `api` starts as `sentinel_app` → `web`.
 
+## Upgrading from v0.10.1 to v0.11.0 (Phase 11)
+
+No migration and no new dependency. New: `make report KIND=…` (read-only security reports),
+`SCAN_BLOCK_AT=critical|high|medium make scan` (the gate's threshold), and for AWS the gated
+`make deploy-check`, `make deploy` and `make deploy-finish` ([devsecops.md](devsecops.md)).
+
 ## Upgrading from v0.10.0 to v0.10.1 (light and dark themes)
 
 ```bash

@@ -1,7 +1,7 @@
 """Vulnerability management API: findings, risk acceptances, scan runs and SBOMs (spec §19, §20).
 
 Findings arrive only through `make scan-import` (the CLI, inside the API container); there is
-no upload endpoint until CI can reach a deployed API (Phase 11). Nothing here deletes anything.
+no upload endpoint: CI never reaches a deployed API (ADR-0030). Nothing here deletes anything.
 """
 
 from __future__ import annotations

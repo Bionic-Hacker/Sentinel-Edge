@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.13 (Phase 5 released: the edge applied and verified in the deploy window; account
+- **Version:** 0.14 (Phase 11: CI holds no AWS credential, gated deploy, ADR-0030. 0.13: Phase 5 released: the edge applied and verified in the deploy window; account
   recovery through an administrator only, ADR-0028; the edge read back, ADR-0029)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
@@ -75,7 +75,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-EDGE-03 | E | **Origin bypass** around CloudFront/WAF | 2×3 | Internal ALB with no public address; its only ingress is CloudFront's VPC-origin security group (ADR-0001, ADR-0026, ADR-0027); `make edge-check` proves it unreachable | C-EDGE-02 | **Mitigated (P4, P5)**: the ALB resolves only to private addresses and is unreachable from the internet, verified in the deploy window (`make edge-check`) |
 | T-EDGE-04 | T | Cache poisoning / cache deception | 1×3 | `/api/*` never cached at the edge (CachingDisabled), `Cache-Control: no-store`, Host allow-list; only hashed assets are long-cached | C-EDGE-03, C-API-07, C-WEB-01 | **Mitigated (P1, P5)**: `/api/*` never cached, Host allow-list, hashed assets only long-cached; verified in the deploy window (`make edge-check`) |
 | T-EDGE-05 | S | Host header injection | 2×2 | TrustedHostMiddleware, no wildcards | C-API-07 | **Mitigated (P1)** |
-| T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response; CloudFront's policy is identical to nginx's (`test_edge_headers_match_nginx`) | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03 | **Mitigated (P1, P5)**: CloudFront's headers identical to nginx's, verified in the deploy window (`make edge-check`) |
+| T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response; CloudFront's policy is identical to nginx's (`test_edge_headers_match_nginx`) | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03, C-CICD-12 | **Mitigated (P1, P5)**: CloudFront's headers identical to nginx's, verified in the deploy window (`make edge-check`) |
 | T-EDGE-07 | I | The SPA bucket read directly, around CloudFront and WAF | 1×2 | Private bucket, public access blocked; only this distribution may read it (OAC, `AWS:SourceArn`) | C-EDGE-04 | **Mitigated (P5)**: OAC, public access blocked; verified in the deploy window |
 | T-EDGE-08 | S | The API reached through the distribution's own `*.cloudfront.net` name, outside the platform's origin and cookie scope | 1×2 | Host forwarded to the origin: the origin certificate names only the platform, and the ALB forwards only that host (`make edge-check`) | C-LB-01, C-API-07 | **Mitigated (P5)**: no API under the distribution's own name, verified in the deploy window (`make edge-check`) |
 | T-EDGE-09 | T/I | Attacker-written text in WAF log records (paths, query strings, user agents) shown to operators or sent to the AI | 2×2 | Stored as bounded, redacted, control-character-free evidence and rendered as text only; the AI receives it as delimited, untrusted data (ADR-0029) | C-EDGE-05, C-SO-02, C-AI-04 | **Mitigated (P5)** |
@@ -196,7 +196,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 
 | ID | STRIDE | Threat | L×I | Control(s) | Control IDs | Status |
 |---|---|---|---|---|---|---|
-| T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | No stored keys. GitHub OIDC (ADR-0010) is denied by the account's SCPs, so Phase 11 must choose another keyless route or keep deployment off CI | C-IAM-02 | Planned (P11); no keys exist anywhere (P3) |
+| T-CICD-01 | E | Stolen long-lived cloud keys from CI | 2×3 | No AWS credential exists in CI or anywhere else: GitHub OIDC is denied by the account's SCPs, so CI runs only credential-free checks and deployment is a gated command on the owner's machine (ADR-0030) | C-IAM-02 | **Mitigated (P11)**: no key exists; deploy requires main and every CI check green |
 | T-CICD-02 | T | Malicious or hijacked third-party action | 1×3 | SHA-pinned actions, read-only token, Dependabot | C-CICD-03 | **Mitigated (P1)** |
 | T-SC-01 | T | Vulnerable or malicious dependency | 2×3 | Hash-pinned Python deps, lockfile npm, pip-audit, npm audit, `--ignore-scripts`; Trivy (lock files and images), Syft SBOMs per scan, OS fixes applied at image build, digest-pinned base images | C-CICD-02, C-CICD-06, C-CICD-10 | **Mitigated (P1, P8)** |
 | T-SEC-01 | I | Secret committed to git | 2×3 | Gitleaks pre-commit + CI (full history), `.gitignore` | C-SEC-01, C-SEC-02 | **Mitigated (P1)** |

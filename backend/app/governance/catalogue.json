@@ -711,6 +711,18 @@
    "title": "Authenticated DAST as a read-only VIEWER with a one-scan session, revoked afterwards; logout excluded; local stack only"
   },
   {
+   "evidence": [],
+   "evidence_text": "",
+   "extensions": [],
+   "family": "CICD",
+   "implementation": "",
+   "layer": null,
+   "phase": 12,
+   "ref": "C-CICD-12",
+   "status": "planned",
+   "title": "A ZAP scan of the live edge in the deploy window (moved from Phase 5); make edge-check is the live evidence until then"
+  },
+  {
    "evidence": [
     {
      "kind": "command",
@@ -1265,16 +1277,25 @@
    "title": "One IAM role per function, each with only what it needs: the trail's log writer, the flow-log writer, and the local API's Bedrock role (one model)"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "test_file",
+     "ref": "test_deploy_gate.py"
+    },
+    {
+     "kind": "test",
+     "ref": "test_missing_pending_or_failed_checks_refuse"
+    }
+   ],
+   "evidence_text": "test_deploy_gate.py (test_missing_pending_or_failed_checks_refuse)",
    "extensions": [],
    "family": "IAM",
-   "implementation": "",
+   "implementation": "scripts/deploy.sh, scripts/ci-status.py, make deploy-check",
    "layer": "IAM",
    "phase": 11,
    "ref": "C-IAM-02",
-   "status": "planned",
-   "title": "No static cloud keys for CI. GitHub OIDC (ADR-0010) is denied by this account's SCPs, so Phase 11 redesigns it"
+   "status": "implemented",
+   "title": "No cloud credential of any kind in CI; AWS is reached only from the owner's signed-in machine, through a deploy that requires main, a clean tree equal to origin/main and every CI check green (ADR-0030)"
   },
   {
    "evidence": [],
@@ -2132,7 +2153,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "78145b171530dff7f3fcf27531cc6b7ad84418128d9d9126b94213f585a71591",
+ "digest": "f85048b2ac4c134eda9323e6d00eace2ced918fc1777e99b660b5e97f903a62a",
  "format": 1,
  "model": {
   "elements": [
@@ -2806,7 +2827,8 @@
      "C-WEB-01",
      "C-WEB-02",
      "C-WEB-04",
-     "C-EDGE-03"
+     "C-EDGE-03",
+     "C-CICD-12"
     ],
     "group": "TB1 — Internet → Edge",
     "impact": 2,
@@ -4475,15 +4497,14 @@
     "group": "TB6 — CI/CD → AWS, TB7 — Operators, TB8 — Developer → repo",
     "impact": 3,
     "likelihood": 2,
-    "mitigation": "No stored keys. GitHub OIDC (ADR-0010) is denied by the account's SCPs, so Phase 11 must choose another keyless route or keep deployment off CI",
+    "mitigation": "No AWS credential exists in CI or anywhere else: GitHub OIDC is denied by the account's SCPs, so CI runs only credential-free checks and deployment is a gated command on the owner's machine (ADR-0030)",
     "owasp": "",
     "phases": [
-     3,
      11
     ],
     "ref": "T-CICD-01",
-    "status": "planned",
-    "status_text": "Planned (P11); no keys exist anywhere (P3)",
+    "status": "mitigated",
+    "status_text": "Mitigated (P11): no key exists; deploy requires main and every CI check green",
     "stride": "E",
     "title": "Stolen long-lived cloud keys from CI"
    },
@@ -4919,7 +4940,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.13"
+  "version": "0.14"
  },
  "requirements": [
   {

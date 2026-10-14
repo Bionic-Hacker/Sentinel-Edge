@@ -22,29 +22,9 @@ repo_slug() {
   git remote get-url origin | sed -E 's#^(https://github.com/|git@github.com:)##; s#\.git$##'
 }
 
-# Every check run GitHub has for the commit must have completed successfully. Public repository:
-# the read needs no token. A commit with no check runs at all is refused, never assumed green.
+# Every check run GitHub has for the commit must have completed successfully (scripts/ci-status.py).
 ci_green() {
-  python3 - "$(repo_slug)" "$1" <<'PY'
-import json, sys, urllib.request
-slug, sha = sys.argv[1], sys.argv[2]
-url = f"https://api.github.com/repos/{slug}/commits/{sha}/check-runs?per_page=100"
-request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json"})
-try:
-    with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310 - fixed https URL
-        runs = json.load(response)["check_runs"]
-except (OSError, ValueError, KeyError) as exc:
-    sys.exit(f"deploy: cannot read CI results from GitHub ({type(exc).__name__}); not deploying")
-if not runs:
-    sys.exit(f"deploy: GitHub has no CI results for {sha[:7]}; push it and let CI finish")
-bad = [r for r in runs if r["status"] != "completed" or r["conclusion"] not in ("success", "skipped")]
-for r in runs:
-    state = r["conclusion"] or r["status"]
-    print(f"  {'ok  ' if r not in bad else 'FAIL'} {r['name']} ({state})")
-if bad:
-    sys.exit(f"deploy: {len(bad)} CI check(s) not green for {sha[:7]}; not deploying")
-print(f"  all {len(runs)} CI checks green for {sha[:7]}")
-PY
+  python3 "$ROOT/scripts/ci-status.py" "$(repo_slug)" "$1" || die "CI is not green for this commit"
 }
 
 preflight() {
