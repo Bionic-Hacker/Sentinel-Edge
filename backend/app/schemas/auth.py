@@ -13,7 +13,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.core.authz import PendingStep
-from app.models.user import Role
+from app.models.user import Role, Theme
 
 
 class StrictModel(BaseModel):
@@ -39,6 +39,10 @@ class PasswordChangeRequest(StrictModel):
     new_password: str = Field(min_length=1, max_length=1024)
 
 
+class ThemeRequest(StrictModel):
+    theme: Theme
+
+
 class UserProfile(BaseModel):
     id: uuid.UUID
     email: str
@@ -46,6 +50,7 @@ class UserProfile(BaseModel):
     role: Role
     mfa_enabled: bool
     pending_steps: list[PendingStep]
+    theme: Theme
 
 
 class AuthenticatedResponse(BaseModel):

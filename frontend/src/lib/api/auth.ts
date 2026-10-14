@@ -1,4 +1,4 @@
-import type { AuthenticatedResponse, MfaRequiredResponse } from "../types";
+import type { AuthenticatedResponse, MfaRequiredResponse, Theme } from "../types";
 import { apiRequest } from "./client";
 import {
   isAuthenticated,
@@ -27,6 +27,10 @@ export const verifyMfa = (challengeToken: string, code: string) =>
 export const logout = () => apiRequest("/api/v1/auth/logout", null, { method: "POST" });
 
 export const fetchMe = () => apiRequest("/api/v1/auth/me", isUserProfile);
+
+/** Save the signed-in user's colour theme with their account (never in browser storage). */
+export const saveTheme = (theme: Theme) =>
+  apiRequest("/api/v1/auth/me/theme", isUserProfile, { method: "PUT", body: { theme } });
 
 export const changePassword = (currentPassword: string, newPassword: string) =>
   apiRequest("/api/v1/auth/password/change", null, {

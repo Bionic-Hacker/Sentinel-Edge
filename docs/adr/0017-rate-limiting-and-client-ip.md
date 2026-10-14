@@ -69,7 +69,7 @@ the request is refused with `503` and `Retry-After: 5`, never let through unlimi
 | `login` | 20 / 2 min | IP | `POST /auth/login` |
 | `mfa_verify` | 20 / 2 min | IP | `POST /auth/mfa/verify` |
 | `token_refresh` | 30 / min | IP | `POST /auth/refresh` |
-| `session` | 60 / min | user | `/auth/me`, `/auth/logout` |
+| `session` | 60 / min | user | `/auth/me`, `/auth/me/theme`, `/auth/logout` |
 | `credential_change` | 10 / 5 min | user | password change, MFA enrollment |
 | `read` | 120 / min | user | list and read endpoints |
 | `admin_write` | 30 / min | user | user administration |

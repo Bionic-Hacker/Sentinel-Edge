@@ -26,6 +26,8 @@ export type Role = (typeof ROLES)[number];
 
 export const PENDING_STEPS = ["mfa_enrollment", "password_change"] as const;
 export type PendingStep = (typeof PENDING_STEPS)[number];
+export const THEMES = ["light", "dark"] as const;
+export type Theme = (typeof THEMES)[number];
 
 export interface UserProfile {
   id: string;
@@ -34,6 +36,7 @@ export interface UserProfile {
   role: Role;
   mfa_enabled: boolean;
   pending_steps: PendingStep[];
+  theme: Theme;
 }
 
 export interface AuthenticatedResponse {

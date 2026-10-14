@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as authApi from "../lib/api/auth";
 import { endSession, onSessionChange, refreshSession, startSession } from "../lib/auth/session";
-import type { UserProfile } from "../lib/types";
+import { applyTheme } from "../lib/theme";
+import type { Theme, UserProfile } from "../lib/types";
 
 export type AuthState =
   | { status: "loading" }
@@ -16,6 +17,8 @@ interface AuthContextValue {
   verifyMfa: (challengeToken: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
   reloadUser: () => Promise<void>;
+  /** Switch the signed-in user's theme now, and save it with their account. */
+  setTheme: (theme: Theme) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -31,6 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshSession().catch(() => setState({ status: "anonymous" }));
     return unsubscribe;
   }, []);
+
+  // The page wears the signed-in user's theme; signed out (the sign-in page) it is light.
+  const theme = state.status === "authenticated" ? state.user.theme : "light";
+  useEffect(() => applyTheme(theme), [theme]);
 
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     const response = await authApi.login(email, password);
@@ -58,9 +65,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState({ status: "authenticated", user });
   }, []);
 
+  const setTheme = useCallback(async (next: Theme) => {
+    // Switch at once, then save; if saving fails, switch back and let the caller say so.
+    const withTheme = (t: Theme) => (s: AuthState): AuthState =>
+      s.status === "authenticated" ? { status: "authenticated", user: { ...s.user, theme: t } } : s;
+    const previous: Theme = next === "dark" ? "light" : "dark";
+    setState(withTheme(next));
+    try {
+      const user = await authApi.saveTheme(next);
+      setState((s) => (s.status === "authenticated" ? { status: "authenticated", user } : s));
+    } catch (error) {
+      setState(withTheme(previous));
+      throw error;
+    }
+  }, []);
+
   const value = useMemo(
-    () => ({ state, login, verifyMfa, logout, reloadUser }),
-    [state, login, verifyMfa, logout, reloadUser],
+    () => ({ state, login, verifyMfa, logout, reloadUser, setTheme }),
+    [state, login, verifyMfa, logout, reloadUser, setTheme],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

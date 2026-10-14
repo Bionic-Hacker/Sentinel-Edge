@@ -158,6 +158,13 @@ ENDPOINTS: dict[tuple[str, str], EndpointPolicy] = {
     ("GET", "/api/v1/auth/me"): EndpointPolicy(
         "Current user's profile", Risk.LOW, SESSION, (A.API3,), "Own profile (email, role)"
     ),
+    ("PUT", "/api/v1/auth/me/theme"): EndpointPolicy(
+        "Save the current user's colour theme (light or dark)",
+        Risk.LOW,
+        SESSION,
+        (A.API3,),
+        "Own display preference",
+    ),
     ("POST", "/api/v1/auth/mfa/enroll"): EndpointPolicy(
         "Start TOTP enrollment", Risk.HIGH, CREDENTIAL_CHANGE, (A.API2,), "TOTP secret"
     ),

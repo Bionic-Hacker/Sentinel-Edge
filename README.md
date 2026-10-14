@@ -5,7 +5,7 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1–10 complete (v0.10.0): the platform runs in AWS behind its own edge.**
+> **Current status: Phases 1–10 complete (v0.10.1): the platform runs in AWS behind its own edge.**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
 > an API Security Center, attack detection and incidents, a labelled attack simulator, scanning
 > behind a fail-closed gate, vulnerability management, threat modeling and governance, and an AI

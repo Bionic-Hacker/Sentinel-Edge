@@ -14,6 +14,7 @@ export function profile(overrides: Partial<UserProfile> = {}): UserProfile {
     role: "ANALYST" as Role,
     mfa_enabled: false,
     pending_steps: [],
+    theme: "light",
     ...overrides,
   };
 }

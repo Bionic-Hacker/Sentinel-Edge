@@ -22,7 +22,7 @@ from it in either direction.
 |---|---|---|---|---|---|---|---|
 | `GET /health`, `GET /ready` | ✓ | | | | | | |
 | `POST /auth/login`, `/auth/mfa/verify`, `/auth/refresh` | ✓¹ | | | | | | |
-| `GET /auth/me`, `POST /auth/logout` | | ✓ | | | | | |
+| `GET /auth/me`, `PUT /auth/me/theme` (own theme), `POST /auth/logout` | | ✓ | | | | | |
 | `POST /auth/password/change`, `/auth/mfa/enroll[/confirm]` | | ✓ | | | | | |
 | `GET /platform/capabilities` | | | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `GET /users/{id}` | | | ✓ any | ✓ own² | ✓ own² | ✓ own² | ✓ own² |
