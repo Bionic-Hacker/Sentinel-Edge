@@ -63,7 +63,7 @@ describe("dashboard", () => {
     expect(within(table).getByText("Real AWS")).toBeInTheDocument();
   });
 
-  it("shows completed phases and marks the next one", async () => {
+  it("shows every phase complete", async () => {
     await renderAt("/");
     expect(screen.getByText(/Phase 2, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 6, complete/)).toBeInTheDocument();
@@ -75,7 +75,8 @@ describe("dashboard", () => {
     expect(screen.getByText(/Phase 4, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 5, complete/)).toBeInTheDocument();
     expect(screen.getByText(/Phase 11, complete/)).toBeInTheDocument();
-    expect(screen.getByText(/Phase 12, next/).closest("li")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/Phase 12, complete/)).toBeInTheDocument();
+    expect(screen.queryByText(/, next/)).not.toBeInTheDocument();
   });
 });
 

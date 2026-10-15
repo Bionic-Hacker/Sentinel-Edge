@@ -424,8 +424,9 @@ CAPABILITIES: tuple[Capability, ...] = (
         "Interview demo mode and scenarios",
         "Automation",
         D,
-        PLAN,
+        DONE,
         12,
-        "Five scripted scenarios on synthetic data.",
+        "Five scripted scenarios on synthetic data (INTERVIEW_DEMO.md), each run with the attack "
+        "simulator.",
     ),
 )

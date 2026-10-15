@@ -22,8 +22,8 @@ export function AutomationPage() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Automation</h1>
         <p className="mt-1 max-w-prose text-ink-muted">
-          The attack simulator runs labelled attack scenarios against SentinelEdge itself. Security automation tools and
-          interview demo scenarios follow in Phases 11 and 12.
+          The attack simulator runs labelled attack scenarios against SentinelEdge itself. The five interview demo
+          scenarios (INTERVIEW_DEMO.md) each start here.
         </p>
       </header>
       {VIEWERS.includes(user.role) ? (

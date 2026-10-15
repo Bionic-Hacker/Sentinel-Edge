@@ -126,9 +126,9 @@ def test_controls_cite_the_threats_they_mitigate_and_filter(
         "C-API-01"
     ]["evidence"]
 
+    # Since Phase 12 every control is implemented: the planned filter answers, and is empty.
     planned = db_client.get("/api/v1/governance/controls?status=planned", headers=h).json()
-    assert planned["items"]
-    assert all(c["status"] == "planned" for c in planned["items"])
+    assert planned["items"] == []
     waf = db_client.get("/api/v1/governance/controls?family=WAF", headers=h).json()["items"]
     assert {c["ref"] for c in waf} == {"C-WAF-01", "C-WAF-02", "C-WAF-03", "C-WAF-04"}
     found = db_client.get("/api/v1/governance/controls?q=argon2id", headers=h).json()["items"]
@@ -286,7 +286,9 @@ def test_a_lead_builds_a_stride_model(
         },
         headers=h,
     ).json()
-    assert planned_only["stats"]["only_planned_controls"] == ["TH-002"]
+    # C-CICD-12 was the last planned control; implemented in Phase 12, so no threat relies on a
+    # control that is only planned.
+    assert planned_only["stats"]["only_planned_controls"] == []
 
     mitigated = db_client.patch(
         f"{url}/threats/{t['id']}",
