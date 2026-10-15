@@ -49,6 +49,15 @@ def test_missing_pending_or_failed_checks_refuse(runs: list[dict[str, Any]]) -> 
     assert not ok
 
 
+def test_a_run_still_going_says_wait_not_fail() -> None:
+    ok, lines = ci.evaluate(
+        [run("ci/scan", status="in_progress", conclusion=None), run("ci/x", conclusion="failure")]
+    )
+    assert not ok
+    assert lines[0].strip().startswith("wait")
+    assert lines[1].strip().startswith("FAIL")
+
+
 def test_an_unreachable_github_refuses(monkeypatch: pytest.MonkeyPatch) -> None:
     def unreachable(slug: str, sha: str) -> list[dict[str, Any]]:
         raise OSError("no network")

@@ -13,11 +13,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZAP_IMAGE="$(sed -nE 's/^ZAP_IMAGE="\$\{ZAP_IMAGE:-(.*)\}"$/\1/p' "$ROOT/scripts/scan.sh")"
 OUT="$ROOT/reports/edge"
 
-url="$("$ROOT/scripts/tf.sh" dev output-json | python3 -c '
+die() { printf 'dast-edge: %s\n' "$*" >&2; exit 2; }
+outputs="$("$ROOT/scripts/tf.sh" dev output-json)" \
+  || die "could not read the dev stack: sign in first (aws login --profile sentineledge)"
+url="$(printf '%s' "$outputs" | python3 -c '
 import json, sys
-w = (json.load(sys.stdin).get("workload") or {}).get("value")
+try:
+    w = (json.load(sys.stdin).get("workload") or {}).get("value")
+except json.JSONDecodeError:
+    sys.exit("dast-edge: the dev stack returned no outputs: sign in, then run make tf-init STACK=dev")
 sys.exit("dast-edge: the workload is off: open a deploy window first") if not w else print(w["url"])
-')"
+')" || exit 2
 [[ "$url" =~ ^https://[a-z0-9.-]+$ ]] || { echo "dast-edge: unexpected target $url" >&2; exit 2; }
 
 mkdir -p "$OUT"
