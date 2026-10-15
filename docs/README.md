@@ -15,6 +15,7 @@ system that doesn't exist yet as if it did.
 | [local-development.md](local-development.md) | Running and testing locally | Phase 1 |
 | [authorization.md](authorization.md) | Roles and the endpoint permission matrix | Phase 2 |
 | [governance/exceptions.md](governance/exceptions.md) | Where security exceptions live now (the application) and the rules they follow | Phase 2; moved to the app in Phase 10 |
+| [governance/nist-800-53-crosswalk.md](governance/nist-800-53-crosswalk.md) | The control catalogue mapped to NIST SP 800-53 Rev. 5, for assessors; checked against the catalogue on every build | Phase 12 |
 | [api-security.md](api-security.md) | API Security Center, metrics, OWASP API Top 10 coverage, SSRF guard | Phase 6 |
 | [bedrock-setup.md](bedrock-setup.md) | Using Amazon Bedrock for the AI engine: a one-model role, short-lived credentials, cost bounds | Phase 9; Phase 3 (this account) |
 | [aws-setup.md](aws-setup.md) | The AWS account and its constraints, signing in, the Terraform stacks, the domain, standing costs, teardown | Phase 3 |
