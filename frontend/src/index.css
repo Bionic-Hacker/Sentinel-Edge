@@ -85,3 +85,89 @@ body {
     animation: none !important;
   }
 }
+
+/*
+ * Tab backdrops (Layout sets data-backdrop from modules.ts): a faint pattern in the theme's own
+ * accent behind each page, plus a soft glow. Drawn as a mask over the accent colour, so one set of
+ * shapes serves both themes. Cards keep their solid surfaces, so contrast is unchanged; the
+ * pattern fades out down the page and is left out of print.
+ */
+.backdrop {
+  position: relative;
+  isolation: isolate;
+  --backdrop-strength: 0.1;
+  --glow-strength: 10%;
+}
+
+:root[data-theme="dark"] .backdrop {
+  --backdrop-strength: 0.14;
+  --glow-strength: 16%;
+}
+
+.backdrop[data-backdrop]::before,
+.backdrop[data-backdrop]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* The glow. */
+.backdrop[data-backdrop]::after {
+  background: radial-gradient(
+    ellipse 55% 45% at var(--glow-x, 85%) var(--glow-y, 10%),
+    color-mix(in srgb, var(--color-accent) var(--glow-strength), transparent),
+    transparent 70%
+  );
+}
+
+/* The pattern, faded towards the bottom. */
+.backdrop[data-backdrop]::before {
+  background-color: var(--color-accent);
+  opacity: var(--backdrop-strength);
+  mask-image:
+    var(--pattern),
+    linear-gradient(to bottom, #000 0%, #000 35%, transparent 90%);
+  mask-composite: intersect;
+  mask-size:
+    var(--pattern-size),
+    100% 100%;
+  mask-repeat: repeat, no-repeat;
+}
+
+/* Operations: rings spreading from the top right, like a sweep. */
+.backdrop[data-backdrop="radar"]::before {
+  --pattern: repeating-radial-gradient(
+    circle at 100% 0%,
+    transparent 0 46px,
+    #000 46px 47.5px,
+    transparent 47.5px 48px
+  );
+  --pattern-size: 100% 100%;
+}
+
+/* Security: circuit traces with pads. */
+.backdrop[data-backdrop="circuit"]::before {
+  --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cpath d='M0 40h50l20 20h50l20-20h20M40 0v30l20 20v40M100 160v-40l20-20h40M0 120h30l20-20v-20M120 0v20M80 160v-20l-20-20H30'/%3E%3Cg fill='%23000' stroke='none'%3E%3Ccircle cx='70' cy='60' r='3.5'/%3E%3Ccircle cx='60' cy='90' r='3.5'/%3E%3Ccircle cx='120' cy='100' r='3.5'/%3E%3Ccircle cx='50' cy='80' r='3.5'/%3E%3Ccircle cx='120' cy='20' r='3.5'/%3E%3Ccircle cx='30' cy='120' r='3.5'/%3E%3C/g%3E%3C/svg%3E");
+  --pattern-size: 160px 160px;
+}
+
+/* Governance: blueprint grid, major and minor lines. */
+.backdrop[data-backdrop="blueprint"]::before {
+  --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='none' stroke='%23000'%3E%3Cpath d='M24 0v120M48 0v120M72 0v120M96 0v120M0 24h120M0 48h120M0 72h120M0 96h120' stroke-opacity='.45'/%3E%3Cpath d='M.75 0v120M0 .75h120' stroke-width='1.5'/%3E%3C/svg%3E");
+  --pattern-size: 120px 120px;
+}
+
+/* Platform: a field of linked nodes. */
+.backdrop[data-backdrop="nodes"]::before {
+  --pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' fill='none' stroke='%23000' stroke-width='1'%3E%3Cpath d='M20 20L80 50L50 100M80 50L110 10' stroke-opacity='.6'/%3E%3Cg fill='%23000' stroke='none'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3Ccircle cx='80' cy='50' r='4'/%3E%3Ccircle cx='50' cy='100' r='3'/%3E%3Ccircle cx='110' cy='10' r='2.5'/%3E%3C/g%3E%3C/svg%3E");
+  --pattern-size: 120px 120px;
+}
+
+@media print {
+  .backdrop[data-backdrop]::before,
+  .backdrop[data-backdrop]::after {
+    display: none;
+  }
+}
