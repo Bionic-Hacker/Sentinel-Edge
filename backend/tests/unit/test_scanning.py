@@ -438,3 +438,39 @@ def test_a_finding_is_covered_only_when_every_report_able_to_produce_it_ran() ->
     assert not covered("semgrep", "dast", reports)  # an unknown pairing never infers a fix
     assert not covered("zap", "dast", [*reports, "zap-baseline.json"])
     assert covered("zap", "dast", [*reports, "zap-baseline.json", "zap-api.json"])
+
+
+def _pii_alert(*evidence: str) -> dict[str, object]:
+    return {
+        "site": [
+            {
+                "@name": "http://localhost:8080",
+                "alerts": [
+                    {
+                        "pluginid": "10062",
+                        "alert": "PII Disclosure",
+                        "riskcode": "3",
+                        "instances": [
+                            {"uri": "http://localhost:8080/api/v1/x", "evidence": e}
+                            for e in evidence
+                        ],
+                    }
+                ],
+            }
+        ]
+    }
+
+
+def test_a_uuid_group_read_as_a_card_number_does_not_block() -> None:
+    # CI, 15 October 2026: a correlation ID ending in ...-679749758919 read as a Maestro card.
+    (finding,) = parse_zap(_pii_alert("679749758919"))
+    assert finding.severity == "info"
+    assert "UUID" in (finding.recommendation or "")
+
+
+@pytest.mark.parametrize(
+    "evidence", [("4111111111111111",), ("679749758919", "5555555555554444"), ("6797497589190",)]
+)
+def test_a_card_length_number_still_blocks(evidence: tuple[str, ...]) -> None:
+    (finding,) = parse_zap(_pii_alert(*evidence))
+    assert finding.severity == "high"

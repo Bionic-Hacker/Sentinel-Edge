@@ -301,21 +301,45 @@ def parse_zap(doc: dict[str, Any], root: Path | None = None) -> list[Finding]:
             name = alert.get("alert") or alert.get("name", "ZAP alert")
             count = len(instances)
             cwe = alert.get("cweid")
+            severity = _ZAP_RISK.get(str(alert.get("riskcode", "1")), "low")
+            recommendation = _strip_html(alert.get("solution"))
+            if _only_uuid_shaped_card_numbers(alert, instances):
+                severity = "info"
+                recommendation = (
+                    "Every match is exactly 12 digits, the length of a UUID's last group: a random "
+                    "ID that happens to be all digits, read as a Maestro card number. SentinelEdge "
+                    "holds no card data; a 13-digit or longer match still blocks."
+                )
             findings.append(
                 Finding(
                     tool="zap",
                     category="dast",
                     rule_id=str(alert.get("pluginid", "?")),
                     title=f"{name} ({count} URL{'s' if count != 1 else ''})" if count else name,
-                    severity=_ZAP_RISK.get(str(alert.get("riskcode", "1")), "low"),
+                    severity=severity,
                     component=host,
                     location=first,
                     fingerprint=fingerprint("zap", alert.get("pluginid"), host),
-                    recommendation=_strip_html(alert.get("solution")),
+                    recommendation=recommendation,
                     references=(f"CWE-{cwe}",) if cwe and str(cwe) not in {"0", "-1"} else (),
                 )
             )
     return findings
+
+
+# ZAP's PII rule (10062) reports credit-card-shaped numbers. UUIDs (every ID here, including
+# the correlation ID on error responses) end in a 12-hex-character group, which is all digits
+# about once in 300 IDs, and 12 digits passing the Luhn check reads as a Maestro card. Real
+# card numbers in scope for PCI are 13 to 19 digits, so only a match of exactly 12 is treated
+# as a UUID group; anything longer keeps ZAP's severity.
+_ZAP_PII_RULE = "10062"
+_UUID_GROUP = re.compile(r"\d{12}")
+
+
+def _only_uuid_shaped_card_numbers(alert: dict[str, Any], instances: list[Any]) -> bool:
+    if str(alert.get("pluginid")) != _ZAP_PII_RULE or not instances:
+        return False
+    return all(_UUID_GROUP.fullmatch(str(i.get("evidence", "")).strip()) for i in instances)
 
 
 def _strip_html(text: object) -> str | None:
