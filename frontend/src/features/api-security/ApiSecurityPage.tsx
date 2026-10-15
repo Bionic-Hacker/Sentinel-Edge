@@ -158,11 +158,15 @@ function Summary({ inventory, onRefresh }: { inventory: Inventory; onRefresh: ()
   );
 }
 
+// Long tables open on their first rows; the rest is one click away (filters still search all).
+const PAGE = 25;
+
 function InventoryTable({ items }: { items: InventoryItem[] }) {
   const [risk, setRisk] = useState<Risk | "">("");
   const [status, setStatus] = useState<EndpointStatus | "">("");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const visible = useMemo(
     () =>
@@ -246,7 +250,7 @@ function InventoryTable({ items }: { items: InventoryItem[] }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {visible.map((item) => {
+            {(showAll ? visible : visible.slice(0, PAGE)).map((item) => {
               const key = `${item.method} ${item.path}`;
               return (
                 <InventoryRow
@@ -261,6 +265,16 @@ function InventoryTable({ items }: { items: InventoryItem[] }) {
         </table>
         {visible.length === 0 && <p className="px-3 py-4 text-sm text-ink-muted">No endpoints match these filters.</p>}
       </div>
+      {visible.length > PAGE && (
+        <div className="mt-3 flex items-center gap-3 text-sm">
+          <Button variant="secondary" onClick={() => setShowAll(!showAll)}>
+            {showAll ? `Show the first ${PAGE}` : `Show all ${visible.length}`}
+          </Button>
+          <span className="text-ink-muted">
+            {showAll ? `All ${visible.length} shown` : `${PAGE} of ${visible.length} shown`}
+          </span>
+        </div>
+      )}
     </Section>
   );
 }

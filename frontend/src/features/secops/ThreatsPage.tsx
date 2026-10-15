@@ -188,7 +188,7 @@ function EventsExplorer({ canInvestigate }: { canInvestigate: boolean }) {
       {filters.view === "simulated" && <SimulatedBanner />}
       {error && <FormError error={error} />}
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="overflow-x-auto rounded-md border border-line">
           <table className="w-full text-left text-sm">
             <caption className="sr-only">Security events, newest first</caption>

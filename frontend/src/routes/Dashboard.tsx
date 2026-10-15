@@ -174,12 +174,7 @@ function SecurityOverview() {
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-md border border-line bg-surface p-5">
-      <h2 className="mb-4 text-base font-semibold">{title}</h2>
-      {children}
-    </section>
-  );
+  return <Section title={title}>{children}</Section>;
 }
 
 const LEVEL = {
@@ -448,15 +443,13 @@ function PlatformStatus() {
   const caps = useCapabilities();
 
   return (
-    <section aria-labelledby="platform-heading" className="space-y-8">
-      <header>
-        <h2 id="platform-heading" className="text-xl font-semibold tracking-tight">
-          Platform status
-        </h2>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          What SentinelEdge does today, and what is real, local, simulated, or demo data.
-        </p>
-      </header>
+    <Section
+      title="Platform status"
+      id="platform-heading"
+      meta="Build phases and what is real, local, simulated or demo"
+      defaultOpen={false}
+    >
+      <div className="space-y-8">
 
       <section aria-labelledby="build-heading">
         <h3 id="build-heading" className="mb-1 text-sm font-medium text-ink-muted">
@@ -510,6 +503,7 @@ function PlatformStatus() {
           />
         )}
       </section>
-    </section>
+      </div>
+    </Section>
   );
 }

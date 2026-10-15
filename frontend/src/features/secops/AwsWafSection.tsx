@@ -1,3 +1,4 @@
+import { Section } from "../../components/page";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BarList } from "../../components/charts";
@@ -48,13 +49,8 @@ export function AwsWafSection({ canSync }: { canSync: boolean }) {
   }
 
   return (
-    <section aria-labelledby="aws-waf" className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 id="aws-waf" className="text-lg font-semibold">
-          AWS WAF on CloudFront
-        </h2>
-        <ProvenanceBadge provenance="REAL_AWS" />
-      </div>
+    <Section title="AWS WAF on CloudFront" id="aws-waf" meta={<ProvenanceBadge provenance="REAL_AWS" />}>
+      <div className="space-y-5">
       <FormError error={error} />
       {status && !status.waf_logs_enabled && (
         <p className="max-w-prose text-sm text-ink-muted">
@@ -141,6 +137,7 @@ export function AwsWafSection({ canSync }: { canSync: boolean }) {
           </p>
         </>
       )}
-    </section>
+      </div>
+    </Section>
   );
 }
