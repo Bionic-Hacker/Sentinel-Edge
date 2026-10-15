@@ -118,6 +118,7 @@ export function Layout() {
           id="main"
           className="backdrop flex-1 px-6 py-6"
           data-backdrop={backdrop?.pattern}
+          data-code={backdrop?.code}
           style={backdropStyle}
           tabIndex={-1}
         >

@@ -180,41 +180,50 @@ export const MODULES: readonly ModuleDef[] = [
 ];
 
 /**
- * Each tab's background pattern, drawn in CSS from the theme's accent (index.css, `.backdrop`).
- * Grouped by the kind of work: operations watch, security filters traffic, governance records,
- * platform configures. Patterns only, no photos: nothing to license, nothing to download.
+ * Each tab's backdrop (index.css, `.backdrop`): an industrial SOC console look drawn in CSS from
+ * the theme accent. A pattern suited to the work, plus the tab's console code as a large outlined
+ * mark, so every tab is distinct. Patterns only, no photos: nothing to license or download.
  */
-export type Backdrop = "radar" | "circuit" | "blueprint" | "nodes";
+export type Backdrop =
+  | "radar"
+  | "rack"
+  | "circuit"
+  | "hex"
+  | "nodes"
+  | "waveform"
+  | "tread"
+  | "blueprint";
 
-const BACKDROPS: Readonly<Record<string, Backdrop>> = {
-  "/": "radar",
-  "/threats": "radar",
-  "/incidents": "radar",
-  "/vulnerabilities": "radar",
-  "/applications": "circuit",
-  "/apis": "circuit",
-  "/waf": "circuit",
-  "/edge": "circuit",
-  "/threat-modeling": "blueprint",
-  "/certificates": "blueprint",
-  "/sbom": "blueprint",
-  "/compliance": "blueprint",
-  "/audit-logs": "blueprint",
-  "/ai-security": "nodes",
-  "/automation": "nodes",
-  "/settings": "nodes",
-};
+const BACKDROPS: Readonly<Record<string, { pattern: Backdrop; code: string }>> =
+  {
+    "/": { pattern: "radar", code: "SOC-00" },
+    "/applications": { pattern: "rack", code: "APP-01" },
+    "/apis": { pattern: "circuit", code: "API-02" },
+    "/waf": { pattern: "hex", code: "WAF-03" },
+    "/edge": { pattern: "nodes", code: "EDG-04" },
+    "/threats": { pattern: "radar", code: "THR-05" },
+    "/incidents": { pattern: "waveform", code: "INC-06" },
+    "/vulnerabilities": { pattern: "tread", code: "VLN-07" },
+    "/threat-modeling": { pattern: "nodes", code: "TMD-08" },
+    "/certificates": { pattern: "hex", code: "PKI-09" },
+    "/ai-security": { pattern: "circuit", code: "AIS-10" },
+    "/sbom": { pattern: "blueprint", code: "SBM-11" },
+    "/compliance": { pattern: "blueprint", code: "CMP-12" },
+    "/audit-logs": { pattern: "waveform", code: "AUD-13" },
+    "/automation": { pattern: "rack", code: "AUT-14" },
+    "/settings": { pattern: "tread", code: "SYS-15" },
+  };
 
 /** The backdrop for a route, matching the tab it belongs to (/incidents/12 is Incidents). */
 export function backdropFor(
   pathname: string,
-): { pattern: Backdrop; index: number } | undefined {
+): { pattern: Backdrop; code: string; index: number } | undefined {
   const index = MODULES.findIndex((m) =>
     m.path === "/"
       ? pathname === "/"
       : pathname === m.path || pathname.startsWith(`${m.path}/`),
   );
   const module = MODULES[index];
-  const pattern = module ? BACKDROPS[module.path] : undefined;
-  return pattern ? { pattern, index } : undefined;
+  const backdrop = module ? BACKDROPS[module.path] : undefined;
+  return backdrop ? { ...backdrop, index } : undefined;
 }
