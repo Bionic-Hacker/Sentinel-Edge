@@ -43,10 +43,10 @@ def test_a_fresh_platform_scores_from_coverage_and_says_what_is_planned(
     assert (waf["state"], waf["score"], waf["implemented"]) == ("measured", 100, 4)
     # Built in Phase 11: no cloud credential in CI (C-IAM-02), so the network category is complete.
     assert cats["network"]["planned"] == 0
-    # A category with a control still to come names it as what would raise its score.
+    # Built in Phase 12: the live-edge scan (C-CICD-12) was the last planned control, so DevSecOps
+    # is complete too and only a missing scan import lowers it.
     devsecops = cats["devsecops"]
-    assert devsecops["planned"] == 1
-    assert devsecops["factors"][0]["refs"] == ["C-CICD-12"]
+    assert devsecops["planned"] == 0
     assert devsecops["factors"][-1]["label"] == "No scan imported yet"
     assert devsecops["score"] == devsecops["factors"][0]["points"] - 5
 

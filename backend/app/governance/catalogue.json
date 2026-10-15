@@ -711,16 +711,21 @@
    "title": "Authenticated DAST as a read-only VIEWER with a one-scan session, revoked afterwards; logout excluded; local stack only"
   },
   {
-   "evidence": [],
-   "evidence_text": "",
+   "evidence": [
+    {
+     "kind": "command",
+     "ref": "make dast-edge"
+    }
+   ],
+   "evidence_text": "make dast-edge; SECURITY_ASSESSMENT.md (third window: 63 passed, 0 failures, nothing blocking)",
    "extensions": [],
    "family": "CICD",
-   "implementation": "",
+   "implementation": "scripts/dast-edge.sh, make dast-edge",
    "layer": null,
    "phase": 12,
    "ref": "C-CICD-12",
-   "status": "planned",
-   "title": "A ZAP scan of the live edge in the deploy window (moved from Phase 5); make edge-check is the live evidence until then"
+   "status": "implemented",
+   "title": "A passive ZAP baseline of the live edge in a deploy window, through CloudFront and AWS WAF, judged by the same scan gate as CI"
   },
   {
    "evidence": [
@@ -2153,7 +2158,7 @@
    "title": "Cross-origin isolation: COOP same-origin and COEP require-corp on the SPA and the API"
   }
  ],
- "digest": "f85048b2ac4c134eda9323e6d00eace2ced918fc1777e99b660b5e97f903a62a",
+ "digest": "0df9aeeb264c3ff4bfd1d1928122ef45ededd0e168f789e28083b63812630055",
  "format": 1,
  "model": {
   "elements": [
@@ -2564,7 +2569,7 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.",
+    "description": "Rate-limit and metrics writes add database load per request (ADR-0017). Reviewed in Phase 12 and accepted: fine at this scale, bounded by a statement timeout, and the limiter fails closed; a cache is a later concern.",
     "kind": "residual_risk",
     "name": "Rate-limit and metrics writes add database load per request (ADR-0017)",
     "ref": "RR-10"
@@ -2582,7 +2587,7 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.",
+    "description": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after the response. Bounded by the rate limiter; reviewed in Phase 12 and accepted.",
     "kind": "residual_risk",
     "name": "Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP analysis runs after ",
     "ref": "RR-12"
@@ -2591,9 +2596,9 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
+    "description": "Security events and incidents have no retention policy. Accepted in Phase 12: the AWS environment, its database included, is destroyed after every deploy window and all data is synthetic; a long-lived deployment would need one.",
     "kind": "residual_risk",
-    "name": "Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.",
+    "name": "Security events and incidents have no retention policy",
     "ref": "RR-13"
    },
    {
@@ -2618,7 +2623,7 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) is planned with Phase 12 hardening.",
+    "description": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8). They are reported on every scan and block as soon as a fix exists; most are in packages the service never executes. A minimal base image (distroless or Alpine) was considered in Phase 12 and not adopted for v1.0.0; it remains the next hardening step.",
     "kind": "residual_risk",
     "name": "The Debian 13 base of the API image carries high OS package vulnerabilities with no fix published (44 at the end of Phase 8)",
     "ref": "RR-16"
@@ -2699,9 +2704,9 @@
     "attributes": {
      "heading": "5. Residual risk (after Phase 5)"
     },
-    "description": "DAST covers the local stack only. The deployed edge was proven with make edge-check; a ZAP scan of it moves to the Phase 12 deploy window.",
+    "description": "The live-edge ZAP scan is passive and unauthenticated (Phase 12: 63 rules passed, 0 failures, 1 low and 3 informational warnings, nothing blocking); the active, authenticated DAST runs against the local stack in CI.",
     "kind": "residual_risk",
-    "name": "DAST covers the local stack only",
+    "name": "The live-edge ZAP scan is passive and unauthenticated (Phase 12: 63 rules passed, 0 failures, 1 low and 3 informational warnings, nothing blocking); the active, authenticated DAST runs against the loc",
     "ref": "RR-25"
    }
   ],
@@ -2837,11 +2842,12 @@
     "owasp": "",
     "phases": [
      1,
-     5
+     5,
+     12
     ],
     "ref": "T-EDGE-06",
     "status": "mitigated",
-    "status_text": "Mitigated (P1, P5): CloudFront's headers identical to nginx's, verified in the deploy window (make edge-check)",
+    "status_text": "Mitigated (P1, P5, P12): CloudFront's headers identical to nginx's, verified in the deploy window (make edge-check); a ZAP baseline of the live edge passed with nothing blocking (P12)",
     "stride": "T",
     "title": "Clickjacking, MIME sniffing, XSS via missing headers"
    },
@@ -4940,7 +4946,7 @@
     "title": "Container breakout / privilege escalation"
    }
   ],
-  "version": "0.14"
+  "version": "0.15"
  },
  "requirements": [
   {

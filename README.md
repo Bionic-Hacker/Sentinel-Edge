@@ -5,7 +5,7 @@ AI-enabled application is designed, secured, deployed, monitored, and governed o
 
 SentinelEdge is its own first protected workload. Every control it reports on also protects it.
 
-> **Current status: Phases 1–11 complete (v0.11.0): the platform runs in AWS behind its own edge, deployed through a gated pipeline.**
+> **Current status: v1.0.0, all twelve phases complete: the platform runs in AWS behind its own edge, deployed through a gated pipeline, hardened and assessed ([SECURITY_ASSESSMENT.md](SECURITY_ASSESSMENT.md)).**
 > Authentication with MFA, role-based access control, a tamper-evident audit log, rate limiting,
 > an API Security Center, attack detection and incidents, a labelled attack simulator, scanning
 > behind a fail-closed gate, vulnerability management, threat modeling and governance, and an AI
@@ -257,7 +257,7 @@ resource until the local work is done ([ADR-0016](docs/adr/0016-local-first-phas
 | 4 | AWS deployment: ECS, internal ALB, RDS, Secrets Manager, CloudWatch | **Complete** (v0.9.0) |
 | 5 | CloudFront, AWS WAF, ACM/TLS, DNS and CAA, edge headers | **Complete** (v0.10.0) |
 | 11 | Automation and full DevSecOps pipeline | **Complete** (v0.11.0) |
-| 12 | Hardening, final assessment, interview demo | Planned |
+| 12 | Hardening, final assessment, interview demo | **Complete** (v1.0.0) |
 
 AWS cost so far: a few dollars of sign-up credits. Between windows about $2.50 a month remains (keys, DNS zone);
 the Phases 4 and 5 window cost about $0.09 an hour, then everything hourly was destroyed

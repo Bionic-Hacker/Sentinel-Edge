@@ -199,3 +199,14 @@ def test_a_threat_table_without_control_ids_is_refused() -> None:
     )
     with pytest.raises(CatalogueError, match="Control IDs"):
         parse_threat_model(model)
+
+
+@needs_docs
+def test_nist_crosswalk() -> None:
+    """The NIST SP 800-53 crosswalk cites only real controls and leaves no implemented one out."""
+    text = (DOCS / "governance" / "nist-800-53-crosswalk.md").read_text(encoding="utf-8")
+    cited = set(re.findall(r"\bC-[A-Z]+-\d{2}\b", text))
+    controls = {c["ref"]: c["status"] for c in CATALOGUE["controls"]}
+    assert cited - controls.keys() == set(), "the crosswalk cites controls that do not exist"
+    implemented = {ref for ref, status in controls.items() if status == "implemented"}
+    assert implemented - cited == set(), "implemented controls missing from the crosswalk"

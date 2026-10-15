@@ -26,7 +26,8 @@ def evaluate(runs: list[dict[str, Any]]) -> tuple[bool, list[str]]:
         ok = run.get("status") == "completed" and run.get("conclusion") in PASSING
         bad += not ok
         state = run.get("conclusion") or run.get("status")
-        lines.append(f"  {'ok  ' if ok else 'FAIL'} {run.get('name', '?')} ({state})")
+        label = "ok  " if ok else ("FAIL" if run.get("status") == "completed" else "wait")
+        lines.append(f"  {label} {run.get('name', '?')} ({state})")
     return bool(runs) and bad == 0, lines
 
 

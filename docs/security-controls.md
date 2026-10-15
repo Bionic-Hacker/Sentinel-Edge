@@ -215,6 +215,14 @@ CI holds no AWS credential; deployment is a gated command on the owner's machine
 |---|---|---|---|
 | C-IAM-02 | No cloud credential of any kind in CI; AWS is reached only from the owner's signed-in machine, through a deploy that requires main, a clean tree equal to `origin/main` and every CI check green (ADR-0030) | `scripts/deploy.sh`, `scripts/ci-status.py`, `make deploy-check` | `test_deploy_gate.py` (`test_missing_pending_or_failed_checks_refuse`) |
 
+## 2k. Controls implemented in Phase 12
+
+The live edge scanned in a deploy window; the assessment's last open item closed.
+
+| ID | Control | Implementation | Evidence |
+|---|---|---|---|
+| C-CICD-12 | A passive ZAP baseline of the live edge in a deploy window, through CloudFront and AWS WAF, judged by the same scan gate as CI | `scripts/dast-edge.sh`, `make dast-edge` | `make dast-edge`; `SECURITY_ASSESSMENT.md` (third window: 63 passed, 0 failures, nothing blocking) |
+
 ## 3. Matrix: requirement → threat → control → implementation → evidence
 
 | Requirement | Threat | Control | Implementation | Evidence | Phase |
@@ -249,6 +257,4 @@ CI holds no AWS credential; deployment is a gated command on the owner's machine
 Every control ID used in the threat model and not yet implemented, with the phase that
 implements it. When a phase implements one, its row moves to that phase's section above.
 
-| ID | Control | Phase |
-|---|---|---|
-| C-CICD-12 | A ZAP scan of the live edge in the deploy window (moved from Phase 5); `make edge-check` is the live evidence until then | 12 |
+None: since Phase 12 every control the threat model names is implemented.

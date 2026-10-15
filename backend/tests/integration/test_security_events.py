@@ -4,6 +4,7 @@ breaking a request)."""
 
 from __future__ import annotations
 
+import time
 import uuid
 from collections.abc import Iterator
 from typing import Any
@@ -284,9 +285,16 @@ def test_recording_is_throttled_per_source_ip(migrator_engine: Engine) -> None:
         with TestClient(
             application, raise_server_exceptions=False, client=("203.0.113.50", 1)
         ) as c:
+            started = time.monotonic()
             for _ in range(40):
                 c.get("/api/v1/health", params={"q": "<script>"})
-        assert len(events(application, source=EventSource.HTTP_ANALYSIS)) == 30
+            elapsed = time.monotonic() - started
+        # A token bucket of 30 that refills at 30 a minute (one token every 2 s): a slow runner
+        # may earn a token or two back while the 40 requests run, never the 10 it would take to
+        # record them all.
+        recorded = len(events(application, source=EventSource.HTTP_ANALYSIS))
+        assert 30 <= recorded <= 30 + int(elapsed / 2) + 1
+        assert recorded < 40
     finally:
         application.state.engine.dispose()
         _truncate_all(migrator_engine)

@@ -1,6 +1,6 @@
 # SentinelEdge threat model
 
-- **Version:** 0.14 (Phase 11: CI holds no AWS credential, gated deploy, ADR-0030. 0.13: Phase 5 released: the edge applied and verified in the deploy window; account
+- **Version:** 0.15 (Phase 12, v1.0.0: signing-key rotation, the live edge scanned with ZAP, runbooks and disaster recovery; the Phase 12 notes below closed. 0.14: Phase 11: CI holds no AWS credential, gated deploy, ADR-0030. 0.13: Phase 5 released: the edge applied and verified in the deploy window; account
   recovery through an administrator only, ADR-0028; the edge read back, ADR-0029)
 - **Method:** STRIDE per trust boundary, with OWASP Top 10 (2021), OWASP API Security Top 10
   (2023), and OWASP Top 10 for LLM Applications (2025) as threat catalogues. Since Phase 10
@@ -75,7 +75,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 | T-EDGE-03 | E | **Origin bypass** around CloudFront/WAF | 2×3 | Internal ALB with no public address; its only ingress is CloudFront's VPC-origin security group (ADR-0001, ADR-0026, ADR-0027); `make edge-check` proves it unreachable | C-EDGE-02 | **Mitigated (P4, P5)**: the ALB resolves only to private addresses and is unreachable from the internet, verified in the deploy window (`make edge-check`) |
 | T-EDGE-04 | T | Cache poisoning / cache deception | 1×3 | `/api/*` never cached at the edge (CachingDisabled), `Cache-Control: no-store`, Host allow-list; only hashed assets are long-cached | C-EDGE-03, C-API-07, C-WEB-01 | **Mitigated (P1, P5)**: `/api/*` never cached, Host allow-list, hashed assets only long-cached; verified in the deploy window (`make edge-check`) |
 | T-EDGE-05 | S | Host header injection | 2×2 | TrustedHostMiddleware, no wildcards | C-API-07 | **Mitigated (P1)** |
-| T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response; CloudFront's policy is identical to nginx's (`test_edge_headers_match_nginx`) | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03, C-CICD-12 | **Mitigated (P1, P5)**: CloudFront's headers identical to nginx's, verified in the deploy window (`make edge-check`) |
+| T-EDGE-06 | T | Clickjacking, MIME sniffing, XSS via missing headers | 2×2 | Security headers on every response; CloudFront's policy is identical to nginx's (`test_edge_headers_match_nginx`) | C-WEB-01, C-WEB-02, C-WEB-04, C-EDGE-03, C-CICD-12 | **Mitigated (P1, P5, P12)**: CloudFront's headers identical to nginx's, verified in the deploy window (`make edge-check`); a ZAP baseline of the live edge passed with nothing blocking (P12) |
 | T-EDGE-07 | I | The SPA bucket read directly, around CloudFront and WAF | 1×2 | Private bucket, public access blocked; only this distribution may read it (OAC, `AWS:SourceArn`) | C-EDGE-04 | **Mitigated (P5)**: OAC, public access blocked; verified in the deploy window |
 | T-EDGE-08 | S | The API reached through the distribution's own `*.cloudfront.net` name, outside the platform's origin and cookie scope | 1×2 | Host forwarded to the origin: the origin certificate names only the platform, and the ALB forwards only that host (`make edge-check`) | C-LB-01, C-API-07 | **Mitigated (P5)**: no API under the distribution's own name, verified in the deploy window (`make edge-check`) |
 | T-EDGE-09 | T/I | Attacker-written text in WAF log records (paths, query strings, user agents) shown to operators or sent to the AI | 2×2 | Stored as bounded, redacted, control-character-free evidence and rendered as text only; the AI receives it as delimited, untrusted data (ADR-0029) | C-EDGE-05, C-SO-02, C-AI-04 | **Mitigated (P5)** |
@@ -253,12 +253,12 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   2 minutes) and at the edge (100 sign-in requests per 5 minutes), but a distributed attacker
   can still trigger the per-account lockout. WAF Bot Control ($10 a month plus requests) is not
   adopted. Accepted: lockout expires after 15 minutes.
-- Rate-limit and metrics writes add database load per request (ADR-0017). Revisited in Phase 12.
+- Rate-limit and metrics writes add database load per request (ADR-0017). Reviewed in Phase 12 and accepted: fine at this scale, bounded by a statement timeout, and the limiter fails closed; a cache is a later concern.
 - Rate-limit state is per database: a database outage disables sign-in entirely (fails closed).
 - Correlation for audit-fed events (failed sign-ins, denials) runs inside the request that
   produced them (ADR-0018), so an attack burst adds a little latency to those requests; HTTP
-  analysis runs after the response. Bounded by the rate limiter; revisited in Phase 12.
-- Security events and incidents have no retention policy yet; they grow until Phase 12 adds one.
+  analysis runs after the response. Bounded by the rate limiter; reviewed in Phase 12 and accepted.
+- Security events and incidents have no retention policy. Accepted in Phase 12: the AWS environment, its database included, is destroyed after every deploy window and all data is synthetic; a long-lived deployment would need one.
 - HTTP analysis is detect-only. In AWS, WAF blocks known injection payloads at the edge; locally
   and between windows, parameterised queries and validation are the protection, and detection
   records it.
@@ -267,7 +267,7 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
 - The Debian 13 base of the API image carries high OS package vulnerabilities with no fix
   published (44 at the end of Phase 8). They are reported on every scan and block as soon as a
   fix exists; most are in packages the service never executes. A minimal base image (distroless
-  or Alpine) is planned with Phase 12 hardening.
+  or Alpine) was considered in Phase 12 and not adopted for v1.0.0; it remains the next hardening step.
 - The scan gate reads a committed file (`scanning/accepted-findings.toml`) generated from the
   approved exceptions (`make accepted-risks`). Between a decision and the next generation the
   gate uses the previous file; run it after every scan-finding decision. Finding-level risk
@@ -288,5 +288,6 @@ Out-of-band:  TB6 ── CI/CD → AWS     TB7 ── Operator/admin → platfor
   no scheduler, a day nobody opens it has no snapshot.
 - Scans are imported by an operator (`make scan-import`); CI results reach SentinelEdge only when
   someone imports the CI artifact, until a deployed API can receive them (Phase 11).
-- DAST covers the local stack only. The deployed edge was proven with `make edge-check`; a ZAP scan
-  of it moves to the Phase 12 deploy window.
+- The live-edge ZAP scan is passive and unauthenticated (Phase 12: 63 rules passed, 0 failures, 1 low
+  and 3 informational warnings, nothing blocking); the active, authenticated DAST runs against the
+  local stack in CI.

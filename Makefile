@@ -8,7 +8,7 @@ GITLEAKS_IMAGE := ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79
         create-admin verify-audit migrate smoke scan scan-test sbom dast scan-gate image-digests scan-import \
         governance-catalogue accepted-risks ai-check bedrock-credentials bedrock-credentials-clear \
         tf-check tf-init tf-plan tf-apply tf-destroy-plan tf-output tf-lock rds-ca images-push ecs-task \
-        spa-push edge-check report deploy-check deploy deploy-finish deploy-verify
+        spa-push edge-check dast-edge report deploy-check deploy deploy-finish deploy-verify
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  %-16s %s\n", $$1, $$2}'
@@ -48,6 +48,9 @@ create-admin: ## Create an ADMIN with a one-time password: make create-admin EMA
 
 verify-audit: ## Verify the audit log hash chain
 	docker compose exec api python -m app.cli verify-audit
+
+dast-edge: ## Passive ZAP baseline of the live edge in a deploy window, then the scan gate (C-CICD-12)
+	./scripts/dast-edge.sh
 
 report: ## Security report: make report KIND=security|posture|api-inventory|vulnerabilities|waf|certificates [FORMAT=json] [HOURS=24]
 	@test -n "$(KIND)" || { echo "Usage: make report KIND=security|posture|api-inventory|vulnerabilities|waf|certificates [FORMAT=json] [HOURS=24]"; exit 2; }
