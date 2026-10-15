@@ -1,3 +1,4 @@
+import { Section } from "../../components/page";
 /**
  * Shared pieces for threat modeling and governance (Phase 10). Everything people typed (threats,
  * justifications, notes) is rendered as text. Charts are SVG with geometry in attributes: the
@@ -197,10 +198,7 @@ export function TrendLine({ points, label }: { points: { taken_at: string; value
 /** The record's history, read from the hash-chained audit log. */
 export function History({ entries }: { entries: HistoryEntry[] }) {
   return (
-    <section aria-labelledby="history-heading" className="space-y-2">
-      <h2 id="history-heading" className="text-base font-semibold">
-        History
-      </h2>
+    <Section title="History" id="history-heading" defaultOpen={false}>
       <p className="text-xs text-ink-muted">From the hash-chained audit log: it cannot be edited without breaking the chain.</p>
       <ol className="space-y-2 border-l border-line pl-4">
         {entries.map((e) => (
@@ -213,7 +211,7 @@ export function History({ entries }: { entries: HistoryEntry[] }) {
           </li>
         ))}
       </ol>
-    </section>
+    </Section>
   );
 }
 

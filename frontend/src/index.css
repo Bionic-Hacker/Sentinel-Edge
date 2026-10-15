@@ -232,3 +232,51 @@ body {
     display: none;
   }
 }
+
+/*
+ * Page kit (components/page.tsx): collapsible blocks and the "About this page" disclosure. The
+ * chevron turns when a block is open; the browser's own marker is hidden.
+ */
+.section-block > summary::-webkit-details-marker,
+.about > summary::-webkit-details-marker {
+  display: none;
+}
+.section-block > summary,
+.about > summary {
+  list-style: none;
+}
+.section-block[open] > summary .chevron,
+.about[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+/*
+ * Tables inside the main area: one quiet, consistent look. :where() keeps this at zero
+ * specificity, so any utility class on a table still wins.
+ */
+:where(main) :where(table) {
+  border-collapse: collapse;
+}
+:where(main) :where(thead) :where(th) {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--color-ink-muted);
+  background: var(--color-raised);
+  white-space: nowrap;
+}
+:where(main) :where(tbody) :where(tr) {
+  transition: background-color 120ms;
+}
+:where(main) :where(tbody) :where(tr):hover {
+  background: color-mix(in srgb, var(--color-accent) 5%, transparent);
+}
+:where(main) :where(tbody) :where(tr):nth-child(even) {
+  background: color-mix(in srgb, var(--color-raised) 45%, transparent);
+}
+:where(main) :where(tbody) :where(tr):nth-child(even):hover {
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+:where(main) :where(td, th) {
+  vertical-align: top;
+}

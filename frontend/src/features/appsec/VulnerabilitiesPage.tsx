@@ -1,3 +1,4 @@
+import { PageHeader, Section } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button, FormError } from "../../components/forms";
@@ -31,13 +32,15 @@ type State = (typeof STATES)[number];
 export function VulnerabilitiesPage() {
   return (
     <div className="max-w-7xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Vulnerabilities</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          Findings from code, dependency, secret, container, configuration and running-application scans, de-duplicated
-          across scans and tracked to closure. A scan that no longer reports a finding marks it fixed; nobody does by hand.
-        </p>
-      </header>
+      <PageHeader
+        title="Vulnerabilities"
+        summary="Findings from every scan, de-duplicated and tracked to closure."
+        about={
+          <p>
+            Findings from code, dependency, secret, container, configuration and running-application scans, de-duplicated across scans and tracked to closure. A scan that no longer reports a finding marks it fixed; nobody does by hand.
+          </p>
+        }
+      />
       <Overview />
       <FindingList />
       <RecentScans />
@@ -65,10 +68,7 @@ function Overview() {
   if (!data) return <p className="text-sm text-ink-muted">Loading the overview…</p>;
   const scan = data.last_scan;
   return (
-    <section aria-labelledby="vuln-overview" className="space-y-3">
-      <h2 id="vuln-overview" className="sr-only">
-        Overview
-      </h2>
+    <Section title="Overview" id="vuln-overview">
       <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
         <StatTile label="Open findings" value={data.active_total} note="Open or in progress" />
         <StatTile label="Critical" value={data.active.critical} {...(data.active.critical ? { tone: "fail" as const } : {})} />
@@ -94,7 +94,7 @@ function Overview() {
           <code className="font-mono text-ink">make scan-import</code>.
         </p>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -197,10 +197,7 @@ function FindingList() {
 
   const select = "rounded border border-line bg-canvas px-2 py-1.5 text-sm";
   return (
-    <section aria-labelledby="findings-heading" className="space-y-4">
-      <h2 id="findings-heading" className="text-base font-semibold">
-        Findings
-      </h2>
+    <Section title="Findings" id="findings-heading">
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-sm">
           <span className="block text-ink-muted">Status</span>
@@ -345,7 +342,7 @@ function FindingList() {
           </div>
         )}
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -371,10 +368,7 @@ function RecentScans() {
 
   const scans = result?.data?.items ?? [];
   return (
-    <section aria-labelledby="scans-heading" className="space-y-3">
-      <h2 id="scans-heading" className="text-base font-semibold">
-        Recent scans
-      </h2>
+    <Section title="Recent scans" id="scans-heading" defaultOpen={false}>
       {result?.error && <FormError error={result.error} />}
       {result?.data && !scans.length && <p className="text-sm text-ink-muted">No scans imported yet.</p>}
       {scans.length > 0 && (
@@ -418,6 +412,6 @@ function RecentScans() {
           </table>
         </div>
       )}
-    </section>
+    </Section>
   );
 }

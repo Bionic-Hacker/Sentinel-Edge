@@ -1,3 +1,4 @@
+import { PageHeader, Section } from "../../components/page";
 import { useEffect, useState } from "react";
 import { useCapabilities } from "../../app/capabilities-context";
 import { useCurrentUser } from "../../app/auth-context";
@@ -23,14 +24,15 @@ export function WafPage() {
   const user = useCurrentUser();
   return (
     <div className="max-w-7xl space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">WAF</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          AWS WAF protects the platform on CloudFront, with rules changed only through reviewed Terraform pull requests;
-          what it blocks is read back here. A simulated WAF runs inside the attack simulator everywhere, using
-          SentinelEdge's own detection rules.
-        </p>
-      </header>
+      <PageHeader
+        title="WAF"
+        summary="What AWS WAF blocks at the edge, and the simulator's WAF rules."
+        about={
+          <p>
+            AWS WAF protects the platform on CloudFront, with rules changed only through reviewed Terraform pull requests; what it blocks is read back here. A simulated WAF runs inside the attack simulator everywhere, using SentinelEdge's own detection rules.
+          </p>
+        }
+      />
       {READERS.includes(user.role) && <AwsWafSection canSync={OPERATORS.includes(user.role)} />}
       {VIEWERS.includes(user.role) ? (
         <SimulatedWaf canChange={OPERATORS.includes(user.role)} />
@@ -98,10 +100,7 @@ function SimulatedWaf({ canChange }: { canChange: boolean }) {
     [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([key, value]) => ({ key, label: key, value }));
 
   return (
-    <section aria-labelledby="sim-waf" className="space-y-6">
-      <h2 id="sim-waf" className="text-lg font-semibold">
-        Simulated WAF
-      </h2>
+    <Section title="Simulated WAF" id="sim-waf">
       <SimulatedBanner>
         {rules?.note ??
           "Changing a rule here affects simulations only. Real AWS WAF rules change through Terraform (ADR-0008)."}
@@ -223,7 +222,7 @@ function SimulatedWaf({ canChange }: { canChange: boolean }) {
           </div>
         )}
       </section>
-    </section>
+    </Section>
   );
 }
 
@@ -233,10 +232,7 @@ function ModuleCapabilities() {
   const items = caps.data.filter((c) => MODULE.capabilityKeys.includes(c.key));
   if (!items.length) return null;
   return (
-    <section aria-labelledby="waf-caps" className="space-y-3">
-      <h2 id="waf-caps" className="text-lg font-semibold">
-        Capabilities
-      </h2>
+    <section className="space-y-3">
       <CapabilityTable caption="WAF capabilities: real AWS and simulated" items={items} />
     </section>
   );

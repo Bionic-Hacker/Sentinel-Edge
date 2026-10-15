@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { useCurrentUser } from "../../app/auth-context";
 import { Button, FormError, Notice } from "../../components/forms";
@@ -127,18 +128,22 @@ function AuditLogViewer() {
 
   return (
     <div className="max-w-6xl space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Audit logs</h1>
-          <p className="mt-1 max-w-prose text-ink-muted">
-            Every sign-in, permission denial and administrative change, newest first. Each record is chained to the one
-            before it, so any edit to history is detectable.
+      <PageHeader
+        title="Audit logs"
+        summary="Every sign-in, denial and administrative change, newest first."
+        about={
+          <p>
+            Every sign-in, permission denial and administrative change, newest first. Each record is chained to the one before it, so any edit to history is detectable.
           </p>
-        </div>
+        }
+        actions={
+          <>
         <Button variant="secondary" onClick={() => void verify()}>
           Verify integrity
         </Button>
-      </header>
+          </>
+        }
+      />
 
       {chain &&
         (chain.intact ? (

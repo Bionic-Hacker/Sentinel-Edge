@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, FormError } from "../../components/forms";
@@ -29,13 +30,15 @@ export function SbomPage() {
 
   return (
     <div className="max-w-7xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Software bill of materials</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          Every component in the API image, the web image and the source tree, as Syft recorded it in CycloneDX at the
-          last imported scan. Known vulnerabilities in these components are on the Vulnerabilities page.
-        </p>
-      </header>
+      <PageHeader
+        title="Software bill of materials"
+        summary="Every component in the images and the source tree, from the last scan."
+        about={
+          <p>
+            Every component in the API image, the web image and the source tree, as Syft recorded it in CycloneDX at the last imported scan. Known vulnerabilities in these components are on the Vulnerabilities page.
+          </p>
+        }
+      />
       {list?.error && <FormError error={list.error} />}
       {!list && <p className="text-sm text-ink-muted">Loading SBOMs…</p>}
       {list?.data && !sboms.length && (

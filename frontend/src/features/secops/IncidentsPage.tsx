@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../../app/auth-context";
@@ -24,13 +25,15 @@ export function IncidentsPage() {
   const user = useCurrentUser();
   return (
     <div className="max-w-7xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Incidents</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          Detection to closure: DETECTED, TRIAGED, INVESTIGATING, CONTAINMENT, REMEDIATION, VALIDATION, CLOSED. Every
-          change is a timeline entry committed to the tamper-evident audit log.
-        </p>
-      </header>
+      <PageHeader
+        title="Incidents"
+        summary="Incidents from detection to closure, every change on the audit record."
+        about={
+          <p>
+            Detection to closure: DETECTED, TRIAGED, INVESTIGATING, CONTAINMENT, REMEDIATION, VALIDATION, CLOSED. Every change is a timeline entry committed to the tamper-evident audit log.
+          </p>
+        }
+      />
       {READERS.includes(user.role) ? (
         <IncidentList canCreate={INVESTIGATORS.includes(user.role)} />
       ) : (

@@ -65,11 +65,12 @@ def test_sentineledge_is_the_first_protected_application(
         "value": len(ENDPOINTS),
         "note": "Endpoints in the live route table (API Security Center).",
     }
-    assert platform["waf_status"]["status"] == "planned"
-    assert "Phase 5" in platform["waf_status"]["note"]
+    assert platform["waf_status"]["status"] == "not_connected"
+    assert "WAF" in platform["waf_status"]["note"]
     assert platform["vulnerability_count"]["status"] == "not_connected"  # until a scan import
     assert "make scan-import" in platform["last_scan"]["note"]
-    assert platform["security_score"]["value"] is None
+    assert platform["security_score"]["status"] == "measured"
+    assert 0 <= platform["security_score"]["value"] <= 100
 
 
 def test_registering_an_application(

@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../../app/auth-context";
@@ -72,13 +73,15 @@ export function CompliancePage() {
   const tab: Tab = (TABS.find(([key]) => key === params.get("tab"))?.[0] ?? "posture") as Tab;
   return (
     <div className="max-w-7xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Compliance</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          The control catalogue and the requirement, threat, control and evidence matrix; an explainable posture score;
-          security exceptions and change requests, where whoever asks can never approve.
-        </p>
-      </header>
+      <PageHeader
+        title="Compliance"
+        summary="Controls, posture, exceptions and change requests."
+        about={
+          <p>
+            The control catalogue and the requirement, threat, control and evidence matrix; an explainable posture score; security exceptions and change requests, where whoever asks can never approve.
+          </p>
+        }
+      />
       <nav aria-label="Compliance sections" className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map(([key, label]) => (
           <button

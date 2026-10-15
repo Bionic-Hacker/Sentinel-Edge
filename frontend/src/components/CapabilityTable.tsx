@@ -1,12 +1,15 @@
 import type { Capability } from "../lib/types";
+import { Section } from "./page";
 import { ProvenanceBadge } from "./ProvenanceBadge";
 
 export function CapabilityTable({ items, caption }: { items: Capability[]; caption: string }) {
   if (items.length === 0) {
     return <p className="text-sm text-ink-muted">No capabilities are registered for this module yet.</p>;
   }
+  // Secondary on every page: what is real, local, simulated or demo here. Starts collapsed.
   return (
-    <div className="overflow-x-auto rounded-md border border-line">
+    <Section title="Capabilities" count={items.length} meta="What is real, local, simulated or demo here" defaultOpen={false}>
+      <div className="overflow-x-auto rounded-md border border-line">
       <table className="w-full min-w-[640px] text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="bg-raised text-ink-muted">
@@ -37,6 +40,7 @@ export function CapabilityTable({ items, caption }: { items: Capability[]; capti
           ))}
         </tbody>
       </table>
-    </div>
+      </div>
+    </Section>
   );
 }

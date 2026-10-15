@@ -1,3 +1,4 @@
+import { PageHeader, Section } from "../../components/page";
 import { useEffect, useMemo, useState } from "react";
 import { useCapabilities } from "../../app/capabilities-context";
 import { useCurrentUser } from "../../app/auth-context";
@@ -46,13 +47,15 @@ export function ApiSecurityPage() {
   const allowed = READERS.includes(user.role);
   return (
     <div className="max-w-7xl space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">API Security Center</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          Every API endpoint with its authentication, authorization, risk and rate limit, generated from the live
-          route table, plus the last 24 hours of traffic and the OWASP API Security Top 10 coverage.
-        </p>
-      </header>
+      <PageHeader
+        title="API Security Center"
+        summary="Every endpoint with its access rule, risk, rate limit and recent traffic."
+        about={
+          <p>
+            Every API endpoint with its authentication, authorization, risk and rate limit, generated from the live route table, plus the last 24 hours of traffic and the OWASP API Security Top 10 coverage.
+          </p>
+        }
+      />
       {allowed ? (
         <ApiSecurityCenter />
       ) : (
@@ -173,10 +176,7 @@ function InventoryTable({ items }: { items: InventoryItem[] }) {
   );
 
   return (
-    <section aria-labelledby="inventory-heading" className="space-y-3">
-      <h2 id="inventory-heading" className="text-lg font-semibold">
-        Endpoint inventory
-      </h2>
+    <Section title="Endpoint inventory" id="inventory-heading">
       <div className="flex flex-wrap items-end gap-3 text-sm" role="group" aria-label="Filter endpoints">
         <label className="space-y-1">
           <span className="block font-medium">Search</span>
@@ -261,7 +261,7 @@ function InventoryTable({ items }: { items: InventoryItem[] }) {
         </table>
         {visible.length === 0 && <p className="px-3 py-4 text-sm text-ink-muted">No endpoints match these filters.</p>}
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -402,10 +402,7 @@ function ModuleCapabilities() {
   const caps = useCapabilities();
   if (!MODULE) return null;
   return (
-    <section aria-labelledby="module-caps" className="space-y-3">
-      <h2 id="module-caps" className="text-lg font-semibold">
-        Capabilities
-      </h2>
+    <section className="space-y-3">
       {caps.state === "loading" && <p className="text-sm text-ink-muted">Loading capabilities…</p>}
       {caps.state === "error" && <ErrorPanel error={caps.error} />}
       {caps.state === "ready" && (

@@ -34,6 +34,7 @@ from app.schemas.applications import (
 )
 from app.schemas.incidents import AssigneeList
 from app.services import audit
+from app.services import posture as posture_service
 from app.services.audit import AuditAction, RequestContext
 from app.services.incidents import LIVE, _person
 
@@ -41,8 +42,11 @@ OWNER_ROLES = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.DEVELOPER})
 SEES_ALL = frozenset({Role.ADMIN, Role.SECURITY_ENGINEER, Role.ANALYST, Role.VIEWER})
 
 
-def _planned(phase: int, what: str) -> Measure:
-    return Measure(status="planned", value=None, note=f"{what} arrives in Phase {phase}.")
+EDGE_PAGES = Measure(
+    status="not_connected",
+    value=None,
+    note="The edge protects SentinelEdge only: see the WAF and Certificates pages.",
+)
 
 
 NOT_CONNECTED = Measure(
@@ -107,10 +111,19 @@ class ApplicationService:
             api_count=api_count,
             open_incidents=incidents,
             security_events_24h=events_24h,
-            waf_status=_planned(5, "AWS WAF in front of the application"),
-            certificate_status=_planned(5, "ACM certificate monitoring"),
-            security_score=_planned(10, "The explainable posture score"),
+            waf_status=EDGE_PAGES,
+            certificate_status=EDGE_PAGES,
+            security_score=self._score(app),
             **self._scan_measures(app),
+        )
+
+    def _score(self, app: Application) -> Measure:
+        """The platform's posture score (Compliance page); other applications have no catalogue."""
+        if not app.is_platform:
+            return NOT_CONNECTED
+        overall, _, _ = posture_service.compute(self.db)
+        return Measure(
+            status="measured", value=overall, note="Posture score, out of 100 (Compliance)."
         )
 
     def _scan_measures(self, app: Application) -> dict[str, Measure]:

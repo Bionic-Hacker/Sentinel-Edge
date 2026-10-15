@@ -24,8 +24,7 @@ export function ModulePage({ module }: { module: ModuleDef }) {
           </p>
         )}
       </header>
-      <section aria-labelledby="module-caps" className="space-y-3">
-        <h2 id="module-caps" className="text-lg font-semibold">Capabilities</h2>
+      <section className="space-y-3">
         {caps.state === "loading" && <p className="text-sm text-ink-muted">Loading capabilities…</p>}
         {caps.state === "error" && <ErrorPanel error={caps.error} />}
         {caps.state === "ready" && (

@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../../app/auth-context";
@@ -48,14 +49,15 @@ export function ThreatsPage() {
   const user = useCurrentUser();
   return (
     <div className="max-w-7xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Threats</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          Every security event SentinelEdge recorded: attack patterns found in requests, failed and suspicious sign-ins,
-          authorization denials, rate-limit trips, and the detections that correlate them. Select an event for its HTTP
-          analysis and evidence.
-        </p>
-      </header>
+      <PageHeader
+        title="Threats"
+        summary="Every security event recorded. Select one for its analysis and evidence."
+        about={
+          <p>
+            Every security event SentinelEdge recorded: attack patterns found in requests, failed and suspicious sign-ins, authorization denials, rate-limit trips, and the detections that correlate them. Select an event for its HTTP analysis and evidence.
+          </p>
+        }
+      />
       {READERS.includes(user.role) ? (
         <EventsExplorer canInvestigate={INVESTIGATORS.includes(user.role)} />
       ) : (

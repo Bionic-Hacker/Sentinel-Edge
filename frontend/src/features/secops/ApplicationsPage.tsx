@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { useCapabilities } from "../../app/capabilities-context";
 import { useCurrentUser } from "../../app/auth-context";
@@ -70,14 +71,16 @@ export function ApplicationsPage() {
 
   return (
     <div className="max-w-7xl space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Applications</h1>
-          <p className="mt-1 max-w-prose text-ink-muted">
-            The applications SentinelEdge protects, with their owners and criticality. SentinelEdge is the first: its
-            figures are measured live. Values that need a later phase say so rather than show a made-up number.
+      <PageHeader
+        title="Applications"
+        summary="Protected applications, their owners and criticality."
+        about={
+          <p>
+            The applications SentinelEdge protects, with their owners and criticality. SentinelEdge is the first: its figures are measured live. Applications without connected telemetry say so rather than show a made-up number.
           </p>
-        </div>
+        }
+        actions={
+          <>
         {canEdit && !registering && (
           <Button
             onClick={() => {
@@ -88,7 +91,9 @@ export function ApplicationsPage() {
             Register an application
           </Button>
         )}
-      </header>
+          </>
+        }
+      />
       {user.role === "DEVELOPER" && (
         <p className="text-sm text-ink-muted">You see the applications you own. Ask a security engineer to assign you as owner.</p>
       )}
@@ -129,8 +134,6 @@ const MEASURE_LABELS: [keyof Application, string][] = [
   ["api_count", "API endpoints"],
   ["open_incidents", "Open incidents"],
   ["security_events_24h", "Security events (24 h)"],
-  ["waf_status", "WAF"],
-  ["certificate_status", "Certificate"],
   ["security_score", "Security score"],
   ["last_scan", "Last scan"],
   ["vulnerability_count", "Vulnerabilities"],
@@ -451,10 +454,7 @@ function ModuleCapabilities() {
   const items = caps.data.filter((c) => MODULE.capabilityKeys.includes(c.key));
   if (!items.length) return null;
   return (
-    <section aria-labelledby="app-caps" className="space-y-3">
-      <h2 id="app-caps" className="text-lg font-semibold">
-        Capabilities
-      </h2>
+    <section className="space-y-3">
       <CapabilityTable caption="Application inventory capabilities" items={items} />
     </section>
   );

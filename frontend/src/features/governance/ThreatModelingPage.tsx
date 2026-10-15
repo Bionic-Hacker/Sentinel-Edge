@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../../app/auth-context";
@@ -30,14 +31,15 @@ export function ThreatModelingPage() {
   const models = showArchived ? all : all.filter((m) => m.status !== "archived");
   return (
     <div className="max-w-6xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Threat Modeling</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          Assets, trust boundaries, data flows and threats (STRIDE or PASTA), each threat linked to the controls that mitigate
-          it. SentinelEdge's own model is maintained as code and loaded from the reviewed threat model; models for other
-          applications are built here.
-        </p>
-      </header>
+      <PageHeader
+        title="Threat Modeling"
+        summary="Threat models for SentinelEdge and the applications it protects."
+        about={
+          <p>
+            Assets, trust boundaries, data flows and threats (STRIDE or PASTA), each threat linked to the controls that mitigate it. SentinelEdge's own model is maintained as code and loaded from the reviewed threat model; models for other applications are built here.
+          </p>
+        }
+      />
       {result?.error && <FormError error={result.error} />}
       {!result && <p className="text-sm text-ink-muted">Loading threat models…</p>}
       {archived > 0 && (

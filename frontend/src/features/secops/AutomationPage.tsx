@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCapabilities } from "../../app/capabilities-context";
@@ -19,13 +20,15 @@ export function AutomationPage() {
   const user = useCurrentUser();
   return (
     <div className="max-w-7xl space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Automation</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          The attack simulator runs labelled attack scenarios against SentinelEdge itself. The five interview demo
-          scenarios (INTERVIEW_DEMO.md) each start here.
-        </p>
-      </header>
+      <PageHeader
+        title="Automation"
+        summary="Run labelled attack scenarios against SentinelEdge itself."
+        about={
+          <p>
+            The attack simulator runs labelled attack scenarios against SentinelEdge itself. The five interview demo scenarios (INTERVIEW_DEMO.md) each start here.
+          </p>
+        }
+      />
       {VIEWERS.includes(user.role) ? (
         <Simulator canRun={OPERATORS.includes(user.role)} />
       ) : (
@@ -221,10 +224,7 @@ function ModuleCapabilities() {
   const items = caps.data.filter((c) => MODULE.capabilityKeys.includes(c.key));
   if (!items.length) return null;
   return (
-    <section aria-labelledby="automation-caps" className="space-y-3">
-      <h2 id="automation-caps" className="text-lg font-semibold">
-        Capabilities
-      </h2>
+    <section className="space-y-3">
       <CapabilityTable caption="Automation capabilities" items={items} />
     </section>
   );

@@ -1,3 +1,4 @@
+import { Section } from "../components/page";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCapabilities } from "../app/capabilities-context";
@@ -392,10 +393,7 @@ const CONTROL_LINKS: Record<string, string> = { api: "/api-security", vulnerabil
 
 function Controls({ data }: { data: Overview }) {
   return (
-    <section aria-labelledby="controls-heading" className="space-y-3">
-      <h2 id="controls-heading" className="text-base font-semibold">
-        Controls
-      </h2>
+    <Section title="Controls" id="controls-heading">
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {Object.entries(data.controls).map(([key, c]) => (
           <li key={key} className="rounded-md border border-line bg-surface p-4">
@@ -420,7 +418,7 @@ function Controls({ data }: { data: Overview }) {
           Most matched rules: {data.top_rules.map((r) => `${r.rule_id} (${r.events})`).join(", ")}.
         </p>
       )}
-    </section>
+    </Section>
   );
 }
 

@@ -1,3 +1,4 @@
+import { Section } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { BarList } from "../../components/charts";
@@ -166,22 +167,16 @@ export function ThreatModelPage() {
       </dl>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section aria-labelledby="matrix-heading" className="space-y-2">
-          <h2 id="matrix-heading" className="text-base font-semibold">
-            Risk still carried
-          </h2>
+        <Section title="Risk still carried" id="matrix-heading">
           <RiskMatrix cells={model.stats.matrix} />
-        </section>
-        <section aria-labelledby="stride-heading" className="space-y-2">
-          <h2 id="stride-heading" className="text-base font-semibold">
-            Threats by category
-          </h2>
+        </Section>
+        <Section title="Threats by category" id="stride-heading">
           <BarList
             label="Threats by STRIDE category"
             empty="No threats yet."
             items={Object.entries(model.stats.by_stride).map(([key, value]) => ({ key, label: STRIDE_NAME[key] ?? key, value }))}
           />
-        </section>
+        </Section>
       </div>
 
       {model.method === "pasta" && <PastaStages model={model} onChange={update} />}
@@ -215,10 +210,7 @@ function ThreatTable({ model, onChange }: { model: ThreatModelDetail; onChange: 
       (!needle || t.ref.toLowerCase().includes(needle) || t.title.toLowerCase().includes(needle) || t.controls.some((c) => c.ref.toLowerCase().includes(needle))),
   );
   return (
-    <section aria-labelledby="threats-heading" className="space-y-3">
-      <h2 id="threats-heading" className="text-base font-semibold">
-        Threats
-      </h2>
+    <Section title="Threats" id="threats-heading">
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1 text-sm">
           <span className="block text-ink-muted">Show</span>
@@ -265,7 +257,7 @@ function ThreatTable({ model, onChange }: { model: ThreatModelDetail; onChange: 
           </tbody>
         </table>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -378,10 +370,7 @@ function Elements({ model, onChange }: { model: ThreatModelDetail; onChange: Cha
   }
 
   return (
-    <section aria-labelledby="elements-heading" className="space-y-4">
-      <h2 id="elements-heading" className="text-base font-semibold">
-        Model
-      </h2>
+    <Section title="Model" id="elements-heading" defaultOpen={false}>
       <div className="grid gap-4 md:grid-cols-2">
         {ELEMENT_KINDS.map((kind) => {
           const items = model.elements.filter((e) => e.kind === kind && !e.retired);
@@ -442,7 +431,7 @@ function Elements({ model, onChange }: { model: ThreatModelDetail; onChange: Cha
           </div>
         </form>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -495,10 +484,7 @@ function NewThreat({ model, onChange }: { model: ThreatModelDetail; onChange: Ch
   );
 
   return (
-    <section aria-labelledby="new-threat" className="rounded-md border border-line bg-surface p-5">
-      <h2 id="new-threat" className="mb-3 text-base font-semibold">
-        Add a threat
-      </h2>
+    <Section title="Add a threat" id="new-threat">
       <form onSubmit={(e) => void submit(e)} className="grid gap-3 sm:grid-cols-4">
         <label className="space-y-1 text-sm sm:col-span-4">
           <span className="block text-ink-muted">Threat</span>
@@ -543,7 +529,7 @@ function NewThreat({ model, onChange }: { model: ThreatModelDetail; onChange: Ch
           </Button>
         </div>
       </form>
-    </section>
+    </Section>
   );
 }
 
@@ -567,10 +553,7 @@ function PastaStages({ model, onChange }: { model: ThreatModelDetail; onChange: 
   }
 
   return (
-    <section aria-labelledby="pasta-heading" className="space-y-3">
-      <h2 id="pasta-heading" className="text-base font-semibold">
-        PASTA stages
-      </h2>
+    <Section title="PASTA stages" id="pasta-heading" defaultOpen={false}>
       <form onSubmit={(e) => void save(e)} className="grid gap-3 md:grid-cols-2">
         {PASTA_STAGES.map((s) => (
           <label key={`${s}-${model.version}`} className="space-y-1 text-sm">
@@ -594,6 +577,6 @@ function PastaStages({ model, onChange }: { model: ThreatModelDetail; onChange: 
           </div>
         )}
       </form>
-    </section>
+    </Section>
   );
 }

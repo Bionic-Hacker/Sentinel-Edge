@@ -1,3 +1,4 @@
+import { PageHeader } from "../../components/page";
 import { useCallback } from "react";
 import { useCapabilities } from "../../app/capabilities-context";
 import { useCurrentUser } from "../../app/auth-context";
@@ -28,13 +29,15 @@ export function CertificatesPage() {
   const user = useCurrentUser();
   return (
     <div className="max-w-7xl space-y-8">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Certificates</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          The platform's TLS certificates in AWS Certificate Manager, read live: status, expiry and renewal. A certificate
-          that is expiring, expired or failed to renew raises a certificate event on the Threats page.
-        </p>
-      </header>
+      <PageHeader
+        title="Certificates"
+        summary="The platform's TLS certificates, read live from AWS Certificate Manager."
+        about={
+          <p>
+            The platform's TLS certificates in AWS Certificate Manager, read live: status, expiry and renewal. A certificate that is expiring, expired or failed to renew raises a certificate event on the Threats page.
+          </p>
+        }
+      />
       {READERS.includes(user.role) ? (
         <CertificateInventory />
       ) : (
@@ -156,10 +159,7 @@ function ModuleCapabilities() {
   const items = caps.data.filter((c) => MODULE.capabilityKeys.includes(c.key));
   if (!items.length) return null;
   return (
-    <section aria-labelledby="cert-caps" className="space-y-3">
-      <h2 id="cert-caps" className="text-lg font-semibold">
-        Capabilities
-      </h2>
+    <section className="space-y-3">
       <CapabilityTable caption="Certificate capabilities" items={items} />
     </section>
   );

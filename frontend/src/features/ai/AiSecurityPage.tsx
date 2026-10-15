@@ -1,3 +1,4 @@
+import { PageHeader, Section } from "../../components/page";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FormError } from "../../components/forms";
@@ -55,15 +56,15 @@ export function AiSecurityPage() {
 
   return (
     <div className="max-w-6xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">AI Security</h1>
-        <p className="mt-1 max-w-prose text-ink-muted">
-          The AI explains security events, incidents, findings and threat models, and may propose an action. It never acts
-          on its own: an admin or security engineer approves or rejects every proposal. Attacker-controlled text is sent
-          as delimited data, scored for prompt-injection signals, and every answer must quote its evidence verbatim or it
-          is rejected.
-        </p>
-      </header>
+      <PageHeader
+        title="AI Security"
+        summary="AI analysis of events, incidents and findings. People approve every action."
+        about={
+          <p>
+            The AI explains security events, incidents, findings and threat models, and may propose an action. It never acts on its own: an admin or security engineer approves or rejects every proposal. Attacker-controlled text is sent as delimited data, scored for prompt-injection signals, and every answer must quote its evidence verbatim or it is rejected.
+          </p>
+        }
+      />
 
       {status && !status.enabled && (
         <p role="status" className="rounded-md border border-line bg-surface px-4 py-3 text-sm">
@@ -98,20 +99,14 @@ export function AiSecurityPage() {
 
       <FormError error={error} />
 
-      <section aria-labelledby="proposals-heading" className="space-y-3">
-        <h2 id="proposals-heading" className="text-base font-semibold">
-          Proposals awaiting a decision
-        </h2>
+      <Section title="Proposals awaiting a decision" id="proposals-heading">
         {proposals && proposals.items.length === 0 && <p className="text-sm text-ink-muted">Nothing is waiting.</p>}
         {proposals?.items.map((p) => (
           <ProposalCard key={p.id} proposal={p} onDecided={decided} showSource />
         ))}
-      </section>
+      </Section>
 
-      <section aria-labelledby="analyses-heading" className="space-y-3">
-        <h2 id="analyses-heading" className="text-base font-semibold">
-          Recent analyses
-        </h2>
+      <Section title="Recent analyses" id="analyses-heading">
         {!analyses && !error && <p className="text-sm text-ink-muted">Loading analyses…</p>}
         {analyses && analyses.length === 0 && (
           <p className="text-sm text-ink-muted">
@@ -174,7 +169,7 @@ export function AiSecurityPage() {
             </table>
           </div>
         )}
-      </section>
+      </Section>
     </div>
   );
 }
