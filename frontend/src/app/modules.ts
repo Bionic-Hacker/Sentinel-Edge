@@ -72,7 +72,7 @@ export const MODULES: readonly ModuleDef[] = [
       "platform.client_ip",
     ],
     builtNote:
-      "The edge runs in AWS only during a deploy window. What it blocks is on the WAF and Threats pages, its certificates on the Certificates page, and an edge check proves it from the internet (make edge-check).",
+      "The edge runs in AWS only during a deploy window. What it blocks is in Audit Logs (WAF logs) and on the Threats page, its rules on the WAF page, its certificates on the Certificates page, and an edge check proves it from the internet (make edge-check).",
   },
   {
     path: "/threats",
@@ -180,6 +180,41 @@ export const MODULES: readonly ModuleDef[] = [
 ];
 
 /**
+ * The sidebar's parent titles. Each groups related modules and opens or closes when pressed; the
+ * group holding the current page opens by itself. Every module belongs to exactly one group.
+ */
+export interface NavGroup {
+  id: string;
+  label: string;
+  paths: readonly string[];
+}
+
+export const NAV_GROUPS: readonly NavGroup[] = [
+  { id: "overview", label: "Overview", paths: ["/", "/applications"] },
+  { id: "edge", label: "Edge Security", paths: ["/edge", "/waf", "/threats", "/certificates"] },
+  { id: "appsec", label: "Application Security", paths: ["/apis", "/vulnerabilities", "/sbom", "/ai-security"] },
+  { id: "secops", label: "Security Operations", paths: ["/incidents", "/automation"] },
+  { id: "grc", label: "Governance & Risk", paths: ["/threat-modeling", "/compliance", "/audit-logs"] },
+  { id: "admin", label: "Administration", paths: ["/settings"] },
+];
+
+/** Inside a group the parent title already says "Edge Security", so its first page is the overview. */
+export const NAV_LABEL: Readonly<Record<string, string>> = { "/edge": "Edge overview" };
+
+/** The module a route belongs to (/incidents/12 is Incidents). */
+export function moduleIndexFor(pathname: string): number {
+  return MODULES.findIndex((m) =>
+    m.path === "/" ? pathname === "/" : pathname === m.path || pathname.startsWith(`${m.path}/`),
+  );
+}
+
+/** The group holding a route, if any. */
+export function groupFor(pathname: string): NavGroup | undefined {
+  const module = MODULES[moduleIndexFor(pathname)];
+  return module ? NAV_GROUPS.find((g) => g.paths.includes(module.path)) : undefined;
+}
+
+/**
  * Each tab's backdrop (index.css, `.backdrop`): an industrial SOC console look drawn in CSS from
  * the theme accent. A pattern suited to the work, plus the tab's console code as a large outlined
  * mark, so every tab is distinct. Patterns only, no photos: nothing to license or download.
@@ -218,11 +253,7 @@ const BACKDROPS: Readonly<Record<string, { pattern: Backdrop; code: string }>> =
 export function backdropFor(
   pathname: string,
 ): { pattern: Backdrop; code: string; index: number } | undefined {
-  const index = MODULES.findIndex((m) =>
-    m.path === "/"
-      ? pathname === "/"
-      : pathname === m.path || pathname.startsWith(`${m.path}/`),
-  );
+  const index = moduleIndexFor(pathname);
   const module = MODULES[index];
   const backdrop = module ? BACKDROPS[module.path] : undefined;
   return backdrop ? { ...backdrop, index } : undefined;

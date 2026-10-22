@@ -1,4 +1,5 @@
-import { PageHeader } from "../../components/page";
+import { PageHeader, Section } from "../../components/page";
+import { useSearchParams } from "react-router-dom";
 import { useEffect, useState, type FormEvent } from "react";
 import { useCapabilities } from "../../app/capabilities-context";
 import { useCurrentUser } from "../../app/auth-context";
@@ -69,11 +70,13 @@ export function ApplicationsPage() {
     return () => controller.abort();
   }, [canEdit, version]);
 
+  const replace = (next: Application) => setApps((list) => list?.map((a) => (a.id === next.id ? next : a)) ?? null);
+
   return (
     <div className="max-w-7xl space-y-6">
       <PageHeader
         title="Applications"
-        summary="Protected applications, their owners and criticality."
+        summary="SentinelEdge itself, and the client platforms registered for protection and evaluation."
         about={
           <p>
             The applications SentinelEdge protects, with their owners and criticality. SentinelEdge is the first: its figures are measured live. Applications without connected telemetry say so rather than show a made-up number.
@@ -112,21 +115,146 @@ export function ApplicationsPage() {
       {error && <FormError error={error} />}
       {!apps && !error && <p className="text-sm text-ink-muted">Loading applications…</p>}
       {apps && (
-        <ul className="space-y-4">
-          {apps.map((app) => (
-            <ApplicationCard
-              key={`${app.id}-${app.version}`}
-              app={app}
-              canEdit={canEdit}
-              owners={owners}
-              onChange={(next) => setApps((list) => list?.map((a) => (a.id === next.id ? next : a)) ?? null)}
-            />
-          ))}
-          {!apps.length && <li className="text-sm text-ink-muted">No applications to show.</li>}
-        </ul>
+        <>
+          <Section
+            title="SentinelEdge platform"
+            id="platform-heading"
+            meta="The platform itself, measured live"
+          >
+            <ul className="space-y-4">
+              {apps
+                .filter((a) => a.is_platform)
+                .map((app) => (
+                  <ApplicationCard
+                    key={`${app.id}-${app.version}`}
+                    app={app}
+                    canEdit={canEdit}
+                    owners={owners}
+                    onChange={replace}
+                  />
+                ))}
+              {!apps.some((a) => a.is_platform) && (
+                <li className="text-sm text-ink-muted">The platform's own record is not visible to your role.</li>
+              )}
+            </ul>
+          </Section>
+          <ClientPlatforms
+            apps={apps.filter((a) => !a.is_platform)}
+            canEdit={canEdit}
+            owners={owners}
+            onChange={replace}
+          />
+        </>
       )}
       <ModuleCapabilities />
     </div>
+  );
+}
+
+// --- Client platforms ---------------------------------------------------------------------------
+
+const STATUSES = ["active", "retired"] as const;
+const TELEMETRY = ["connected", "not-connected"] as const;
+type Telemetry = (typeof TELEMETRY)[number];
+
+/** Telemetry is connected when the platform's own events are measured, not merely registered. */
+export const telemetryOf = (app: Application): Telemetry =>
+  app.security_events_24h.status === "measured" ? "connected" : "not-connected";
+
+const pickParam = <T extends string>(values: readonly T[], value: string | null): T | "" =>
+  value && (values as readonly string[]).includes(value) ? (value as T) : "";
+
+/**
+ * Every registered client platform, filtered from the URL so a filtered view can be linked. The
+ * platform filter lists each registered platform by name; the others narrow by how it is run.
+ */
+function ClientPlatforms({
+  apps,
+  canEdit,
+  owners,
+  onChange,
+}: {
+  apps: Application[];
+  canEdit: boolean;
+  owners: Person[];
+  onChange: (app: Application) => void;
+}) {
+  const [params, setParams] = useSearchParams();
+  const slugs = apps.map((a) => a.slug);
+  const filters = {
+    app: pickParam(slugs, params.get("app")),
+    environment: pickParam(APP_ENVIRONMENTS, params.get("environment")),
+    criticality: pickParam(CRITICALITIES, params.get("criticality")),
+    status: pickParam(STATUSES, params.get("status")),
+    telemetry: pickParam(TELEMETRY, params.get("telemetry")),
+  };
+  const active = Object.values(filters).filter(Boolean).length;
+  const shown = apps.filter(
+    (a) =>
+      (!filters.app || a.slug === filters.app) &&
+      (!filters.environment || a.environment === filters.environment) &&
+      (!filters.criticality || a.criticality === filters.criticality) &&
+      (!filters.status || a.status === filters.status) &&
+      (!filters.telemetry || telemetryOf(a) === filters.telemetry),
+  );
+
+  function set(name: string, value: string) {
+    const next = new URLSearchParams(params);
+    if (value) next.set(name, value);
+    else next.delete(name);
+    setParams(next, { replace: true });
+  }
+
+  const select = "rounded border border-line bg-canvas px-2 py-1.5 text-sm";
+  const filter = (name: keyof typeof filters, label: string, options: readonly { value: string; label: string }[], any: string) => (
+    <label className="space-y-1 text-sm">
+      <span className="block text-ink-muted">{label}</span>
+      <select value={filters[name]} onChange={(e) => set(name, e.target.value)} className={name === "app" ? select : `${select} capitalize`}>
+        <option value="">{any}</option>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+  const plain = (values: readonly string[]) => values.map((v) => ({ value: v, label: v.replace("-", " ") }));
+
+  return (
+    <Section
+      title="Client platforms"
+      id="clients-heading"
+      count={apps.length}
+      meta={active ? `${shown.length} shown, ${active} filter${active > 1 ? "s" : ""} on` : "Registered for protection and evaluation"}
+    >
+      <div className="space-y-4">
+        <form role="search" aria-label="Filter client platforms" onSubmit={(e) => e.preventDefault()} className="flex flex-wrap items-end gap-3">
+          {filter(
+            "app",
+            "Platform",
+            apps.map((a) => ({ value: a.slug, label: a.name })),
+            "All platforms",
+          )}
+          {filter("environment", "Environment", plain(APP_ENVIRONMENTS), "Any environment")}
+          {filter("criticality", "Criticality", plain(CRITICALITIES), "Any criticality")}
+          {filter("status", "Status", plain(STATUSES), "Any status")}
+          {filter("telemetry", "Telemetry", plain(TELEMETRY), "Any telemetry")}
+          {active > 0 && (
+            <Button type="button" variant="secondary" onClick={() => setParams(new URLSearchParams(), { replace: true })}>
+              Clear filters
+            </Button>
+          )}
+        </form>
+        <ul className="space-y-4">
+          {shown.map((app) => (
+            <ApplicationCard key={`${app.id}-${app.version}`} app={app} canEdit={canEdit} owners={owners} onChange={onChange} />
+          ))}
+          {!apps.length && <li className="text-sm text-ink-muted">No client platforms are registered yet.</li>}
+          {apps.length > 0 && !shown.length && <li className="text-sm text-ink-muted">No client platforms match these filters.</li>}
+        </ul>
+      </div>
+    </Section>
   );
 }
 
@@ -211,7 +339,7 @@ function ApplicationCard({
             {app.environment} · criticality {app.criticality} · {app.domain ?? "no domain"} · owner{" "}
             {app.owner ? app.owner.display_name : "unassigned"}
             {app.status === "retired" ? " · retired" : ""}
-            {app.is_platform ? " · this platform" : ""}
+            {app.is_platform ? "" : ` · telemetry ${telemetryOf(app).replace("-", " ")}`}
           </p>
         </div>
         {canEdit && !editing && (

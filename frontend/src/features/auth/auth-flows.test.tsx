@@ -310,9 +310,21 @@ describe("role-aware pages", () => {
     );
   });
 
-  it("tells non-auditors they have no access to audit logs", async () => {
-    await renderAt("/audit-logs", { "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()) });
+  it("tells developers they have no access to audit logs", async () => {
+    await renderAt("/audit-logs", {
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated(profile({ role: "DEVELOPER" }))),
+    });
     expect(await screen.findByText(/available to administrators and security engineers/)).toBeInTheDocument();
+  });
+
+  it("shows non-auditors the WAF logs but not the audit trail", async () => {
+    await renderAt("/audit-logs", {
+      "POST /api/v1/auth/refresh": () => jsonResponse(authenticated()),
+      "/api/v1/security-events": () => jsonResponse({ items: [], next_before_seq: null }),
+    });
+    expect(await screen.findByRole("tab", { name: "WAF logs" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Audit trail" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Verify integrity" })).not.toBeInTheDocument();
   });
 
   it("renders audit details as text, never as markup", async () => {

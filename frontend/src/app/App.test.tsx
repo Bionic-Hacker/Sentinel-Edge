@@ -1,15 +1,20 @@
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { authenticated, CAPS, jsonResponse, mockApi } from "../test/fixtures";
 import { renderSettled } from "../test/render";
 import { AppRoutes } from "./App";
-import { MODULES } from "./modules";
+import { MODULES, NAV_GROUPS } from "./modules";
 
 const SPEC_NAV = [
   "Dashboard", "Applications", "APIs", "WAF", "Edge Security", "Threats", "Incidents",
   "Vulnerabilities", "Threat Modeling", "Certificates", "AI Security", "SBOM", "Compliance",
   "Audit Logs", "Automation", "Settings",
+];
+
+const GROUPS = [
+  "Overview", "Edge Security", "Application Security", "Security Operations", "Governance & Risk", "Administration",
 ];
 
 const LOCAL = { environment: "local", deployed: false, region: null };
@@ -33,11 +38,35 @@ async function renderAt(path: string, caps = CAPS, environment: object = LOCAL) 
 }
 
 describe("navigation", () => {
-  it("matches the spec's navigation order exactly", async () => {
-    await renderAt("/");
-    const nav = screen.getByRole("navigation", { name: "Primary" });
-    expect(within(nav).getAllByRole("link").map((l) => l.textContent)).toEqual(SPEC_NAV);
+  it("keeps every spec module, each in exactly one sidebar group", () => {
     expect(MODULES.map((m) => m.label)).toEqual(SPEC_NAV);
+    const grouped = NAV_GROUPS.flatMap((g) => g.paths);
+    expect([...grouped].sort()).toEqual(MODULES.map((m) => m.path).sort());
+    expect(new Set(grouped).size).toBe(grouped.length);
+  });
+
+  it("shows parent titles that open when pressed, with the current page's group open", async () => {
+    const user = userEvent.setup();
+    await renderAt("/waf");
+    const nav = screen.getByRole("navigation", { name: "Primary" });
+    const parents = within(nav).getAllByRole("button");
+    expect(parents.map((b) => b.textContent)).toEqual(GROUPS);
+    const edge = within(nav).getByRole("button", { name: "Edge Security" });
+    expect(edge).toHaveAttribute("aria-expanded", "true");
+    expect(within(nav).getAllByRole("link").map((l) => l.textContent)).toEqual([
+      "Edge overview", "WAF", "Threats", "Certificates",
+    ]);
+    expect(within(nav).getByRole("link", { name: "WAF" })).toHaveAttribute("aria-current", "page");
+
+    const grc = within(nav).getByRole("button", { name: "Governance & Risk" });
+    expect(grc).toHaveAttribute("aria-expanded", "false");
+    await user.click(grc);
+    expect(grc).toHaveAttribute("aria-expanded", "true");
+    expect(within(nav).getByRole("link", { name: "Audit Logs" })).toBeInTheDocument();
+
+    await user.click(edge);
+    expect(edge).toHaveAttribute("aria-expanded", "false");
+    expect(within(nav).queryByRole("link", { name: "WAF" })).not.toBeInTheDocument();
   });
 
   it("states that no AWS resources are connected, when the API says it runs locally", async () => {

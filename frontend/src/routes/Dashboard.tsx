@@ -27,7 +27,7 @@ const SECOPS_READERS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER", "ANALYST"
 export function Dashboard() {
   const user = useCurrentUser();
   return (
-    <div className="max-w-7xl space-y-12">
+    <div className="w-full space-y-12">
       {SECOPS_READERS.includes(user.role) ? (
         <SecurityOverview />
       ) : (

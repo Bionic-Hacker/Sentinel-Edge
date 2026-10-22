@@ -1,7 +1,7 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth, useCurrentUser } from "../app/auth-context";
-import { MODULES, backdropFor } from "../app/modules";
+import { MODULES, NAV_GROUPS, NAV_LABEL, backdropFor, groupFor } from "../app/modules";
 import { getEnvironment } from "../lib/api/edge";
 import { useApi } from "../lib/useApi";
 import { ApiStatus } from "./ApiStatus";
@@ -52,6 +52,83 @@ function EnvironmentBanner() {
   );
 }
 
+/**
+ * The sidebar: parent titles that open and close when pressed. The group holding the current page
+ * opens by itself unless the viewer closed it; closed groups keep their links out of the page.
+ * Held in memory only (ADR-0003 keeps browser storage out of the SPA); the layout stays mounted
+ * between pages, so the choices last the session.
+ */
+function SideNav() {
+  const { pathname } = useLocation();
+  const active = groupFor(pathname);
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
+  const byPath = new Map(MODULES.map((m) => [m.path, m]));
+
+  function toggle(id: string, open: boolean) {
+    setToggled((current) => ({ ...current, [id]: !open }));
+  }
+
+  return (
+    <nav aria-label="Primary" className="overflow-y-auto px-2 py-3 md:h-[calc(100vh-57px)]">
+      <ul className="space-y-1">
+        {NAV_GROUPS.map((group) => {
+          const holdsActive = active?.id === group.id;
+          const open = toggled[group.id] ?? holdsActive;
+          const listId = `nav-${group.id}`;
+          return (
+            <li key={group.id}>
+              <button
+                type="button"
+                aria-expanded={open}
+                aria-controls={listId}
+                onClick={() => toggle(group.id, open)}
+                className={`nav-group flex w-full items-center justify-between rounded px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider ${
+                  holdsActive ? "text-ink" : "text-ink-muted hover:text-ink"
+                } hover:bg-raised/60`}
+              >
+                <span className="flex items-center gap-2">
+                  {holdsActive && !open && <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />}
+                  {group.label}
+                </span>
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  className={`size-3.5 shrink-0 transition-transform ${open ? "rotate-90" : ""}`}
+                >
+                  <path d="M7 5l6 5-6 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+              <ul id={listId} hidden={!open} className="mb-2 ml-3 mt-0.5 space-y-0.5 border-l border-line pl-2">
+                {group.paths.map((path) => {
+                  const m = byPath.get(path);
+                  if (!m) return null;
+                  return (
+                    <li key={path}>
+                      <NavLink
+                        to={path}
+                        end={path === "/"}
+                        className={({ isActive }) =>
+                          `block rounded px-3 py-1.5 text-sm ${
+                            isActive
+                              ? "bg-raised text-ink shadow-[inset_2px_0_0_var(--color-accent)]"
+                              : "text-ink-muted hover:bg-raised/60 hover:text-ink"
+                          }`
+                        }
+                      >
+                        {NAV_LABEL[path] ?? m.label}
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}
+
 /** The glow moves a little from tab to tab, so tabs sharing a pattern still differ. */
 const GLOW_X = ["85%", "70%", "92%", "60%"];
 const GLOW_Y = ["8%", "20%", "35%"];
@@ -80,30 +157,7 @@ export function Layout() {
             SentinelEdge
           </span>
         </div>
-        <nav
-          aria-label="Primary"
-          className="overflow-y-auto px-2 py-3 md:h-[calc(100vh-57px)]"
-        >
-          <ul className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
-            {MODULES.map((m) => (
-              <li key={m.path} className="shrink-0">
-                <NavLink
-                  to={m.path}
-                  end={m.path === "/"}
-                  className={({ isActive }) =>
-                    `block rounded px-3 py-1.5 text-sm ${
-                      isActive
-                        ? "bg-raised text-ink shadow-[inset_2px_0_0_var(--color-accent)]"
-                        : "text-ink-muted hover:bg-raised/60 hover:text-ink"
-                    }`
-                  }
-                >
-                  {m.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <SideNav />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

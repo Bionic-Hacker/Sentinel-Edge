@@ -680,9 +680,34 @@ describe("applications", () => {
 
   it("shows planned measures as planned, not as numbers", async () => {
     await renderAs("VIEWER", "/applications", { "/api/v1/applications": () => jsonResponse({ items: [application()] }) });
-    expect(await screen.findByRole("heading", { name: /SentinelEdge/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /^SentinelEdge sentineledge/ })).toBeInTheDocument();
     expect(tile("API endpoints")).toHaveTextContent("45");
     expect(tile("Security score")).toHaveTextContent("Phase 10");
+  });
+
+  it("separates the platform from client platforms and filters clients by platform", async () => {
+    const shop = application({ id: "5e7e1ed6-0000-4000-8000-000000000002", slug: "shop", name: "Shop", is_platform: false, environment: "production" });
+    const crm = application({ id: "5e7e1ed6-0000-4000-8000-000000000003", slug: "crm", name: "CRM", is_platform: false, environment: "staging" });
+    await renderAs("VIEWER", "/applications", {
+      "/api/v1/applications": () => jsonResponse({ items: [application(), shop, crm] }),
+    });
+    const platform = await screen.findByRole("region", { name: "SentinelEdge platform" });
+    expect(within(platform).getByRole("heading", { name: /^SentinelEdge sentineledge/ })).toBeInTheDocument();
+    const clients = screen.getByRole("region", { name: "Client platforms" });
+    expect(within(clients).queryByRole("heading", { name: /^SentinelEdge sentineledge/ })).not.toBeInTheDocument();
+    expect(within(clients).getByRole("heading", { name: /^Shop/ })).toBeInTheDocument();
+    expect(within(clients).getByRole("heading", { name: /^CRM/ })).toBeInTheDocument();
+
+    const picker = within(clients).getByRole("combobox", { name: "Platform" });
+    expect(within(picker).getAllByRole("option").map((o) => o.textContent)).toEqual(["All platforms", "Shop", "CRM"]);
+    await userEvent.selectOptions(picker, "crm");
+    expect(within(clients).queryByRole("heading", { name: /^Shop/ })).not.toBeInTheDocument();
+    expect(within(clients).getByRole("heading", { name: /^CRM/ })).toBeInTheDocument();
+
+    await userEvent.click(within(clients).getByRole("button", { name: "Clear filters" }));
+    await userEvent.selectOptions(within(clients).getByRole("combobox", { name: "Environment" }), "production");
+    expect(within(clients).getByRole("heading", { name: /^Shop/ })).toBeInTheDocument();
+    expect(within(clients).queryByRole("heading", { name: /^CRM/ })).not.toBeInTheDocument();
   });
 });
 
@@ -706,8 +731,9 @@ describe("simulated WAF", () => {
     await waitFor(() => expect(mode).toHaveValue("count"));
     expect(callsTo(calls, "PUT", "/api/v1/simulator/waf-rules/SQLI-001")[0]?.body).toEqual({ mode: "count" });
     expect(screen.getByText("Simulated data.")).toBeInTheDocument();
-    const views = callsTo(calls, "GET", "/api/v1/security-events").map((c) => c.query.get("view"));
-    expect(views).toContain("simulated");
+    // The rules page no longer reads the log; its records are in Audit Logs.
+    expect(callsTo(calls, "GET", "/api/v1/security-events")).toEqual([]);
+    expect(screen.getByRole("link", { name: /Audit Logs, WAF logs/ })).toHaveAttribute("href", "/audit-logs?tab=waf");
   });
 
   it("shows the real AWS WAF blocks read back from its log", async () => {
@@ -740,8 +766,22 @@ describe("simulated WAF", () => {
     expect(screen.getByRole("list", { name: "AWS WAF blocks by rule, last 24 hours" })).toHaveTextContent("SQLi_QUERYARGUMENTS");
     // Viewers read; only leads can sync.
     expect(screen.queryByRole("button", { name: "Sync now" })).not.toBeInTheDocument();
-    const real = callsTo(calls, "GET", "/api/v1/security-events").find((c) => c.query.get("provenance") === "REAL_AWS");
-    expect(real?.query.get("source")).toBe("waf");
+    expect(callsTo(calls, "GET", "/api/v1/security-events")).toEqual([]);
+  });
+
+  it("puts the WAF log records in Audit Logs, real and simulated apart", async () => {
+    const viewer = await renderAs("VIEWER", "/audit-logs?tab=waf", routes());
+    expect(await screen.findByRole("heading", { name: "AWS WAF log" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Simulated WAF log" })).not.toBeInTheDocument();
+    const reads = callsTo(viewer, "GET", "/api/v1/security-events");
+    expect(reads.map((c) => [c.query.get("provenance"), c.query.get("source")])).toEqual([["REAL_AWS", "waf"]]);
+  });
+
+  it("shows analysts the simulated WAF log too", async () => {
+    const calls = await renderAs("ANALYST", "/audit-logs?tab=waf", routes());
+    expect(await screen.findByRole("heading", { name: "Simulated WAF log" })).toBeInTheDocument();
+    const views = callsTo(calls, "GET", "/api/v1/security-events").map((c) => c.query.get("view"));
+    expect(views).toContain("simulated");
   });
 
   it("shows an analyst the rules read-only", async () => {

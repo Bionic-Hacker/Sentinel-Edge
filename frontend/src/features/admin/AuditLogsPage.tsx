@@ -1,11 +1,13 @@
 import { PageHeader } from "../../components/page";
 import { useEffect, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useCurrentUser } from "../../app/auth-context";
 import { Button, FormError, Notice } from "../../components/forms";
 import { listAuditEntries, verifyAuditChain, type AuditFilters } from "../../lib/api/admin";
 import type { ApiError } from "../../lib/api/client";
 import { AUDIT_RESULTS, type AuditEntry, type AuditResult, type ChainStatus, type Role } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
+import { WAF_LOG_READERS, WafLogs } from "./WafLogs";
 
 const AUDITORS: readonly Role[] = ["ADMIN", "SECURITY_ENGINEER"];
 const KNOWN_ACTIONS = [
@@ -49,9 +51,14 @@ const RESULT_STYLE: Record<AuditEntry["result"], string> = {
   denied: "text-fail",
 };
 
+type Tab = "trail" | "waf";
+
 export function AuditLogsPage() {
   const user = useCurrentUser();
-  if (!AUDITORS.includes(user.role)) {
+  const [params, setParams] = useSearchParams();
+  const canTrail = AUDITORS.includes(user.role);
+  const canWaf = WAF_LOG_READERS.includes(user.role);
+  if (!canTrail && !canWaf) {
     return (
       <div className="max-w-prose space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Audit logs</h1>
@@ -59,7 +66,50 @@ export function AuditLogsPage() {
       </div>
     );
   }
-  return <AuditLogViewer />;
+  const tabs: { id: Tab; label: string }[] = [
+    ...(canTrail ? [{ id: "trail" as const, label: "Audit trail" }] : []),
+    ...(canWaf ? [{ id: "waf" as const, label: "WAF logs" }] : []),
+  ];
+  const requested = params.get("tab") === "waf" ? "waf" : "trail";
+  const tab: Tab = tabs.some((t) => t.id === requested) ? requested : canTrail ? "trail" : "waf";
+  const select = (id: Tab) => setParams(id === "trail" ? {} : { tab: id }, { replace: true });
+
+  return (
+    <div className="max-w-7xl space-y-5">
+      <PageHeader
+        title="Audit logs"
+        summary="The audit trail of sign-ins, denials and changes, and the WAF's own log."
+        about={
+          <p>
+            The audit trail records every sign-in, permission denial and administrative change, newest first. Each record
+            is chained to the one before it, so any edit to history is detectable. The WAF logs are kept beside it: what
+            AWS WAF and the simulator's WAF recorded.
+          </p>
+        }
+      />
+      <div role="tablist" aria-label="Log" className="flex gap-1 border-b border-line">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`panel-${t.id}`}
+            onClick={() => select(t.id)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm ${
+              tab === t.id ? "border-accent font-medium text-ink" : "border-transparent text-ink-muted hover:text-ink"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+        {tab === "trail" ? <AuditLogViewer /> : <WafLogs role={user.role} />}
+      </div>
+    </div>
+  );
 }
 
 function AuditLogViewer() {
@@ -127,23 +177,13 @@ function AuditLogViewer() {
   }
 
   return (
-    <div className="max-w-6xl space-y-5">
-      <PageHeader
-        title="Audit logs"
-        summary="Every sign-in, denial and administrative change, newest first."
-        about={
-          <p>
-            Every sign-in, permission denial and administrative change, newest first. Each record is chained to the one before it, so any edit to history is detectable.
-          </p>
-        }
-        actions={
-          <>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-ink-muted">Newest first. Each record is chained to the one before it.</p>
         <Button variant="secondary" onClick={() => void verify()}>
           Verify integrity
         </Button>
-          </>
-        }
-      />
+      </div>
 
       {chain &&
         (chain.intact ? (

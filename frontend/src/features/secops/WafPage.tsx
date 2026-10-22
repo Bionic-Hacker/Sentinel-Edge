@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useCapabilities } from "../../app/capabilities-context";
 import { useCurrentUser } from "../../app/auth-context";
 import { MODULES } from "../../app/modules";
-import { BarList } from "../../components/charts";
+import { Link } from "react-router-dom";
 import { CapabilityTable } from "../../components/CapabilityTable";
 import { FormError } from "../../components/forms";
-import { SeverityBadge, SimulatedBanner, StatTile, categoryLabel, formatTime } from "../../components/secops";
+import { SeverityBadge, SimulatedBanner, categoryLabel, formatTime } from "../../components/secops";
 import type { ApiError } from "../../lib/api/client";
-import { listEvents, listWafRules, setWafRuleMode } from "../../lib/api/secops";
-import { WAF_MODES, type Role, type SecurityEventSummary, type WafMode, type WafRuleList } from "../../lib/types";
+import { listWafRules, setWafRuleMode } from "../../lib/api/secops";
+import { WAF_MODES, type Role, type WafMode, type WafRuleList } from "../../lib/types";
 import { asApiError } from "../auth/LoginPage";
 import { AwsWafSection } from "./AwsWafSection";
 
@@ -26,7 +26,7 @@ export function WafPage() {
     <div className="max-w-7xl space-y-8">
       <PageHeader
         title="WAF"
-        summary="What AWS WAF blocks at the edge, and the simulator's WAF rules."
+        summary="AWS WAF at the edge and the simulator's WAF rules. Their log records are in Audit Logs."
         about={
           <p>
             AWS WAF protects the platform on CloudFront, with rules changed only through reviewed Terraform pull requests; what it blocks is read back here. A simulated WAF runs inside the attack simulator everywhere, using SentinelEdge's own detection rules.
@@ -48,19 +48,14 @@ export function WafPage() {
 
 function SimulatedWaf({ canChange }: { canChange: boolean }) {
   const [rules, setRules] = useState<WafRuleList | null>(null);
-  const [logs, setLogs] = useState<SecurityEventSummary[]>([]);
   const [error, setError] = useState<ApiError | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    Promise.all([
-      listWafRules(controller.signal),
-      listEvents({ view: "simulated", source: "waf", limit: 100 }, controller.signal),
-    ])
-      .then(([r, page]) => {
+    listWafRules(controller.signal)
+      .then((r) => {
         setRules(r);
-        setLogs(page.items);
         setError(null);
       })
       .catch((err: unknown) => {
@@ -84,23 +79,8 @@ function SimulatedWaf({ canChange }: { canChange: boolean }) {
     }
   }
 
-  const blocked = logs.filter((e) => e.outcome === "blocked").length;
-  const counted = logs.length - blocked;
-  const byRule = new Map<string, number>();
-  const bySource = new Map<string, number>();
-  for (const e of logs) {
-    if (e.rule_id) byRule.set(e.rule_id, (byRule.get(e.rule_id) ?? 0) + 1);
-  }
-  // Countries come from the WAF log record (evidence), which the list view does not carry; the
-  // dashboard's simulated view shows them. Here we count by source address instead.
-  for (const e of logs) {
-    if (e.source_ip) bySource.set(e.source_ip, (bySource.get(e.source_ip) ?? 0) + 1);
-  }
-  const sorted = (m: Map<string, number>) =>
-    [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([key, value]) => ({ key, label: key, value }));
-
   return (
-    <Section title="Simulated WAF" id="sim-waf">
+    <Section title="Simulated WAF rules" id="sim-waf">
       <SimulatedBanner>
         {rules?.note ??
           "Changing a rule here affects simulations only. Real AWS WAF rules change through Terraform (ADR-0008)."}
@@ -171,57 +151,11 @@ function SimulatedWaf({ canChange }: { canChange: boolean }) {
         </>
       )}
 
-      <section aria-labelledby="waf-events" className="space-y-4">
-        <h3 id="waf-events" className="text-base font-semibold">
-          Simulated WAF events
-        </h3>
-        <dl className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          <StatTile label="Log records shown" value={logs.length} note="Most recent 100" />
-          <StatTile label="Blocked" value={blocked} tone="ok" />
-          <StatTile label="Counted, not blocked" value={counted} {...(counted ? { tone: "warn" as const } : {})} />
-        </dl>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">By rule</h4>
-            <BarList label="Simulated WAF events by rule" items={sorted(byRule)} empty="Run a simulation to generate WAF events." />
-          </div>
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">By source address</h4>
-            <BarList label="Simulated WAF events by source address" items={sorted(bySource)} empty="No simulated WAF events yet." />
-          </div>
-        </div>
-        {logs.length > 0 && (
-          <div className="overflow-x-auto rounded-md border border-line">
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">Recent simulated WAF log records</caption>
-              <thead className="bg-surface text-xs text-ink-muted">
-                <tr>
-                  <th scope="col" className="px-3 py-2 font-medium">Time</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Action</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Rule</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Request</th>
-                  <th scope="col" className="px-3 py-2 font-medium">Source</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {logs.slice(0, 25).map((e) => (
-                  <tr key={e.id}>
-                    <td className="whitespace-nowrap px-3 py-2 text-xs tabular-nums text-ink-muted">{formatTime(e.occurred_at)}</td>
-                    <td className={`px-3 py-2 text-xs ${e.outcome === "blocked" ? "text-ok" : "text-prov-sim"}`}>
-                      {e.outcome === "blocked" ? "BLOCK" : "COUNT"}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">{e.rule_id}</td>
-                    <td className="px-3 py-2 text-xs">
-                      {e.method} {e.endpoint}
-                    </td>
-                    <td className="px-3 py-2 font-mono text-xs">{e.source_ip}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <p className="text-sm">
+        <Link to="/audit-logs?tab=waf" className="text-accent underline-offset-2 hover:underline">
+          Read what these rules logged in Audit Logs, WAF logs
+        </Link>
+      </p>
     </Section>
   );
 }
